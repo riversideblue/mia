@@ -1,5 +1,5 @@
 ARG PYTHON_VERSION=3.11.9
-FROM python:${PYTHON_VERSION}-slim AS base
+FROM ubuntu:20.04 AS base
 
 # Prevents Python from writing pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -12,6 +12,8 @@ ENV PYTHONUNBUFFERED=1
 RUN apt-get update && apt-get install -y \
     curl \
     jq \
+    python3=${PYTHON_VERSION}* \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-privileged user that the app will run under.
@@ -43,4 +45,4 @@ EXPOSE 8000
 COPY start.sh /usr/local/bin/start.sh
 
 # Run the application.
-CMD ["/usr/local/bin/start.sh"]
+CMD ["/bin/bash"]
