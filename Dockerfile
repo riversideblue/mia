@@ -48,4 +48,4 @@ COPY . .
 EXPOSE 8000
 
 # Run the application.  
-CMD ["python3","src/test.py"]
+CMD ["/bin/sh"]
