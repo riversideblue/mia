@@ -1,8 +1,10 @@
 {
-    "name": "My Project Dev Container",
-    "dockerComposeFile": "docker-compose.yml",  // Docker Composeファイルを指定
+    "name": "Nids-cdd development container",
+    "dockerComposeFile": [
+      "./docker-compose.yml" // Docker Composeファイルを指定
+    ],
     "service": "dev",  // 開発用に使用するサービスを指定
-    "workspaceFolder": "/workspace",  // コンテナ内での作業ディレクトリ
+    "workspaceFolder": "/nids-cdd",  // コンテナ内での作業ディレクトリ
     "customizations": {
       "vscode": {
         "extensions": [
@@ -12,7 +14,5 @@
           "mhutchie.git-graph"  // Git Graph拡張機能（オプション）
         ]
       }
-    },
-    "remoteUser": "dev-user"  // コンテナ内で使用するユーザー
+    }
   }
-  
