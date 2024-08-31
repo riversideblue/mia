@@ -10,6 +10,7 @@ ENV PYTHONUNBUFFERED=1
 
 # 必要なパッケージをインストール
 RUN apt-get update && apt-get install -y \
+    git \
     curl \
     jq \
     python3=${PYTHON_VERSION}* \
@@ -45,4 +46,4 @@ EXPOSE 8000
 COPY start.sh /usr/local/bin/start.sh
 
 # Run the application.
-CMD ["/bin/bash"]
+CMD ["/usr/local/bin/start.sh"]

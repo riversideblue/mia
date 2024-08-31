@@ -7,7 +7,6 @@
 # You can add other services your application may depend on here, such as a
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
-version: '3.8'
 
 services:
   dev:
@@ -17,10 +16,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/home/black  # ローカルディレクトリをコンテナ内の作業ディレクトリにマウント
+      - ../:/home/black  # プロジェクトのルートフォルダ（../）をコンテナ内の作業ディレクトリ（/home/black）にマウント
     environment:
       - DEBUG=True  # 必要に応じて環境変数を設定
-    command: ["/usr/local/bin/start.sh"]  # CMDを上書きしてスクリプトを実行
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
