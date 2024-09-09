@@ -1,9 +1,0 @@
-services:
-  dev:
-    container_name: dev
-    build:
-      context: .
-      dockerfile: Dockerfile  # Dockerfileの場所を指定（デフォルトでDockerfileを探すので、省略可能）
-    environment:
-      - DEBUG=True  # 必要に応じて環境変数を設定
-    entrypoint:  /usr/local/bin/dev-entrypoint.sh 

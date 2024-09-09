@@ -79,4 +79,4 @@ echo "Kernel: $(uname -r)"
 echo ""
 
 # シェルを起動
-exec "$@"
+exec "/bin/bash"

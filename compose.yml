@@ -1,0 +1,34 @@
+services:
+  development:
+    container_name: development
+    build:
+      context: .
+      dockerfile: Dockerfile-dev  # Dockerfileの場所を指定（デフォルトでDockerfileを探すので、省略可能）
+    environment:
+      - DEBUG=True  # 必要に応じて環境変数を設定
+    entrypoint: ["/usr/local/bin/devEntrypoint.sh", "-c", "while true; do sleep 1; done"]
+    volumes:
+      # Update this to wherever you want VS Code to mount the folder of your project
+      - ..:/workspaces:c
+  server:
+    container_name: server
+    build:
+      context: .
+      dockerfile: src/server/Dockerfile-server  # Dockerfileの場所を指定（デフォルトでDockerfileを探すので、省略可能）
+    environment:
+      - DEBUG=True  # 必要に応じて環境変数を設定
+    entrypoint: ["/usr/local/bin/devEntrypoint.sh", "-c", "while true; do sleep 1; done"]
+    volumes:
+      # Update this to wherever you want VS Code to mount the folder of your project
+      - ..:/workspaces:c
+  gateway:
+    container_name: gw
+    build:
+      context: .
+      dockerfile: src/GW/Dockerfile-GW  # Dockerfileの場所を指定（デフォルトでDockerfileを探すので、省略可能）
+    environment:
+      - DEBUG=True  # 必要に応じて環境変数を設定
+    entrypoint: ["/usr/local/bin/devEntrypoint.sh", "-c", "while true; do sleep 1; done"]
+    volumes:
+      # Update this to wherever you want VS Code to mount the folder of your project
+      - ..:/workspaces:c

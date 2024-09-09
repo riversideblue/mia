@@ -17,11 +17,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Pythonの依存関係をインストール
-COPY requirements.txt .
+COPY serverRequirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
-    python3 -m pip install -r requirements.txt
+    python3 -m pip install -r serverRequirements.txt
 
 # スクリプトをコンテナ内にコピー
-COPY dev-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
-RUN chmod +x /usr/local/bin/dev-entrypoint.sh
-ENTRYPOINT [ "/usr/local/bin/dev-entrypoint.sh" ]
+COPY serverEntrypoint.sh /usr/local/bin/serverEntrypoint.sh

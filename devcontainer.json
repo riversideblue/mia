@@ -1,10 +1,10 @@
 {
     "name": "Nids-cdd development container",
     "dockerComposeFile": [
-      "./docker-compose.yml" // Docker Composeファイルを指定
+      "./compose.yml" // Docker Composeファイルを指定
     ],
-    "service": "dev",  // 開発用に使用するサービスを指定
-    "workspaceFolder": "/nids-cdd",  // コンテナ内での作業ディレクトリ
+    "service": "development",  // 開発用に使用するサービスを指定
+    "workspaceFolder": "/home/user",  // コンテナ内での作業ディレクトリ
     "customizations": {
       "vscode": {
         "extensions": [
