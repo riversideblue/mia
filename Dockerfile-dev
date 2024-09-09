@@ -7,7 +7,7 @@ ARG WORKDIR=/home
 WORKDIR ${WORKDIR}
 
 # ホストのディレクトリをコンテナ内にCOPY
-COPY ./src user/
+COPY . .
 
 # 必要なパッケージをインストール
 RUN apt-get update && apt-get install -y \
