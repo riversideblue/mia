@@ -4,7 +4,7 @@
       "./compose.yml" // Docker Composeファイルを指定
     ],
     "service": "dev",  // 開発用に使用するサービスを指定
-    "workspaceFolder": "/home/user",  // コンテナ内での作業ディレクトリ
+    "workspaceFolder": "/home",  // コンテナ内での作業ディレクトリ
     "customizations": {
 
     }
