@@ -7,6 +7,3 @@ services:
     environment:
       - DEBUG=True  # 必要に応じて環境変数を設定
     entrypoint: ["/usr/local/bin/entrypoint.sh", "-c", "while true; do sleep 1; done"]
-    volumes:
-      # Update this to wherever you want VS Code to mount the folder of your project
-      - ..:/workspaces:c
