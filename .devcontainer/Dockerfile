@@ -19,5 +19,8 @@ COPY .devcontainer/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     python3 -m pip install -r requirements.txt
 
+# Pythonインタープリタを指定
+RUN export PYTHONPATH="/usr/local/bin/python3"
+
 # スクリプトをコンテナ内にコピー
 COPY .devcontainer/entrypoint.sh /usr/local/bin/entrypoint.sh
