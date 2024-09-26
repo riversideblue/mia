@@ -6,6 +6,8 @@
     "service": "dev",  // 開発用に使用するサービスを指定
     "workspaceFolder": "/home",  // コンテナ内での作業ディレクトリ
     "customizations": {
-
-    }
+    },
+    "settings": {
+      "python.pythonPath": "/usr/local/bin/python3"
+  }
   }
