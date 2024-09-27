@@ -14,6 +14,10 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# Gitの設定をDockerfile内で行う
+RUN git config --global user.name murasemaru \
+    && git config --global user.email bp21071@shibaura-it.ac.jp
+
 # Pythonの依存関係をインストール
 COPY .devcontainer/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
