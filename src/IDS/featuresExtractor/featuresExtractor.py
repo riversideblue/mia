@@ -2,10 +2,11 @@ import warnings
 
 from scapy.layers.inet import IP, TCP, UDP
 from scapy.layers.l2 import Ether
+from scapy.sendrecv import sniff
+from scapy.utils import wrpcap
 
 warnings.simplefilter('ignore')
 
-from scapy.all import *
 import numpy as np
 
 from datetime import datetime
