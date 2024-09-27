@@ -1,4 +1,8 @@
 import warnings
+
+from scapy.layers.inet import IP, TCP, UDP
+from scapy.layers.l2 import Ether
+
 warnings.simplefilter('ignore')
 
 from scapy.all import *
@@ -334,7 +338,7 @@ def writePcap():
 if __name__ == "__main__":
 
     #----------------------------------------- offline -----------------------------------------------------
-    if online_flag == False:
+    if not online_flag:
         file_path_list = glob.glob(pcap_dir_name + "/" + "*")
 
         file_list = []
@@ -351,7 +355,7 @@ if __name__ == "__main__":
         #----------------------------------
 
         #-------- pcap files in subdir -------------
-        if pcap_exist_flag == False:
+        if not pcap_exist_flag:
             for i in range(len(glob.glob(pcap_dir_name + "/*/"))):
                 if i+1+subdir_start_d < 10:
                     subdir_name = subdir_year_month + "0" + str((i + 1) + subdir_start_d)
@@ -373,7 +377,7 @@ if __name__ == "__main__":
         #------------------------------------------
 
         #----------- pcap files in dir ------------
-        elif pcap_exist_flag == True:
+        elif pcap_exist_flag:
             for i in range(len(glob.glob(pcap_dir_name + "/" + "*" + pcap_fl_id + "*"))):
                 pcap_fl_name = glob.glob(pcap_dir_name + "/" + "*" + pcap_fl_id + "*")[i]
                 
@@ -392,9 +396,9 @@ if __name__ == "__main__":
 
     else:
         print("online mode")
-        while(1):
+        while 1:
             setCaptureStartDatetime()
             sniff(prn = callback, timeout = captime, stop_filter = stopFilter, store = False)
-            if termination_flag == True:
+            if termination_flag:
                 writePcap()
                 break
