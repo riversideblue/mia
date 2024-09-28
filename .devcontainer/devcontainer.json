@@ -8,6 +8,9 @@
     "containerEnv": {
       "PYTHONPATH": "/usr/local/bin/python3"
     },
+    "remoteEnv": {
+      "PYTHONPATH": "/usr/local/bin/python3"
+    },
     // コンテナ作成後に依存関係をインストール
     "postCreateCommand": "pip install -r .devcontainer/requirements.txt"
   }
