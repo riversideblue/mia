@@ -18,11 +18,3 @@ RUN apt-get update && apt-get install -y \
 RUN git config --global user.name murasemaru \
     && git config --global user.email bp21071@shibaura-it.ac.jp \
     && git config --global credential.helper store --file ~/.git-credentials
-
-# Pythonの依存関係をインストール
-COPY .devcontainer/requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    python3 -m pip install -r requirements.txt
-
-# スクリプトをコンテナ内にコピー
-COPY .devcontainer/entrypoint.sh /usr/local/bin/entrypoint.sh
