@@ -17,4 +17,4 @@ RUN apt-get update && apt-get install -y \
 # Gitの設定をDockerfile内で行う
 RUN git config --global user.name murasemaru \
     && git config --global user.email bp21071@shibaura-it.ac.jp \
-    && git config --global credential.helper store --file ~/.git-credentials
+    && git config --global credential.helper store
