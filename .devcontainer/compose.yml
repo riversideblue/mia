@@ -4,5 +4,7 @@ services:
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile  # Dockerfileの場所を指定（デフォルトでDockerfileを探すので、省略可能）
+    volumes:
+      - "${HOME}/.git-credential:/root/.git-credentials"
     environment:
       - DEBUG=True  # 必要に応じて環境変数を設定
