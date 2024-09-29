@@ -8,6 +8,5 @@ services:
       - type: bind
         source: ~/.git-credentials
         target: /root/.git-credentials
-        read_only: false
     environment:
       - DEBUG=True  # 必要に応じて環境変数を設定

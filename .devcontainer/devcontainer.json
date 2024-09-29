@@ -1,11 +1,10 @@
 {
     "name": "nids-cdd",
     "dockerComposeFile": [
-      "./compose.yml" // Docker Composeファイルを指定
+      "./compose.yml"
     ],
-    "service": "dev",  // 開発用に使用するサービスを指定
-    // コンテナ作成後に依存関係をインストール
-    "onCreateCommand": "dos2unix /root/.git-credentials",
+    "service": "dev",
+    "onCreateCommand": "dos2unix -n /root/.git-credentials /root/.git-credentials2",
     "postCreateCommand": "pip install -r .devcontainer/requirements.txt",
-    "postStartCommand": "git config --global credential.helper store"
+    "postStartCommand": "git config --local credential.helper \"store --file=/root/.git-credentials2\"\n"
   }
