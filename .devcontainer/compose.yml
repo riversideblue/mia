@@ -4,9 +4,11 @@ services:
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile  # Dockerfileの場所を指定（デフォルトでDockerfileを探すので、省略可能）
-    volumes:
-      - type: bind
-        source: ~/.git-credentials
-        target: /root/.git-credentials
+    secrets:
+      - .git-credentials
     environment:
       - DEBUG=True  # 必要に応じて環境変数を設定
+
+secrets:
+  .git-credentials:
+    file: ~/.git-credentials
