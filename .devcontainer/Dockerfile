@@ -12,9 +12,9 @@ COPY .. .
 # 必要なパッケージをインストール
 RUN apt-get update && apt-get install -y \
     git \
-    && rm -rf /var/lib/apt/lists/*
+    dos2unix \
+    && rm -rf /var/lib/apt/lists/* ?
 
 # Gitの設定をDockerfile内で行う
 RUN git config --global user.name murasemaru \
     && git config --global user.email bp21071@shibaura-it.ac.jp \
-    && git config --global credential.helper store

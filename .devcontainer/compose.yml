@@ -5,6 +5,9 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile  # Dockerfileの場所を指定（デフォルトでDockerfileを探すので、省略可能）
     volumes:
-      - "C:/Users/larry/.git-credentials:/root/.git-credentials"
+      - type: bind
+        source: ~/.git-credentials
+        target: /root/.git-credentials
+        read_only: false
     environment:
       - DEBUG=True  # 必要に応じて環境変数を設定
