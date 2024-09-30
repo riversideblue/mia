@@ -4,6 +4,7 @@
       "./compose.yml"
     ],
     "service": "dev",
-    "postCreateCommand": "dos2unix -n /run/secrets/.git-credentials /root/.git-credentials",
+    "onCreateCommand": "dos2unix -n /run/secrets/.git-credentials /root/.git-credentials",
+    "postCreateCommand": "git config --global credential.helper store",
     "postStartCommand": "pip install -r .devcontainer/requirements.txt"
 }
