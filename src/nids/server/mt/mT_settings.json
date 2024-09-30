@@ -1,0 +1,23 @@
+{
+  "DatasetFolderPath": {
+    "TRAINING": "/IdeaProjects/nids-cdd/src/nids/pcap_csv/2022080409-2022081617-pcap_csv",
+    "TEST": "/IdeaProjects/nids-cdd/src/nids/pcap_csv/2022080409-2022081617-pcap_csv"
+  },
+
+  "OS": {
+    "TF_CPP_MIN_LOG_LEVEL": "3",
+    "TF_FORCE_GPU_ALLOW_GROWTH": "true",
+    "CUDA_VISIBLE_DEVICES": "-1"
+  },
+
+  "LearningDefine": {
+    "EPOCH": 30,
+    "BATCH_SIZE": 10,
+    "BEGINNING_DATE": "202208",
+    "REPEAT_COUNT": 16,
+    "Range": {
+      "DAYS": 18,
+      "HOURS": 16
+    }
+  }
+}
