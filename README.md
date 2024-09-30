@@ -1,7 +1,6 @@
 # NIDS-CDD
 
-
-NIDS-CDD is network-based intrution detection system (nids) for smart home environment with concept drift detection (cdd). Original nids was developed by N. W. and now improved by murasemaru.
+network-based intrution detection system (nids) for smart home environment with concept drift detection (cdd). 
 
 ### System Overview
 

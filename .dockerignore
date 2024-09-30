@@ -32,4 +32,4 @@
 **/values.dev.yaml
 LICENSE
 README.md
-src/IDS/featuresExtractor/pcap
+src/IDS/featuresExtractor/pcap/
