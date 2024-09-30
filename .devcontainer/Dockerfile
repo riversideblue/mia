@@ -15,6 +15,6 @@ RUN apt-get update && apt-get install -y \
     dos2unix \
     && rm -rf /var/lib/apt/lists/* ?
 
-# Gitの設定をDockerfile内で行う
+# config(git)ファイルの設定
 RUN git config --global user.name murasemaru \
-    && git config --global user.email bp21071@shibaura-it.ac.jp \
+    && git config --global user.email bp21071@shibaura-it.ac.jp
