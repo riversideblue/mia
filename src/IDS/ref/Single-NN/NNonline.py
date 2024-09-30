@@ -25,14 +25,13 @@ from nnModelDefiner import createModel
 
 EPOCHS = 30
 BATCH_SIZE = 10
-
-DATE = "202201"
-DAYS = 30
+DATE = "202208"
+DAYS = 3
 N_TRAINING = 24
 #------------------------------------------------------------------------------------
 # [1]:train dir name [2]:test dir name
 args = sys.argv
-dataset_csv_dir_name = str(args[1]).replace("/","")
+dataset_csv_dir_name = os.path.basename(args[1])
 evaluate_csv_dir_name = str(args[2]).replace("/","")
 #------ option -------------
 if len(args) >= 4:
@@ -202,8 +201,8 @@ def setBeforeEvaluateCsvFile(fn):
 
 if __name__ == "__main__":  #main
 
-    day = 1 
-    hour = 0
+    day = 3
+    hour = 16
     for i in range(DAYS * N_TRAINING):
         if break_flag == True:
             break
