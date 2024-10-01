@@ -1,7 +1,7 @@
 {
   "DatasetFolderPath": {
-    "TRAINING": "/IdeaProjects/nids-cdd/src/nids/pcap_csv/2022080409-2022081617-pcap_csv",
-    "TEST": "/IdeaProjects/nids-cdd/src/nids/pcap_csv/2022080409-2022081617-pcap_csv"
+    "TRAINING": "/IdeaProjects/nids-cdd/src/main/server/pcap_csv/2022080409-2022081617-pcap_csv",
+    "TEST": "/IdeaProjects/nids-cdd/src/main/server/pcap_csv/2022080409-2022081617-pcap_csv"
   },
 
   "OS": {

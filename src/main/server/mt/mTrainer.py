@@ -3,7 +3,6 @@ import sys
 import logging
 import json
 from datetime import datetime
-from os import listdir
 
 import pandas as pd
 
