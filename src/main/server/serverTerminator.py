@@ -1,10 +1,12 @@
-import asyncio
-
+import driftDetection
+import featureExtraction
+import intrutionDetection
+import machineLearning
 import tensorflow as tf
 
 # ----- Def foundation model
 
-async def createModel():
+def createModel():
     model = tf.keras.models.Sequential()
 
     model.add(tf.keras.layers.Dense(100, input_dim=14))
@@ -22,19 +24,17 @@ async def createModel():
     model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
     return model
 
-async def sendModel():
+def sendModel():
 
     return 0
 
-async def startML():
-
+def startML():
+    machineLearning
     return 0
 
 # ----- Main
 
 if __name__ == "__main__":
-
-    createModel_task = asyncio.create_task(createModel())
 
     # --- Create foundation model
     createModel()

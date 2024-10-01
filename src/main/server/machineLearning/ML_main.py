@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s >> %
 
 # ----- load setting.json
 
-settings = json.load(open("mT_settings.json", "r"))
+settings = json.load(open("settings.json", "r"))
 
 # ----- OS environment settings
 
@@ -43,6 +43,50 @@ def model_training(model, training_dataset):
     df = pd.read_csv(training_dataset)
     print("TRAINING:" + training_dataset)
     print(df)
+
+    global latest_date
+    global first_training_flag
+
+
+    df_x = df.iloc[:, 3:-1].values
+    if first_training_flag == False:
+        df_x = scaler.fit_transform(df_x)
+        first_training_flag = True
+    else:
+        df_x = scaler.transform(df_x)
+    df_y = df.loc[:, "label"].values
+    x_train = df_x
+    y_train = df_y
+    # ---------------------------------------------------------------------------------
+    if latest_date != None:  # online training
+        with open(weights_dir_name + "/" + latest_date + "-weights.pickle", 'rb') as f:
+            print("PARAM:" + latest_date + "-weights.pickle:found")
+            init_weights = pickle.load(f)
+            model.set_weights(init_weights)
+
+    train_start_time = time.time()
+    model.fit(x_train, y_train, epochs=EPOCHS, batch_size=BATCH_SIZE)
+    train_end_time = time.time()
+    train_time = train_end_time - train_start_time
+    writeResults("training-time", train_time)
+
+    latest_date = csv_file_name.split("/")[1].split(".")[0]
+    with open(weights_dir_name + "/" + latest_date + "-weights.pickle", 'wb') as f:
+        print("PARAM:" + latest_date + "-weights.pickle:saved")
+        pickle.dump(model.get_weights(), f)
+    # ---------------------------------------------------------------------------------
+    train_benign_count = 0
+    train_malicious_count = 0
+    for y in y_train:
+        if int(y) == 0:
+            train_benign_count += 1
+        elif int(y) == 1:
+            train_malicious_count += 1
+    print("TRAINING:ben " + str(train_benign_count) + " records")
+    print("TRAINING:mal " + str(train_malicious_count) + " records")
+    writeResults("benign-records", train_benign_count)
+    writeResults("malicious-records", train_malicious_count)
+
     return model
 
 # ----- Model evaluate
