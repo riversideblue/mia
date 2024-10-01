@@ -28,19 +28,14 @@ def sendModel():
 
     return 0
 
-def startML():
-    machineLearning
-    return 0
-
 # ----- Main
 
 if __name__ == "__main__":
 
     # --- Create foundation model
-    createModel()
 
     # --- Send foundation model to Gateway
     sendModel()
 
     # --- Start machine learning
-    startML()
+    machineLearning.main()
