@@ -105,19 +105,18 @@ def main(model):
     # --- load setting.json
     settings = json.load(open("settings.json", "r"))
 
+    # --- Setting
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = settings['OS']['TF_CPP_MIN_LOG_LEVEL']  # log amount
     os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = settings['OS']['TF_FORCE_GPU_ALLOW_GROWTH']  # gpu mem limit
     os.environ["CUDA_VISIBLE_DEVICES"] = settings['OS']['CUDA_VISIBLE_DEVICES']  # cpu : -1
-
-    pass_check(settings['DatasetFolderPath']['TRAINING'])
-    pass_check(settings['DatasetFolderPath']['TEST'])
-    output_mkdir(current_time)
+    pass_check(settings['DatasetsFolderPath']['TRAINING'])
+    pass_check(settings['DatasetsFolderPath']['TEST'])
 
     # --- Field
 
     foundation_model = model
-    training_dataset_path = settings['DatasetFolderPath']['TRAINING']
-    test_dataset_path = settings['DatasetFolderPath']['TEST']
+    training_datasets_path = settings['DatasetsFolderPath']['TRAINING']
+    test_datasets_path = settings['DatasetsFolderPath']['TEST']
     epochs = settings['LearningDefine']['EPOCHS']
     batch_size = settings['LearningDefine']['BATCH_SIZE']
     beginning_date = settings['LearningDefine']['BEGINNING_DATE']
@@ -127,8 +126,15 @@ def main(model):
 
     # --- Get each csv file in training dataset folder and start training model
 
-    for item in os.listdir(training_dataset_path):
-        item_path = os.path.join(training_dataset_path, item)
-        model_training(foundation_model, current_time, item_path, test_dataset_path, epochs, batch_size)
+    output_mkdir(current_time)
+    for dataset in os.listdir(training_datasets_path):
+        dataset_path = os.path.join(training_datasets_path, dataset)
+        model_training(foundation_model,
+                       current_time,
+                       dataset_path,
+                       test_datasets_path,
+                       epochs,
+                       batch_size
+                       )
 
     # --- Evaluate and tuning model
