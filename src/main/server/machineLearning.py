@@ -20,12 +20,12 @@ def pass_check(path):
 def output_mkdir(current_time):
     dir_name = f"outputs/{current_time}"
     os.makedirs(dir_name)
-    os.makedirs(f"{dir_name}/weight")
-    os.makedirs(f"{dir_name}/result")
+    os.makedirs(f"{dir_name}/weights")
+    os.makedirs(f"{dir_name}/results")
 
 def writeResults(current_time, training_dataset_path, test_dataset_path, word, result):
-    results_dir_name = f"outputs/{current_time}/result"
-    f = open(f"outputs/{results_dir_name}/{os.path.basename(training_dataset_path)}_{os.path.basename(test_dataset_path)}_{word}.txt","a")
+    results_dir_name = f"outputs/{current_time}/results"
+    f = open(f"{results_dir_name}/{os.path.basename(training_dataset_path)}_{os.path.basename(test_dataset_path)}_{word}.txt","a")
     f.write(str(result) + "\n")
     f.close()
 
@@ -58,7 +58,7 @@ def model_training(model, current_time, training_dataset_path, test_dataset_path
 
     # --- pickle
     if latest_date is not None:  # online training
-        with open(f"{current_time}/weights/{latest_date}-weights.pickle", 'rb') as f:
+        with open(f"outputs/{current_time}/weights/{latest_date}-weights.pickle", 'rb') as f:
             print(f"PARAM: {latest_date}-weights.pickle:found")
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
@@ -69,11 +69,11 @@ def model_training(model, current_time, training_dataset_path, test_dataset_path
     model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size)
     train_end_time = time.time()
     train_time = train_end_time - train_start_time
-    print(f"Training Time {train_time} >>> DONE")
+    print(f"Training Time {train_time}s >>> DONE")
     writeResults(current_time,training_dataset_path,test_dataset_path,"training-time", train_time)
 
     latest_date = training_dataset_path.split("/")[1].split(".")[0]
-    with open(training_dataset_path + "/" + latest_date + "-weights.pickle", 'wb') as f:
+    with open(f"outputs/{current_time}/weights/{latest_date}-weights.pickle", 'wb') as f:
         print("PARAM:" + latest_date + "-weights.pickle:saved")
         pickle.dump(model.get_weights(), f)
     # ---------------------------------------------------------------------------------
@@ -97,7 +97,7 @@ def model_eval(model,test_dataset):
     return model
 
 def main(model):
-    # --- get current time
+
     # --- get current time in JST
     jst = pytz.timezone('Asia/Tokyo')
     current_time = datetime.now(jst).strftime("%Y%m%d%H%M%S%f")[:14]
