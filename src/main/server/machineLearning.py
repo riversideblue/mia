@@ -18,18 +18,18 @@ def pass_check(path):
         sys.exit(1)
 
 
-def output_mkdir(initiation_time):
+def output_mkdir(initiation_time, settings):
     dir_name = f"outputs/{initiation_time}_executed"
     os.makedirs(dir_name)
     os.makedirs(f"{dir_name}/model_weights")
     os.makedirs(f"{dir_name}/results")
+    with open(f'{dir_name}/log_setting.json','w') as f:
+        json.dump(settings,f,indent=1)
 
 
-def write_results(initiation_time, training_datasets_folder_path, test_dataset_path, word, result):
+def write_results(initiation_time, word, result):
     results_dir_name = f"outputs/{initiation_time}_executed/results"
-    f = open(
-        f"{results_dir_name}/{os.path.basename(training_datasets_folder_path)}_{os.path.basename(test_dataset_path)}_{word}.txt",
-        "a")
+    f = open(f"{results_dir_name}/{word}.txt","a")
     f.write(str(result) + "\n")
     f.close()
 
@@ -51,8 +51,8 @@ def previous_file_exist(dir_name, file_format):
         previous_weight_file = file_list[-1]
     return previous_weight_file
 
-def model_training(model, initiation_time, training_datasets_folder_path, training_dataset_file_path, test_dataset_path, scaler,
-                   epochs, batch_size):
+def model_training(model, initiation_time, training_dataset_file_path, scaler, epochs, batch_size):
+
     training_file_date = os.path.basename(training_dataset_file_path).split(".")[0]
     previous_weights_file = previous_file_exist(f"outputs/{initiation_time}_executed/model_weights",
                                                 "*-weights.pickle")
@@ -88,7 +88,7 @@ def model_training(model, initiation_time, training_datasets_folder_path, traini
     train_end_time = time.time()
     training_time = train_end_time - train_start_time
     print(f"\n-done: training time {training_time}s")
-    write_results(initiation_time, training_datasets_folder_path, test_dataset_path, "training-time", training_time)
+    write_results(initiation_time, "training-time", training_time)
 
     with open(f"outputs/{initiation_time}_executed/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
         print(
@@ -105,14 +105,14 @@ def model_training(model, initiation_time, training_datasets_folder_path, traini
             malicious_count += 1
     print("-training: benign " + str(benign_count) + " records")
     print("-training: malicious " + str(malicious_count) + " records")
-    write_results(initiation_time, training_datasets_folder_path, test_dataset_path, "benign-records", benign_count)
-    write_results(initiation_time, training_datasets_folder_path, test_dataset_path, "malicious-records", malicious_count)
+    write_results(initiation_time, "benign-records", benign_count)
+    write_results(initiation_time, "malicious-records", malicious_count)
 
     return model
 
 
 # ----- Model evaluate
-def model_eval(model, test_dataset):
+def model_eval(model, initiation_time, test_dataset):
     df = pd.read_csv(test_dataset)
     return model
 
@@ -146,18 +146,26 @@ def main(model):
 
     # --- Get each csv file in training dataset folder and start training model
 
-    output_mkdir(initiation_time)
+    output_mkdir(initiation_time, settings)
     scaler = StandardScaler()
+
     for training_dataset_file in os.listdir(training_datasets_folder_path):
         training_dataset_file_path = os.path.join(training_datasets_folder_path, training_dataset_file)
-        model_training(foundation_model,
-                       initiation_time,
-                       training_datasets_folder_path,
-                       training_dataset_file_path,
-                       test_datasets_folder_path,
-                       scaler,
-                       epochs,
-                       batch_size
-                       )
+        model_training(
+            foundation_model,
+            initiation_time,
+            training_dataset_file_path,
+            scaler,
+            epochs,
+            batch_size
+        )
 
     # --- Evaluate and tuning model
+
+    for test_dataset_file in os.listdir(test_datasets_folder_path):
+        test_dataset_file_path = os.path.join(test_datasets_folder_path, test_dataset_file)
+        model_eval(
+            foundation_model,
+            initiation_time,
+            test_dataset_file_path
+        )
