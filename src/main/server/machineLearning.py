@@ -1,3 +1,4 @@
+import glob
 import os
 import sys
 import json
@@ -37,12 +38,23 @@ def setBeforeEvaluateCsvFile(fn):
     global before_evaluate_csv_file_name
     before_evaluate_csv_file_name = fn
 
+def previous_file_exist(dir_name, file_format):
+    file_list = sorted(glob.glob(os.path.join(dir_name, file_format)))
+    previous_weight_file = None
+    if file_list:
+        previous_weight_file = file_list[-1]
+    return previous_weight_file
+
 def model_training(model, current_time, training_dataset_path, test_dataset_path,epochs,batch_size):
 
-    training_file_date = None
+    training_file_date = os.path.basename(training_dataset_path).split(".")[0]
     first_training_flag = False
+    previous_weights_file = previous_file_exist(f"outputs/{current_time}_executed/weights",
+                                                "*-weights.pickle")
 
-    print("TRAINING:" + training_dataset_path)
+    print("\n -------------------------called model_training----------------------------- \n")
+    print("-current_time: " + current_time)
+    print("-training_dataset_path: " + training_dataset_path)
 
     # --- csv processing
     df = pd.read_csv(training_dataset_path)
@@ -56,29 +68,29 @@ def model_training(model, current_time, training_dataset_path, test_dataset_path
     x_train = df_x_label
     y_train = df_y_label
 
-    # --- pickle
-    if training_file_date is not None:  # online training
-        with open(f"outputs/{current_time}_executed/weights/{training_file_date}-weights.pickle", 'rb') as f:
-            print(f"PARAM: {training_file_date}-weights.pickle:found")
+    # --- load previous model weights file if exist
+    if previous_weights_file is not None:
+        with open(previous_weights_file, 'rb') as f: # load previous model weights file
+            print(f"-previous -weights.pickle file: {training_file_date} found")
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
+    else:
+        print("-previous -weights.pickle file: not found")
+        print("--initialize model weights ... ")
 
     # --- execute model training
-    print("Start Model Training ...")
+    print("\n >>>>> execute model training ... <<<<< \n")
     train_start_time = time.time()
     model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size)
     train_end_time = time.time()
     train_time = train_end_time - train_start_time
-    print(f"Training Time {train_time}s >>> DONE")
+    print(f"-done: training time {train_time}s")
     writeResults(current_time,training_dataset_path,test_dataset_path,"training-time", train_time)
 
-    training_file_date = os.path.basename(training_dataset_path).split(".")[0]
-    print("training_dataset_path:" + training_dataset_path)
-    print("training_date:" +training_file_date)
-    print(f"outputs/{current_time}_executed/weights/{training_file_date}-weights.pickle")
     with open(f"outputs/{current_time}_executed/weights/{training_file_date}-weights.pickle", 'wb') as f:
-        print("PARAM:" + training_file_date + "-weights.pickle:saved")
+        print("-output path: " + f"outputs/{current_time}_executed/weights/{training_file_date}-weights.pickle")
         pickle.dump(model.get_weights(), f)
+
     # ---------------------------------------------------------------------------------
     train_benign_count = 0
     train_malicious_count = 0
@@ -87,8 +99,8 @@ def model_training(model, current_time, training_dataset_path, test_dataset_path
             train_benign_count += 1
         elif int(y) == 1:
             train_malicious_count += 1
-    print("TRAINING:ben " + str(train_benign_count) + " records")
-    print("TRAINING:mal " + str(train_malicious_count) + " records")
+    print("-training:ben " + str(train_benign_count) + " records")
+    print("-training:mal " + str(train_malicious_count) + " records")
     writeResults(current_time,training_dataset_path,test_dataset_path,"benign-records", train_benign_count)
     writeResults(current_time,training_dataset_path,test_dataset_path,"malicious-records", train_malicious_count)
 
@@ -132,6 +144,7 @@ def main(model):
     output_mkdir(current_time)
     for training_dataset in os.listdir(training_datasets_path):
         training_dataset_path = os.path.join(training_datasets_path, training_dataset)
+        model_weights_exist = False
         model_training(foundation_model,
                        current_time,
                        training_dataset_path,
