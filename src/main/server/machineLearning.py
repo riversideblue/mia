@@ -22,17 +22,10 @@ def output_mkdir(initiation_time, settings):
     dir_name = f"outputs/{initiation_time}_executed"
     os.makedirs(dir_name)
     os.makedirs(f"{dir_name}/model_weights")
-    os.makedirs(f"{dir_name}/results")
-    with open(f'{dir_name}/log_setting.json','w') as f:
+    with open(f"outputs/{initiation_time}_executed/results.json","w") as f:
+        json.dump({},f,indent=1)
+    with open(f'{dir_name}/settings_log.json','w') as f:
         json.dump(settings,f,indent=1)
-
-
-def write_results(initiation_time, word, result):
-    results_dir_name = f"outputs/{initiation_time}_executed/results"
-    f = open(f"{results_dir_name}/{word}.txt","a")
-    f.write(str(result) + "\n")
-    f.close()
-
 
 def setBeforeDatasetCsvFile(fn):
     global before_csv_file_name
@@ -51,7 +44,7 @@ def previous_file_exist(dir_name, file_format):
         previous_weight_file = file_list[-1]
     return previous_weight_file
 
-def model_training(model, initiation_time, training_dataset_file_path, scaler, epochs, batch_size):
+def model_training(model, initiation_time, training_dataset_file_path, scaler, epochs, batch_size, results):
 
     training_file_date = os.path.basename(training_dataset_file_path).split(".")[0]
     previous_weights_file = previous_file_exist(f"outputs/{initiation_time}_executed/model_weights",
@@ -66,7 +59,7 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
     df_x_label = df.iloc[:, 3:-1].values
     df_y_label = df.loc[:, "label"].values
 
-    # --- load previous model model_weights file if exist
+    # --- load previous model weights file if exist
     if previous_weights_file is not None:
         df_x_label = scaler.transform(df_x_label)
         with open(previous_weights_file, 'rb') as f:
@@ -88,7 +81,7 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
     train_end_time = time.time()
     training_time = train_end_time - train_start_time
     print(f"\n-done: training time {training_time}s")
-    write_results(initiation_time, "training-time", training_time)
+    results["training_time"] = [training_time]
 
     with open(f"outputs/{initiation_time}_executed/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
         print(
@@ -105,8 +98,14 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
             malicious_count += 1
     print("-training: benign " + str(benign_count) + " records")
     print("-training: malicious " + str(malicious_count) + " records")
-    write_results(initiation_time, "benign-records", benign_count)
-    write_results(initiation_time, "malicious-records", malicious_count)
+
+    results["benign_records"] = [benign_count]
+    results["malicious_records"] = [malicious_count]
+    print(results)
+    print(type(results))
+    results.put()
+    with open(f"outputs/{initiation_time}_executed/results.json") as f:
+        json.dump(results,f,indent=1)
 
     return model
 
@@ -122,8 +121,10 @@ def main(model):
     jst = pytz.timezone('Asia/Tokyo')
     initiation_time = datetime.now(jst).strftime("%Y%m%d%H%M%S%f")[:14]
 
-    # --- load setting.json
+    # --- load setting.json and results.json
     settings = json.load(open("settings.json", "r"))
+    output_mkdir(initiation_time, settings)
+    results = json.load(open(f"outputs/{initiation_time}_executed/results.json"))
 
     # --- Setting
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = settings['OS']['TF_CPP_MIN_LOG_LEVEL']  # log amount
@@ -143,11 +144,10 @@ def main(model):
     repeat_count = settings['LearningDefine']['REPEAT_COUNT']
     days = settings['LearningDefine']['Range']['DAYS']
     hours = settings['LearningDefine']['Range']['HOURS']
+    scaler = StandardScaler()
+
 
     # --- Get each csv file in training dataset folder and start training model
-
-    output_mkdir(initiation_time, settings)
-    scaler = StandardScaler()
 
     for training_dataset_file in os.listdir(training_datasets_folder_path):
         training_dataset_file_path = os.path.join(training_datasets_folder_path, training_dataset_file)
@@ -157,7 +157,8 @@ def main(model):
             training_dataset_file_path,
             scaler,
             epochs,
-            batch_size
+            batch_size,
+            results
         )
 
     # --- Evaluate and tuning model
