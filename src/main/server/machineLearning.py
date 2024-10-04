@@ -13,10 +13,10 @@ from sklearn.preprocessing import StandardScaler
 
 
 def pass_check(path):
-
-    if not os.path.exists(path): # error >> argument 1 name
+    if not os.path.exists(path):  # error >> argument 1 name
         print(f"cannot find training dataset: {os.path.basename(path)}")
         sys.exit(1)
+
 
 def output_mkdir(initiation_time):
     dir_name = f"outputs/{initiation_time}_executed"
@@ -24,19 +24,25 @@ def output_mkdir(initiation_time):
     os.makedirs(f"{dir_name}/model_weights")
     os.makedirs(f"{dir_name}/results")
 
-def writeResults(initiation_time, training_dataset_path, test_dataset_path, word, result):
+
+def write_results(initiation_time, training_datasets_folder_path, test_dataset_path, word, result):
     results_dir_name = f"outputs/{initiation_time}_executed/results"
-    f = open(f"{results_dir_name}/{os.path.basename(training_dataset_path)}_{os.path.basename(test_dataset_path)}_{word}.txt","a")
+    f = open(
+        f"{results_dir_name}/{os.path.basename(training_datasets_folder_path)}_{os.path.basename(test_dataset_path)}_{word}.txt",
+        "a")
     f.write(str(result) + "\n")
     f.close()
+
 
 def setBeforeDatasetCsvFile(fn):
     global before_csv_file_name
     before_csv_file_name = fn
 
+
 def setBeforeEvaluateCsvFile(fn):
     global before_evaluate_csv_file_name
     before_evaluate_csv_file_name = fn
+
 
 def previous_file_exist(dir_name, file_format):
     file_list = sorted(glob.glob(os.path.join(dir_name, file_format)))
@@ -45,74 +51,73 @@ def previous_file_exist(dir_name, file_format):
         previous_weight_file = file_list[-1]
     return previous_weight_file
 
-def model_training(model, initiation_time, training_dataset_path, test_dataset_path, epochs, batch_size):
-
-    training_file_date = os.path.basename(training_dataset_path).split(".")[0]
-    first_training_flag = False
+def model_training(model, initiation_time, training_datasets_folder_path, training_dataset_file_path, test_dataset_path, scaler,
+                   epochs, batch_size):
+    training_file_date = os.path.basename(training_dataset_file_path).split(".")[0]
     previous_weights_file = previous_file_exist(f"outputs/{initiation_time}_executed/model_weights",
                                                 "*-weights.pickle")
 
     print("\n -------------------------called model_training----------------------------- \n")
     print("-initiation_time: " + initiation_time)
-    print("-training_dataset_path: " + training_dataset_path)
+    print("-training_dataset_path: " + training_dataset_file_path)
 
     # --- csv processing
-    df = pd.read_csv(training_dataset_path)
+    df = pd.read_csv(training_dataset_file_path)
     df_x_label = df.iloc[:, 3:-1].values
-    if not first_training_flag:
-        df_x_label = StandardScaler().fit_transform(df_x_label)
-        first_training_flag = True
-    else:
-        df_x_label = StandardScaler().transform(df_x_label)
     df_y_label = df.loc[:, "label"].values
-    x_train = df_x_label
-    y_train = df_y_label
 
     # --- load previous model model_weights file if exist
     if previous_weights_file is not None:
+        df_x_label = scaler.transform(df_x_label)
         with open(previous_weights_file, 'rb') as f:
             print(f"-previous -weights.pickle file: {previous_weights_file} found")
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
     else:
+        df_x_label = scaler.fit_transform(df_x_label)
         print("-previous -weights.pickle file: not found")
         print("--initialize model weights ... ")
+
+    x_train = df_x_label
+    y_train = df_y_label
 
     # --- execute model training
     print("\n >>>>> execute model training ... <<<<< \n")
     train_start_time = time.time()
     model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size)
     train_end_time = time.time()
-    train_time = train_end_time - train_start_time
-    print(f"\n-done: training time {train_time}s")
-    writeResults(initiation_time, training_dataset_path, test_dataset_path, "training-time", train_time)
+    training_time = train_end_time - train_start_time
+    print(f"\n-done: training time {training_time}s")
+    write_results(initiation_time, training_datasets_folder_path, test_dataset_path, "training-time", training_time)
 
     with open(f"outputs/{initiation_time}_executed/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
-        print("-output path: " + f"outputs/{initiation_time}_executed/model_weights/{training_file_date}-weights.pickle")
+        print(
+            "-output path: " + f"outputs/{initiation_time}_executed/model_weights/{training_file_date}-weights.pickle")
         pickle.dump(model.get_weights(), f)
 
-    # ---------------------------------------------------------------------------------
-    train_benign_count = 0
-    train_malicious_count = 0
+    # --- count benign and malicious
+    benign_count = 0
+    malicious_count = 0
     for y in y_train:
         if int(y) == 0:
-            train_benign_count += 1
+            benign_count += 1
         elif int(y) == 1:
-            train_malicious_count += 1
-    print("-training:ben " + str(train_benign_count) + " records")
-    print("-training:mal " + str(train_malicious_count) + " records")
-    writeResults(initiation_time, training_dataset_path, test_dataset_path, "benign-records", train_benign_count)
-    writeResults(initiation_time, training_dataset_path, test_dataset_path, "malicious-records", train_malicious_count)
+            malicious_count += 1
+    print("-training: benign " + str(benign_count) + " records")
+    print("-training: malicious " + str(malicious_count) + " records")
+    write_results(initiation_time, training_datasets_folder_path, test_dataset_path, "benign-records", benign_count)
+    write_results(initiation_time, training_datasets_folder_path, test_dataset_path, "malicious-records", malicious_count)
 
     return model
 
+
 # ----- Model evaluate
-def model_eval(model,test_dataset):
+def model_eval(model, test_dataset):
     df = pd.read_csv(test_dataset)
     return model
 
-def main(model):
 
+def main(model):
     # --- get current time in JST
     jst = pytz.timezone('Asia/Tokyo')
     initiation_time = datetime.now(jst).strftime("%Y%m%d%H%M%S%f")[:14]
@@ -130,8 +135,8 @@ def main(model):
     # --- Field
 
     foundation_model = model
-    training_datasets_path = settings['DatasetsFolderPath']['TRAINING']
-    test_datasets_path = settings['DatasetsFolderPath']['TEST']
+    training_datasets_folder_path = settings['DatasetsFolderPath']['TRAINING']
+    test_datasets_folder_path = settings['DatasetsFolderPath']['TEST']
     epochs = settings['LearningDefine']['EPOCHS']
     batch_size = settings['LearningDefine']['BATCH_SIZE']
     beginning_date = settings['LearningDefine']['BEGINNING_DATE']
@@ -142,12 +147,15 @@ def main(model):
     # --- Get each csv file in training dataset folder and start training model
 
     output_mkdir(initiation_time)
-    for training_dataset in os.listdir(training_datasets_path):
-        training_dataset_path = os.path.join(training_datasets_path, training_dataset)
+    scaler = StandardScaler()
+    for training_dataset_file in os.listdir(training_datasets_folder_path):
+        training_dataset_file_path = os.path.join(training_datasets_folder_path, training_dataset_file)
         model_training(foundation_model,
                        initiation_time,
-                       training_dataset_path,
-                       test_datasets_path,
+                       training_datasets_folder_path,
+                       training_dataset_file_path,
+                       test_datasets_folder_path,
+                       scaler,
                        epochs,
                        batch_size
                        )
