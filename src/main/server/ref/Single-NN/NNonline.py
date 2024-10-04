@@ -47,7 +47,7 @@ if len(args) >= 6:
 #------------------------------------------------------------------------------------
 str_dt_now = str(datetime.datetime.now()).split(" ")[0].replace("-","")+str(datetime.datetime.now()).split(" ")[1].split(".")[0].replace(":","")
 
-weights_dir_name = str_dt_now + "-Single-NN-" + dataset_csv_dir_name + "-" + evaluate_csv_dir_name + "-weights"
+weights_dir_name = str_dt_now + "-Single-NN-" + dataset_csv_dir_name + "-" + evaluate_csv_dir_name + "-model_weights"
 if not os.path.isdir(weights_dir_name):
     os.mkdir(weights_dir_name)
 
@@ -85,8 +85,8 @@ def train(model, csv_file_name):
     y_train = df_y
     #---------------------------------------------------------------------------------
     if latest_date != None: # online training
-        with open(weights_dir_name + "/" + latest_date +"-weights.pickle", 'rb') as f:
-            print("PARAM:" + latest_date + "-weights.pickle:found")
+        with open(weights_dir_name + "/" + latest_date +"-model_weights.pickle", 'rb') as f:
+            print("PARAM:" + latest_date + "-model_weights.pickle:found")
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
 
@@ -97,8 +97,8 @@ def train(model, csv_file_name):
     writeResults("training-time", train_time)
 
     latest_date = csv_file_name.split("/")[1].split(".")[0]
-    with open(weights_dir_name +  "/" + latest_date + "-weights.pickle", 'wb') as f:
-        print("PARAM:" + latest_date + "-weights.pickle:saved")
+    with open(weights_dir_name +  "/" + latest_date + "-model_weights.pickle", 'wb') as f:
+        print("PARAM:" + latest_date + "-model_weights.pickle:saved")
         pickle.dump(model.get_weights(), f)
     #---------------------------------------------------------------------------------
     train_benign_count = 0

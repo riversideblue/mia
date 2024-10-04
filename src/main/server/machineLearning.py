@@ -18,14 +18,14 @@ def pass_check(path):
         print(f"cannot find training dataset: {os.path.basename(path)}")
         sys.exit(1)
 
-def output_mkdir(current_time):
-    dir_name = f"outputs/{current_time}_executed"
+def output_mkdir(initiation_time):
+    dir_name = f"outputs/{initiation_time}_executed"
     os.makedirs(dir_name)
-    os.makedirs(f"{dir_name}/weights")
+    os.makedirs(f"{dir_name}/model_weights")
     os.makedirs(f"{dir_name}/results")
 
-def writeResults(current_time, training_dataset_path, test_dataset_path, word, result):
-    results_dir_name = f"outputs/{current_time}_executed/results"
+def writeResults(initiation_time, training_dataset_path, test_dataset_path, word, result):
+    results_dir_name = f"outputs/{initiation_time}_executed/results"
     f = open(f"{results_dir_name}/{os.path.basename(training_dataset_path)}_{os.path.basename(test_dataset_path)}_{word}.txt","a")
     f.write(str(result) + "\n")
     f.close()
@@ -45,15 +45,15 @@ def previous_file_exist(dir_name, file_format):
         previous_weight_file = file_list[-1]
     return previous_weight_file
 
-def model_training(model, current_time, training_dataset_path, test_dataset_path,epochs,batch_size):
+def model_training(model, initiation_time, training_dataset_path, test_dataset_path, epochs, batch_size):
 
     training_file_date = os.path.basename(training_dataset_path).split(".")[0]
     first_training_flag = False
-    previous_weights_file = previous_file_exist(f"outputs/{current_time}_executed/weights",
+    previous_weights_file = previous_file_exist(f"outputs/{initiation_time}_executed/model_weights",
                                                 "*-weights.pickle")
 
     print("\n -------------------------called model_training----------------------------- \n")
-    print("-current_time: " + current_time)
+    print("-initiation_time: " + initiation_time)
     print("-training_dataset_path: " + training_dataset_path)
 
     # --- csv processing
@@ -68,10 +68,10 @@ def model_training(model, current_time, training_dataset_path, test_dataset_path
     x_train = df_x_label
     y_train = df_y_label
 
-    # --- load previous model weights file if exist
+    # --- load previous model model_weights file if exist
     if previous_weights_file is not None:
-        with open(previous_weights_file, 'rb') as f: # load previous model weights file
-            print(f"-previous -weights.pickle file: {training_file_date} found")
+        with open(previous_weights_file, 'rb') as f:
+            print(f"-previous -weights.pickle file: {previous_weights_file} found")
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
     else:
@@ -84,11 +84,11 @@ def model_training(model, current_time, training_dataset_path, test_dataset_path
     model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size)
     train_end_time = time.time()
     train_time = train_end_time - train_start_time
-    print(f"-done: training time {train_time}s")
-    writeResults(current_time,training_dataset_path,test_dataset_path,"training-time", train_time)
+    print(f"\n-done: training time {train_time}s")
+    writeResults(initiation_time, training_dataset_path, test_dataset_path, "training-time", train_time)
 
-    with open(f"outputs/{current_time}_executed/weights/{training_file_date}-weights.pickle", 'wb') as f:
-        print("-output path: " + f"outputs/{current_time}_executed/weights/{training_file_date}-weights.pickle")
+    with open(f"outputs/{initiation_time}_executed/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
+        print("-output path: " + f"outputs/{initiation_time}_executed/model_weights/{training_file_date}-weights.pickle")
         pickle.dump(model.get_weights(), f)
 
     # ---------------------------------------------------------------------------------
@@ -101,8 +101,8 @@ def model_training(model, current_time, training_dataset_path, test_dataset_path
             train_malicious_count += 1
     print("-training:ben " + str(train_benign_count) + " records")
     print("-training:mal " + str(train_malicious_count) + " records")
-    writeResults(current_time,training_dataset_path,test_dataset_path,"benign-records", train_benign_count)
-    writeResults(current_time,training_dataset_path,test_dataset_path,"malicious-records", train_malicious_count)
+    writeResults(initiation_time, training_dataset_path, test_dataset_path, "benign-records", train_benign_count)
+    writeResults(initiation_time, training_dataset_path, test_dataset_path, "malicious-records", train_malicious_count)
 
     return model
 
@@ -115,7 +115,7 @@ def main(model):
 
     # --- get current time in JST
     jst = pytz.timezone('Asia/Tokyo')
-    current_time = datetime.now(jst).strftime("%Y%m%d%H%M%S%f")[:14]
+    initiation_time = datetime.now(jst).strftime("%Y%m%d%H%M%S%f")[:14]
 
     # --- load setting.json
     settings = json.load(open("settings.json", "r"))
@@ -141,12 +141,11 @@ def main(model):
 
     # --- Get each csv file in training dataset folder and start training model
 
-    output_mkdir(current_time)
+    output_mkdir(initiation_time)
     for training_dataset in os.listdir(training_datasets_path):
         training_dataset_path = os.path.join(training_datasets_path, training_dataset)
-        model_weights_exist = False
         model_training(foundation_model,
-                       current_time,
+                       initiation_time,
                        training_dataset_path,
                        test_datasets_path,
                        epochs,
