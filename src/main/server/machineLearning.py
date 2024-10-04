@@ -18,13 +18,13 @@ def pass_check(path):
         sys.exit(1)
 
 def output_mkdir(current_time):
-    dir_name = f"outputs/{current_time}"
+    dir_name = f"outputs/{current_time}_executed"
     os.makedirs(dir_name)
     os.makedirs(f"{dir_name}/weights")
     os.makedirs(f"{dir_name}/results")
 
 def writeResults(current_time, training_dataset_path, test_dataset_path, word, result):
-    results_dir_name = f"outputs/{current_time}/results"
+    results_dir_name = f"outputs/{current_time}_executed/results"
     f = open(f"{results_dir_name}/{os.path.basename(training_dataset_path)}_{os.path.basename(test_dataset_path)}_{word}.txt","a")
     f.write(str(result) + "\n")
     f.close()
@@ -39,7 +39,7 @@ def setBeforeEvaluateCsvFile(fn):
 
 def model_training(model, current_time, training_dataset_path, test_dataset_path,epochs,batch_size):
 
-    latest_date = None
+    training_file_date = None
     first_training_flag = False
 
     print("TRAINING:" + training_dataset_path)
@@ -57,9 +57,9 @@ def model_training(model, current_time, training_dataset_path, test_dataset_path
     y_train = df_y_label
 
     # --- pickle
-    if latest_date is not None:  # online training
-        with open(f"outputs/{current_time}/weights/{latest_date}-weights.pickle", 'rb') as f:
-            print(f"PARAM: {latest_date}-weights.pickle:found")
+    if training_file_date is not None:  # online training
+        with open(f"outputs/{current_time}_executed/weights/{training_file_date}-weights.pickle", 'rb') as f:
+            print(f"PARAM: {training_file_date}-weights.pickle:found")
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
 
@@ -72,9 +72,12 @@ def model_training(model, current_time, training_dataset_path, test_dataset_path
     print(f"Training Time {train_time}s >>> DONE")
     writeResults(current_time,training_dataset_path,test_dataset_path,"training-time", train_time)
 
-    latest_date = training_dataset_path.split("/")[1].split(".")[0]
-    with open(f"outputs/{current_time}/weights/{latest_date}-weights.pickle", 'wb') as f:
-        print("PARAM:" + latest_date + "-weights.pickle:saved")
+    training_file_date = os.path.basename(training_dataset_path).split(".")[0]
+    print("training_dataset_path:" + training_dataset_path)
+    print("training_date:" +training_file_date)
+    print(f"outputs/{current_time}_executed/weights/{training_file_date}-weights.pickle")
+    with open(f"outputs/{current_time}_executed/weights/{training_file_date}-weights.pickle", 'wb') as f:
+        print("PARAM:" + training_file_date + "-weights.pickle:saved")
         pickle.dump(model.get_weights(), f)
     # ---------------------------------------------------------------------------------
     train_benign_count = 0
@@ -127,11 +130,11 @@ def main(model):
     # --- Get each csv file in training dataset folder and start training model
 
     output_mkdir(current_time)
-    for dataset in os.listdir(training_datasets_path):
-        dataset_path = os.path.join(training_datasets_path, dataset)
+    for training_dataset in os.listdir(training_datasets_path):
+        training_dataset_path = os.path.join(training_datasets_path, training_dataset)
         model_training(foundation_model,
                        current_time,
-                       dataset_path,
+                       training_dataset_path,
                        test_datasets_path,
                        epochs,
                        batch_size
