@@ -2,7 +2,7 @@ import glob
 import os
 import sys
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 
 import numpy as np
@@ -63,7 +63,6 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
     previous_weights_file = previous_file_exist(f"outputs/{initiation_time}_executed/model_weights",
                                                 "*-weights.pickle")
 
-    print("-initiation_time: " + initiation_time)
     print("-training_dataset_path: " + training_dataset_file_path)
 
     # --- csv processing
@@ -92,11 +91,8 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
     model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size)
     train_end_time = time.time()
     training_time = train_end_time - train_start_time
-    print(f"\n-done: training time {training_time}s")
 
     with open(f"outputs/{initiation_time}_executed/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
-        print(
-            "-output path: " + f"outputs/{initiation_time}_executed/model_weights/{training_file_date}-weights.pickle")
         pickle.dump(model.get_weights(), f)
 
     # --- count benign and malicious
@@ -107,8 +103,6 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
             benign_count += 1
         elif int(y) == 1:
             malicious_count += 1
-    print("-training: benign " + str(benign_count) + " records")
-    print("-training: malicious " + str(malicious_count) + " records")
 
     return [training_time,benign_count,malicious_count]
 
@@ -123,7 +117,7 @@ def main(model):
 
     # --- get current time in JST
     jst = pytz.timezone('Asia/Tokyo')
-    initiation_time = datetime.now(jst).strftime("%Y%m%d%H%M%S%f")[:14]
+    initiation_time = datetime.now(jst).strftime("%Y%m%d%H%M%S")
 
     # --- prepare settings and results
     settings = json.load(open("settings.json", "r"))
@@ -134,19 +128,21 @@ def main(model):
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = settings['OS']['TF_CPP_MIN_LOG_LEVEL']  # log amount
     os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = settings['OS']['TF_FORCE_GPU_ALLOW_GROWTH']  # gpu mem limit
     os.environ["CUDA_VISIBLE_DEVICES"] = settings['OS']['CUDA_VISIBLE_DEVICES']  # cpu : -1
-    pass_check(settings['DatasetsFolderPath']['TRAINING'])
-    pass_check(settings['DatasetsFolderPath']['TEST'])
+    pass_check(settings['Datasets']['DIR_PATH'])
 
     # --- Field
     foundation_model = model
-    training_datasets_folder_path = settings['DatasetsFolderPath']['TRAINING']
-    test_datasets_folder_path = settings['DatasetsFolderPath']['TEST']
+    training_datasets_folder_path = settings['Datasets']['DIR_PATH']
+    beginning_time = datetime.strptime(settings['Datasets']['BEGINNING_TIME'],"%Y%m%d%H%M%S")
+    days = settings['Datasets']['LearningRange']['DAYS']
+    hours = settings['Datasets']['LearningRange']['HOURS']
+    minutes = settings['Datasets']['LearningRange']['MINUTES']
+    seconds = settings['Datasets']['LearningRange']['SECONDS']
     epochs = settings['LearningDefine']['EPOCHS']
     batch_size = settings['LearningDefine']['BATCH_SIZE']
-    beginning_date = settings['LearningDefine']['BEGINNING_DATE']
     repeat_count = settings['LearningDefine']['REPEAT_COUNT']
-    days = settings['LearningDefine']['Range']['DAYS']
-    hours = settings['LearningDefine']['Range']['HOURS']
+    end_time = beginning_time + timedelta(days=days,hours=hours,minutes=minutes,seconds=seconds)
+
     scaler = StandardScaler()
     results_list = results.values
 
@@ -167,16 +163,16 @@ def main(model):
             )
         ])
         end = time.time()
-        print(" -------------------------done: "+str(end-start)+"----------------------------- \n")
+        print("\n -------------------------done: "+str(end-start)+"----------------------------- ")
 
     # --- Evaluate and tuning model
-    for test_dataset_file in os.listdir(test_datasets_folder_path):
-        test_dataset_file_path = os.path.join(test_datasets_folder_path, test_dataset_file)
-        model_eval(
-            foundation_model,
-            initiation_time,
-            test_dataset_file_path
-        )
 
-    # --- save results
+
+    # --- save settings and results
+
+    with open("settings.json", "w") as f:
+        settings['Log']['INITIATION_TIME'] = initiation_time
+        settings['Log']['BEGINNING_TIME'] = beginning_time.isoformat()
+        settings['Log']['END_TIME'] = end_time.isoformat()
+        json.dump(settings, f, indent=1)
     save_results(results_list, initiation_time, results)

@@ -1,7 +1,13 @@
 {
-  "DatasetsFolderPath": {
-    "TRAINING": "/IdeaProjects/nids-cdd/src/main/server/pcap_csv/2022080409-2022081617-pcap_csv",
-    "TEST": "/IdeaProjects/nids-cdd/src/main/server/pcap_csv/2022080409-2022081617-pcap_csv"
+  "Datasets": {
+    "DIR_PATH": "/IdeaProjects/nids-cdd/src/main/server/pcap_csv/2022080409-2022081617-pcap_csv",
+    "BEGINNING_TIME": "20220803070000",
+    "LearningRange": {
+      "DAYS": 3,
+      "HOURS": 11,
+      "MINUTES": 0,
+      "SECONDS": 1
+    }
   },
 
   "OS": {
@@ -13,12 +19,7 @@
   "LearningDefine": {
     "EPOCHS": 30,
     "BATCH_SIZE": 10,
-    "BEGINNING_DATE": "202208",
-    "REPEAT_COUNT": 16,
-    "Range": {
-      "DAYS": 18,
-      "HOURS": 16
-    }
+    "REPEAT_COUNT": 16
   },
   "pcap_file_identifier":"",
   "subdirectory_year_month":"202201",
