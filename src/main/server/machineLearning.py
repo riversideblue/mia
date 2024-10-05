@@ -23,7 +23,11 @@ def output_mkdir(initiation_time, settings):
     os.makedirs(dir_name)
     os.makedirs(f"{dir_name}/model_weights")
     with open(f"outputs/{initiation_time}_executed/results.json","w") as f:
-        json.dump({},f,indent=1)
+        json.dump({
+            "training_time": [],
+            "benign_records": [],
+            "malicious_records": []
+        },f,indent=1)
     with open(f'{dir_name}/settings_log.json','w') as f:
         json.dump(settings,f,indent=1)
 
@@ -81,7 +85,7 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
     train_end_time = time.time()
     training_time = train_end_time - train_start_time
     print(f"\n-done: training time {training_time}s")
-    results["training_time"] = [training_time]
+    results["training_time"].append(training_time)
 
     with open(f"outputs/{initiation_time}_executed/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
         print(
@@ -99,13 +103,13 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
     print("-training: benign " + str(benign_count) + " records")
     print("-training: malicious " + str(malicious_count) + " records")
 
-    results["benign_records"] = [benign_count]
-    results["malicious_records"] = [malicious_count]
+    results["benign_records"].append(benign_count)
+    results["malicious_records"].append(malicious_count)
     print(results)
     print(type(results))
-    results.put()
-    with open(f"outputs/{initiation_time}_executed/results.json") as f:
-        json.dump(results,f,indent=1)
+
+    with open(f"outputs/{initiation_time}_executed/results.json","w") as f:
+        json.dump(results, f, separators=(',', ':'))
 
     return model
 
