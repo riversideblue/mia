@@ -1,9 +1,12 @@
+import csv
 import glob
 import os
 import sys
 import json
 from datetime import datetime
 import time
+
+import numpy as np
 import pytz
 
 import pandas as pd
@@ -22,14 +25,21 @@ def output_mkdir(initiation_time, settings):
     dir_name = f"outputs/{initiation_time}_executed"
     os.makedirs(dir_name)
     os.makedirs(f"{dir_name}/model_weights")
-    with open(f"outputs/{initiation_time}_executed/results.json","w") as f:
-        json.dump({
-            "training_time": [],
-            "benign_records": [],
-            "malicious_records": []
-        },f,indent=1)
+    results_frame = pd.DataFrame({
+        'training_time': [],
+        'benign_count': [],
+        'malicious_count': []
+    })
+    results_frame.to_csv(f"{dir_name}/results.csv",index=False)
     with open(f'{dir_name}/settings_log.json','w') as f:
         json.dump(settings,f,indent=1)
+
+def update_results_matrix(results,column):
+    results[column] = column
+
+def save_results(results, initiation_time):
+    dir_name = f"outputs/{initiation_time}_executed"
+    results.to_csv(f"{dir_name}/results.csv")
 
 def setBeforeDatasetCsvFile(fn):
     global before_csv_file_name
@@ -85,7 +95,6 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
     train_end_time = time.time()
     training_time = train_end_time - train_start_time
     print(f"\n-done: training time {training_time}s")
-    results["training_time"].append(training_time)
 
     with open(f"outputs/{initiation_time}_executed/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
         print(
@@ -103,15 +112,10 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
     print("-training: benign " + str(benign_count) + " records")
     print("-training: malicious " + str(malicious_count) + " records")
 
-    results["benign_records"].append(benign_count)
-    results["malicious_records"].append(malicious_count)
-    print(results)
-    print(type(results))
+    results.loc[len(results)] = [training_time,benign_count,malicious_count]
 
-    with open(f"outputs/{initiation_time}_executed/results.json","w") as f:
-        json.dump(results, f, separators=(',', ':'))
 
-    return model
+    return results
 
 
 # ----- Model evaluate
@@ -128,7 +132,10 @@ def main(model):
     # --- load setting.json and results.json
     settings = json.load(open("settings.json", "r"))
     output_mkdir(initiation_time, settings)
-    results = json.load(open(f"outputs/{initiation_time}_executed/results.json"))
+    results = pd.read_csv(f"outputs/{initiation_time}_executed/results.csv")
+
+    print("----------------------------------------------------------")
+    print(results)
 
     # --- Setting
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = settings['OS']['TF_CPP_MIN_LOG_LEVEL']  # log amount
@@ -151,11 +158,13 @@ def main(model):
     scaler = StandardScaler()
 
 
+
     # --- Get each csv file in training dataset folder and start training model
 
     for training_dataset_file in os.listdir(training_datasets_folder_path):
+        start = time.time()
         training_dataset_file_path = os.path.join(training_datasets_folder_path, training_dataset_file)
-        model_training(
+        results = model_training(
             foundation_model,
             initiation_time,
             training_dataset_file_path,
@@ -164,6 +173,10 @@ def main(model):
             batch_size,
             results
         )
+        print(results)
+        save_results(results,initiation_time)
+        end = time.time()
+        print("----------model training ; "+ str(end-start))
 
     # --- Evaluate and tuning model
 
@@ -174,3 +187,7 @@ def main(model):
             initiation_time,
             test_dataset_file_path
         )
+
+    # --- Outputs results
+    print(results)
+
