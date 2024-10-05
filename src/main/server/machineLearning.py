@@ -19,11 +19,14 @@ def is_pass_exist(path):
         print(f"cannot find training dataset: {os.path.basename(path)}")
         sys.exit(1)
 
+
 def is_dataset_within_range(dataset_file_name,beginning_daytime,end_daytime):
+    flag = True
     dataset_captured_datetime = datetime.strptime(dataset_file_name.split(".")[0] + "0000", "%Y%m%d%H%M%S")
-    if beginning_daytime <= dataset_captured_datetime <= end_daytime:
-        return True
-    return False
+    if not beginning_daytime <= dataset_captured_datetime <= end_daytime:
+        flag = False
+    return flag
+
 
 def output_mkdir(initiation_time, settings):
     dir_name = f"outputs/{initiation_time}_executed"
@@ -34,14 +37,14 @@ def output_mkdir(initiation_time, settings):
 
 
 def set_results_frame():
-    results_frame = pd.DataFrame(columns=['training_time','benign_count','malicious_count'])
+    results_frame = pd.DataFrame(columns=['training_count','training_time','benign_count','malicious_count'])
     return results_frame
 
 
 def save_results(results_list, initiation_time, results):
     dir_name = f"outputs/{initiation_time}_executed"
-    results.loc[:,:] = results_list
-    results.to_csv(f"{dir_name}/results.csv")
+    results = pd.concat([results, pd.DataFrame(results_list, columns=results.columns)])
+    results.to_csv(f"{dir_name}/results.csv",index=False)
 
 
 def setBeforeDatasetCsvFile(fn):
@@ -62,7 +65,7 @@ def is_previous_file_exist(dir_name, file_format):
     return previous_weight_file
 
 
-def model_training(model, initiation_time, training_dataset_file_path, scaler, epochs, batch_size):
+def model_training(model, initiation_time, training_dataset_file_path, scaler, epochs, batch_size, training_count):
 
     training_file_date = os.path.basename(training_dataset_file_path).split(".")[0]
     previous_weights_file = is_previous_file_exist(f"outputs/{initiation_time}_executed/model_weights",
@@ -108,8 +111,7 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
             benign_count += 1
         elif int(y) == 1:
             malicious_count += 1
-
-    return [training_time,benign_count,malicious_count]
+    return [training_count, training_time, benign_count, malicious_count]
 
 
 # ----- Model evaluate
@@ -147,9 +149,9 @@ def main(model):
     batch_size = settings['LearningDefine']['BATCH_SIZE']
     repeat_count = settings['LearningDefine']['REPEAT_COUNT']
     end_daytime = beginning_daytime + timedelta(days=days,hours=hours,minutes=minutes,seconds=seconds)
-
     scaler = StandardScaler()
     results_list = results.values
+    training_count = 0
 
     # --- Get each csv file in training dataset folder and start training model
     for training_dataset_file in os.listdir(training_datasets_folder_path):
@@ -158,6 +160,7 @@ def main(model):
             break
 
         print("\n -------------------------calling model_training----------------------------- \n")
+        training_count += 1
         training_dataset_file_path = os.path.join(training_datasets_folder_path, training_dataset_file)
         results_list = np.vstack([
             results_list,
@@ -167,7 +170,8 @@ def main(model):
                 training_dataset_file_path,
                 scaler,
                 epochs,
-                batch_size
+                batch_size,
+                training_count
             )
         ])
         end = time.time()
