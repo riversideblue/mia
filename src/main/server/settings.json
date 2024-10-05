@@ -1,10 +1,10 @@
 {
   "Datasets": {
     "DIR_PATH": "/IdeaProjects/nids-cdd/src/main/server/pcap_csv/2022080409-2022081617-pcap_csv",
-    "BEGINNING_TIME": "20220803070000",
+    "BEGINNING_DAYTIME": "20220803070000",
     "LearningRange": {
-      "DAYS": 3,
-      "HOURS": 11,
+      "DAYS": 0,
+      "HOURS": 1,
       "MINUTES": 0,
       "SECONDS": 1
     }

@@ -14,11 +14,16 @@ import pickle
 from sklearn.preprocessing import StandardScaler
 
 
-def pass_check(path):
+def is_pass_exist(path):
     if not os.path.exists(path):  # error >> argument 1 name
         print(f"cannot find training dataset: {os.path.basename(path)}")
         sys.exit(1)
 
+def is_dataset_within_range(dataset_file_name,beginning_daytime,end_daytime):
+    dataset_captured_datetime = datetime.strptime(dataset_file_name.split(".")[0] + "0000", "%Y%m%d%H%M%S")
+    if beginning_daytime <= dataset_captured_datetime <= end_daytime:
+        return True
+    return False
 
 def output_mkdir(initiation_time, settings):
     dir_name = f"outputs/{initiation_time}_executed"
@@ -35,7 +40,7 @@ def set_results_frame():
 
 def save_results(results_list, initiation_time, results):
     dir_name = f"outputs/{initiation_time}_executed"
-    results.loc = results_list
+    results.loc[:,:] = results_list
     results.to_csv(f"{dir_name}/results.csv")
 
 
@@ -49,7 +54,7 @@ def setBeforeEvaluateCsvFile(fn):
     before_evaluate_csv_file_name = fn
 
 
-def previous_file_exist(dir_name, file_format):
+def is_previous_file_exist(dir_name, file_format):
     file_list = sorted(glob.glob(os.path.join(dir_name, file_format)))
     previous_weight_file = None
     if file_list:
@@ -60,7 +65,7 @@ def previous_file_exist(dir_name, file_format):
 def model_training(model, initiation_time, training_dataset_file_path, scaler, epochs, batch_size):
 
     training_file_date = os.path.basename(training_dataset_file_path).split(".")[0]
-    previous_weights_file = previous_file_exist(f"outputs/{initiation_time}_executed/model_weights",
+    previous_weights_file = is_previous_file_exist(f"outputs/{initiation_time}_executed/model_weights",
                                                 "*-weights.pickle")
 
     print("-training_dataset_path: " + training_dataset_file_path)
@@ -128,12 +133,12 @@ def main(model):
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = settings['OS']['TF_CPP_MIN_LOG_LEVEL']  # log amount
     os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = settings['OS']['TF_FORCE_GPU_ALLOW_GROWTH']  # gpu mem limit
     os.environ["CUDA_VISIBLE_DEVICES"] = settings['OS']['CUDA_VISIBLE_DEVICES']  # cpu : -1
-    pass_check(settings['Datasets']['DIR_PATH'])
+    is_pass_exist(settings['Datasets']['DIR_PATH'])
 
     # --- Field
     foundation_model = model
     training_datasets_folder_path = settings['Datasets']['DIR_PATH']
-    beginning_time = datetime.strptime(settings['Datasets']['BEGINNING_TIME'],"%Y%m%d%H%M%S")
+    beginning_daytime = datetime.strptime(settings['Datasets']['BEGINNING_DAYTIME'],"%Y%m%d%H%M%S")
     days = settings['Datasets']['LearningRange']['DAYS']
     hours = settings['Datasets']['LearningRange']['HOURS']
     minutes = settings['Datasets']['LearningRange']['MINUTES']
@@ -141,7 +146,7 @@ def main(model):
     epochs = settings['LearningDefine']['EPOCHS']
     batch_size = settings['LearningDefine']['BATCH_SIZE']
     repeat_count = settings['LearningDefine']['REPEAT_COUNT']
-    end_time = beginning_time + timedelta(days=days,hours=hours,minutes=minutes,seconds=seconds)
+    end_daytime = beginning_daytime + timedelta(days=days,hours=hours,minutes=minutes,seconds=seconds)
 
     scaler = StandardScaler()
     results_list = results.values
@@ -149,6 +154,9 @@ def main(model):
     # --- Get each csv file in training dataset folder and start training model
     for training_dataset_file in os.listdir(training_datasets_folder_path):
         start = time.time()
+        if not is_dataset_within_range(training_dataset_file,beginning_daytime,end_daytime):
+            break
+
         print("\n -------------------------calling model_training----------------------------- \n")
         training_dataset_file_path = os.path.join(training_datasets_folder_path, training_dataset_file)
         results_list = np.vstack([
@@ -165,14 +173,16 @@ def main(model):
         end = time.time()
         print("\n -------------------------done: "+str(end-start)+"----------------------------- ")
 
+
     # --- Evaluate and tuning model
 
 
     # --- save settings and results
 
-    with open("settings.json", "w") as f:
-        settings['Log']['INITIATION_TIME'] = initiation_time
-        settings['Log']['BEGINNING_TIME'] = beginning_time.isoformat()
-        settings['Log']['END_TIME'] = end_time.isoformat()
+    settings['Log'] = {}
+    settings['Log']['INITIATION_TIME'] = initiation_time
+    settings['Log']['BEGINNING_DAYTIME'] = beginning_daytime.isoformat()
+    settings['Log']['END_DAYTIME'] = end_daytime.isoformat()
+    with open(f"outputs/{initiation_time}_executed/settings_log.json", "w") as f:
         json.dump(settings, f, indent=1)
     save_results(results_list, initiation_time, results)
