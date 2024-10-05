@@ -1,4 +1,3 @@
-import csv
 import glob
 import os
 import sys
@@ -28,14 +27,17 @@ def output_mkdir(initiation_time, settings):
     with open(f'{dir_name}/settings_log.json','w') as f:
         json.dump(settings,f,indent=1)
 
-def set_results():
+
+def set_results_frame():
     results_frame = pd.DataFrame(columns=['training_time','benign_count','malicious_count'])
     return results_frame
 
-def save_results(results_list, initiation_time):
+
+def save_results(results_list, initiation_time, results):
     dir_name = f"outputs/{initiation_time}_executed"
-    results = pd.DataFrame(results_list, columns=['training_time','benign_count','malicious_count'])
+    results.loc = results_list
     results.to_csv(f"{dir_name}/results.csv")
+
 
 def setBeforeDatasetCsvFile(fn):
     global before_csv_file_name
@@ -54,13 +56,13 @@ def previous_file_exist(dir_name, file_format):
         previous_weight_file = file_list[-1]
     return previous_weight_file
 
+
 def model_training(model, initiation_time, training_dataset_file_path, scaler, epochs, batch_size):
 
     training_file_date = os.path.basename(training_dataset_file_path).split(".")[0]
     previous_weights_file = previous_file_exist(f"outputs/{initiation_time}_executed/model_weights",
                                                 "*-weights.pickle")
 
-    print("\n -------------------------called model_training----------------------------- \n")
     print("-initiation_time: " + initiation_time)
     print("-training_dataset_path: " + training_dataset_file_path)
 
@@ -108,8 +110,7 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
     print("-training: benign " + str(benign_count) + " records")
     print("-training: malicious " + str(malicious_count) + " records")
 
-    result = [training_time,benign_count,malicious_count]
-    return result
+    return [training_time,benign_count,malicious_count]
 
 
 # ----- Model evaluate
@@ -119,16 +120,15 @@ def model_eval(model, initiation_time, test_dataset):
 
 
 def main(model):
+
     # --- get current time in JST
     jst = pytz.timezone('Asia/Tokyo')
     initiation_time = datetime.now(jst).strftime("%Y%m%d%H%M%S%f")[:14]
 
-    # --- load setting and results
+    # --- prepare settings and results
     settings = json.load(open("settings.json", "r"))
     output_mkdir(initiation_time, settings)
-    results = set_results()
-
-    print("----------------------------------------------------------")
+    results = set_results_frame()
 
     # --- Setting
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = settings['OS']['TF_CPP_MIN_LOG_LEVEL']  # log amount
@@ -138,7 +138,6 @@ def main(model):
     pass_check(settings['DatasetsFolderPath']['TEST'])
 
     # --- Field
-
     foundation_model = model
     training_datasets_folder_path = settings['DatasetsFolderPath']['TRAINING']
     test_datasets_folder_path = settings['DatasetsFolderPath']['TEST']
@@ -150,13 +149,11 @@ def main(model):
     hours = settings['LearningDefine']['Range']['HOURS']
     scaler = StandardScaler()
     results_list = results.values
-    print(results_list)
-
 
     # --- Get each csv file in training dataset folder and start training model
-
     for training_dataset_file in os.listdir(training_datasets_folder_path):
         start = time.time()
+        print("\n -------------------------calling model_training----------------------------- \n")
         training_dataset_file_path = os.path.join(training_datasets_folder_path, training_dataset_file)
         results_list = np.vstack([
             results_list,
@@ -169,12 +166,10 @@ def main(model):
                 batch_size
             )
         ])
-        save_results(results_list,initiation_time)
         end = time.time()
-        print("----------model training ; "+ str(end-start))
+        print(" -------------------------done: "+str(end-start)+"----------------------------- \n")
 
     # --- Evaluate and tuning model
-
     for test_dataset_file in os.listdir(test_datasets_folder_path):
         test_dataset_file_path = os.path.join(test_datasets_folder_path, test_dataset_file)
         model_eval(
@@ -183,5 +178,5 @@ def main(model):
             test_dataset_file_path
         )
 
-    # --- Outputs results
-
+    # --- save results
+    save_results(results_list, initiation_time, results)
