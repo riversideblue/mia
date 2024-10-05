@@ -1,2 +1,2 @@
-src/main/server/pcap/
-src/main/server/outputs/
+src/main/edge/pcap/
+src/main/edge/outputs/

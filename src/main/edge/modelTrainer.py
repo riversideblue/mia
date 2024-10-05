@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 import time
 
 import numpy as np
-import pytz
 
 import pandas as pd
 import pickle
@@ -28,33 +27,15 @@ def is_dataset_within_range(dataset_file_name,beginning_daytime,end_daytime):
     return flag
 
 
-def output_mkdir(initiation_time, settings):
-    dir_name = f"outputs/{initiation_time}_executed"
-    os.makedirs(dir_name)
-    os.makedirs(f"{dir_name}/model_weights")
-    with open(f'{dir_name}/settings_log.json','w') as f:
-        json.dump(settings,f,indent=1)
-
-
 def set_results_frame():
     results_frame = pd.DataFrame(columns=['training_count','training_time','benign_count','malicious_count'])
     return results_frame
 
 
-def save_results(results_list, initiation_time, results):
-    dir_name = f"outputs/{initiation_time}_executed"
+def save_results(results_list, init_time, results):
+    dir_name = f"outputs/{init_time}_executed"
     results = pd.concat([results, pd.DataFrame(results_list, columns=results.columns)])
     results.to_csv(f"{dir_name}/results.csv",index=False)
-
-
-def setBeforeDatasetCsvFile(fn):
-    global before_csv_file_name
-    before_csv_file_name = fn
-
-
-def setBeforeEvaluateCsvFile(fn):
-    global before_evaluate_csv_file_name
-    before_evaluate_csv_file_name = fn
 
 
 def is_previous_file_exist(dir_name, file_format):
@@ -65,10 +46,10 @@ def is_previous_file_exist(dir_name, file_format):
     return previous_weight_file
 
 
-def model_training(model, initiation_time, training_dataset_file_path, scaler, epochs, batch_size, training_count):
+def model_training(model, init_time, training_dataset_file_path, scaler, epochs, batch_size, training_count):
 
     training_file_date = os.path.basename(training_dataset_file_path).split(".")[0]
-    previous_weights_file = is_previous_file_exist(f"outputs/{initiation_time}_executed/model_weights",
+    previous_weights_file = is_previous_file_exist(f"outputs/{init_time}_executed/model_weights",
                                                 "*-weights.pickle")
 
     print("-training_dataset_path: " + training_dataset_file_path)
@@ -100,7 +81,7 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
     train_end_time = time.time()
     training_time = train_end_time - train_start_time
 
-    with open(f"outputs/{initiation_time}_executed/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
+    with open(f"outputs/{init_time}_executed/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
         pickle.dump(model.get_weights(), f)
 
     # --- count benign and malicious
@@ -113,22 +94,9 @@ def model_training(model, initiation_time, training_dataset_file_path, scaler, e
             malicious_count += 1
     return [training_count, training_time, benign_count, malicious_count]
 
+def main(model,init_time,settings):
 
-# ----- Model evaluate
-def model_eval(model, initiation_time, test_dataset):
-    df = pd.read_csv(test_dataset)
-    return model
-
-
-def main(model):
-
-    # --- get current time in JST
-    jst = pytz.timezone('Asia/Tokyo')
-    initiation_time = datetime.now(jst).strftime("%Y%m%d%H%M%S")
-
-    # --- prepare settings and results
-    settings = json.load(open("settings.json", "r"))
-    output_mkdir(initiation_time, settings)
+    # Setup results dataframe
     results = set_results_frame()
 
     # --- Setting
@@ -158,35 +126,32 @@ def main(model):
         start = time.time()
         if not is_dataset_within_range(training_dataset_file,beginning_daytime,end_daytime):
             break
-
-        print("\n -------------------------calling model_training----------------------------- \n")
-        training_count += 1
-        training_dataset_file_path = os.path.join(training_datasets_folder_path, training_dataset_file)
-        results_list = np.vstack([
-            results_list,
-            model_training(
-                foundation_model,
-                initiation_time,
-                training_dataset_file_path,
-                scaler,
-                epochs,
-                batch_size,
-                training_count
-            )
-        ])
-        end = time.time()
-        print("\n -------------------------done: "+str(end-start)+"----------------------------- ")
-
-
-    # --- Evaluate and tuning model
-
+        for i in range(repeat_count):
+            print("\n -------------------------calling model_training----------------------------- \n")
+            training_count += 1
+            training_dataset_file_path = os.path.join(training_datasets_folder_path, training_dataset_file)
+            results_list = np.vstack([
+                results_list,
+                model_training(
+                    foundation_model,
+                    init_time,
+                    training_dataset_file_path,
+                    scaler,
+                    epochs,
+                    batch_size,
+                    training_count
+                )
+            ])
+            end = time.time()
+            print("\n -------------------------done: "+str(end-start)+"----------------------------- ")
 
     # --- save settings and results
-
     settings['Log'] = {}
-    settings['Log']['INITIATION_TIME'] = initiation_time
+    settings['Log']['INIT_TIME'] = init_time
     settings['Log']['BEGINNING_DAYTIME'] = beginning_daytime.isoformat()
     settings['Log']['END_DAYTIME'] = end_daytime.isoformat()
-    with open(f"outputs/{initiation_time}_executed/settings_log.json", "w") as f:
+    with open(f"outputs/{init_time}_executed/settings_log.json", "w") as f:
         json.dump(settings, f, indent=1)
-    save_results(results_list, initiation_time, results)
+    save_results(results_list, init_time, results)
+
+    return model

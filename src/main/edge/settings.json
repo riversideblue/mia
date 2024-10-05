@@ -1,9 +1,9 @@
 {
   "Datasets": {
-    "DIR_PATH": "/IdeaProjects/nids-cdd/src/main/server/pcap_csv/2022080409-2022081617-pcap_csv",
+    "DIR_PATH": "/IdeaProjects/nids-cdd/src/main/edge/pcap_csv/no_elements_csv",
     "BEGINNING_DAYTIME": "20220803070000",
     "LearningRange": {
-      "DAYS": 99,
+      "DAYS": 0,
       "HOURS": 1,
       "MINUTES": 0,
       "SECONDS": 1
@@ -19,7 +19,7 @@
   "LearningDefine": {
     "EPOCHS": 30,
     "BATCH_SIZE": 10,
-    "REPEAT_COUNT": 16
+    "REPEAT_COUNT": 2
   },
   "pcap_file_identifier":"",
   "subdirectory_year_month":"202201",
