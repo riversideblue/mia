@@ -50,7 +50,7 @@ def is_previous_file_exist(dir_name, file_format):
     return previous_weight_file
 
 
-def model_training(model, init_time, training_dataset_file_path, scaler, epochs, batch_size, training_count):
+def model_training(model, init_time, training_dataset_file_path, scaler, epochs, batch_size, training_count, results_list):
 
     training_file_date = os.path.basename(training_dataset_file_path).split(".")[0]
     previous_weights_file = is_previous_file_exist(f"outputs/{init_time}_executed/model_weights",
@@ -96,9 +96,14 @@ def model_training(model, init_time, training_dataset_file_path, scaler, epochs,
             benign_count += 1
         elif int(y) == 1:
             malicious_count += 1
-    return [training_count, training_time, benign_count, malicious_count]
 
-def main(model,init_time,settings):
+    results_list = np.vstack([
+        results_list, [training_count, training_time, benign_count, malicious_count]
+    ])
+
+    return model,results_list
+
+def main(foundation_model,init_time,settings):
 
     # Setup results dataframe
     results = set_results_frame()
@@ -110,7 +115,7 @@ def main(model,init_time,settings):
     is_pass_exist(settings['Datasets']['DIR_PATH'])
 
     # --- Field
-    foundation_model = model
+    model = foundation_model
     training_datasets_folder_path = settings['Datasets']['DIR_PATH']
     beginning_daytime = datetime.strptime(settings['Datasets']['BEGINNING_DAYTIME'],"%Y%m%d%H%M%S")
     days = settings['Datasets']['LearningRange']['DAYS']
@@ -134,18 +139,16 @@ def main(model,init_time,settings):
             print(">\n= > <<< calling model_training >>> \n>")
             training_count += 1
             training_dataset_file_path = os.path.join(training_datasets_folder_path, training_dataset_file)
-            results_list = np.vstack([
-                results_list,
-                model_training(
-                    foundation_model,
-                    init_time,
-                    training_dataset_file_path,
-                    scaler,
-                    epochs,
-                    batch_size,
-                    training_count
-                )
-            ])
+            model,results_list = model_training(
+                model,
+                init_time,
+                training_dataset_file_path,
+                scaler,
+                epochs,
+                batch_size,
+                training_count,
+                results_list
+            )
             end = time.time()
             print(f"\n>\n= > <<< done: {str(end-start)} >>> ")
 
