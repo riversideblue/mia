@@ -3,10 +3,10 @@
     "DIR_PATH": "pcap_csv/2023040415-2023061723-pcap_csv",
     "BEGINNING_DAYTIME": "20230404060000",
     "LearningRange": {
-      "DAYS": 0,
-      "HOURS": 1,
+      "DAYS": 365,
+      "HOURS": 0,
       "MINUTES": 0,
-      "SECONDS": 1
+      "SECONDS": 0
     }
   },
 
