@@ -15,14 +15,18 @@ from sklearn.preprocessing import StandardScaler
 
 def is_pass_exist(path):
     if not os.path.exists(path):  # error >> argument 1 name
-        print(f"cannot find training dataset: {os.path.basename(path)}")
+        print(f"= > cannot find training dataset: {os.path.basename(path)} \n>")
         sys.exit(1)
 
 
 def is_dataset_within_range(dataset_file_name,beginning_daytime,end_daytime):
     flag = True
     dataset_captured_datetime = datetime.strptime(dataset_file_name.split(".")[0] + "0000", "%Y%m%d%H%M%S")
-    if not beginning_daytime <= dataset_captured_datetime <= end_daytime:
+    if not beginning_daytime <= dataset_captured_datetime:
+        print("= > daytime when target dataset captured is before beginning-daytime specified \n>")
+        flag = False
+    elif not dataset_captured_datetime <= end_daytime:
+        print("= > daytime when target dataset captured is after end-daytime specified\n>")
         flag = False
     return flag
 
@@ -52,7 +56,7 @@ def model_training(model, init_time, training_dataset_file_path, scaler, epochs,
     previous_weights_file = is_previous_file_exist(f"outputs/{init_time}_executed/model_weights",
                                                 "*-weights.pickle")
 
-    print("-training_dataset_path: " + training_dataset_file_path)
+    print(f"= > training_dataset_path: {training_dataset_file_path} \n>")
 
     # --- csv processing
     df = pd.read_csv(training_dataset_file_path)
@@ -63,19 +67,19 @@ def model_training(model, init_time, training_dataset_file_path, scaler, epochs,
     if previous_weights_file is not None:
         df_x_label = scaler.transform(df_x_label)
         with open(previous_weights_file, 'rb') as f:
-            print(f"-previous -weights.pickle file: {previous_weights_file} found")
+            print(f"= > previous -weights.pickle file: {previous_weights_file} found \n>")
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
     else:
         df_x_label = scaler.fit_transform(df_x_label)
-        print("-previous -weights.pickle file: not found")
-        print("--initialize model weights ... ")
+        print("= > previous -weights.pickle file: not found \n>")
+        print("= > initialize model weights ... \n>")
 
     x_train = df_x_label
     y_train = df_y_label
 
     # --- execute model training
-    print("\n >>>>> execute model training ... <<<<< \n")
+    print("= > <<< execute model training ... >>> \n>\n")
     train_start_time = time.time()
     model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size)
     train_end_time = time.time()
@@ -121,13 +125,13 @@ def main(model,init_time,settings):
     results_list = results.values
     training_count = 0
 
-    # --- Get each csv file in training dataset folder and start training model
+    # --- Get each csv file in training dataset folder and calling model_training
     for training_dataset_file in os.listdir(training_datasets_folder_path):
         start = time.time()
         if not is_dataset_within_range(training_dataset_file,beginning_daytime,end_daytime):
             break
         for i in range(repeat_count):
-            print("\n -------------------------calling model_training----------------------------- \n")
+            print(">\n= > <<< calling model_training >>> \n>")
             training_count += 1
             training_dataset_file_path = os.path.join(training_datasets_folder_path, training_dataset_file)
             results_list = np.vstack([
@@ -143,11 +147,9 @@ def main(model,init_time,settings):
                 )
             ])
             end = time.time()
-            print("\n -------------------------done: "+str(end-start)+"----------------------------- ")
+            print(f"\n>\n= > <<< done: {str(end-start)} >>> ")
 
     # --- save settings and results
-    settings['Log'] = {}
-    settings['Log']['INIT_TIME'] = init_time
     settings['Log']['BEGINNING_DAYTIME'] = beginning_daytime.isoformat()
     settings['Log']['END_DAYTIME'] = end_daytime.isoformat()
     with open(f"outputs/{init_time}_executed/settings_log.json", "w") as f:

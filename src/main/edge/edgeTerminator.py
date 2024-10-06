@@ -24,8 +24,12 @@ if __name__ == "__main__":
     jst = pytz.timezone('Asia/Tokyo')
     init_time = datetime.now(jst).strftime("%Y%m%d%H%M%S")
 
-    # --- prepare settings and results
+    # --- load settings and set log key in settings
     settings = json.load(open("settings.json", "r"))
+    settings['Log'] = {}
+    settings['Log']['INIT_TIME'] = init_time
+
+    # --- Create output directory
     output_dir_name = f"outputs/{init_time}_executed"
     output_mkdir(output_dir_name, settings)
 
@@ -40,3 +44,4 @@ if __name__ == "__main__":
 
     # --- Evaluate model
     modelEvaluator.main(model,init_time,settings)
+

@@ -1,7 +1,7 @@
 {
   "Datasets": {
-    "DIR_PATH": "/IdeaProjects/nids-cdd/src/main/edge/pcap_csv/no_elements_csv",
-    "BEGINNING_DAYTIME": "20220803070000",
+    "DIR_PATH": "pcap_csv/2023040415-2023061723-pcap_csv",
+    "BEGINNING_DAYTIME": "20230404060000",
     "LearningRange": {
       "DAYS": 0,
       "HOURS": 1,
