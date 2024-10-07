@@ -1,23 +1,12 @@
 import glob
 import os
-import sys
-import json
-from datetime import datetime, timedelta
+from datetime import datetime
 import time
 
 import numpy as np
 
 import pandas as pd
 import pickle
-
-from sklearn.preprocessing import StandardScaler
-
-
-def is_pass_exist(path):
-    if not os.path.exists(path):  # error >> argument 1 name
-        print(f"= > cannot find training dataset: {os.path.basename(path)} \n>")
-        sys.exit(1)
-
 
 def is_dataset_within_range(dataset_file_name,beginning_daytime,end_daytime):
     flag = True
@@ -31,13 +20,8 @@ def is_dataset_within_range(dataset_file_name,beginning_daytime,end_daytime):
     return flag
 
 
-def set_results_frame():
-    results_frame = pd.DataFrame(columns=['training_count','training_time','benign_count','malicious_count'])
-    return results_frame
-
-
 def save_results(results_list, init_time, results):
-    dir_name = f"outputs/{init_time}_executed"
+    dir_name = f"src/main/edge/outputs/{init_time}_executed"
     results = pd.concat([results, pd.DataFrame(results_list, columns=results.columns)])
     results.to_csv(f"{dir_name}/results.csv",index=False)
 
@@ -53,7 +37,7 @@ def is_previous_file_exist(dir_name, file_format):
 def model_training(model, init_time, training_dataset_file_path, scaler, epochs, batch_size, training_count, results_list):
 
     training_file_date = os.path.basename(training_dataset_file_path).split(".")[0]
-    previous_weights_file = is_previous_file_exist(f"outputs/{init_time}_executed/model_weights",
+    previous_weights_file = is_previous_file_exist(f"src/main/edge/outputs/{init_time}_executed/model_weights",
                                                 "*-weights.pickle")
 
     print(f"= > training_dataset_path: {training_dataset_file_path} \n>")
@@ -85,7 +69,7 @@ def model_training(model, init_time, training_dataset_file_path, scaler, epochs,
     train_end_time = time.time()
     training_time = train_end_time - train_start_time
 
-    with open(f"outputs/{init_time}_executed/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
+    with open(f"src/main/edge/outputs/{init_time}_executed/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
         pickle.dump(model.get_weights(), f)
 
     # --- count benign and malicious
@@ -103,31 +87,9 @@ def model_training(model, init_time, training_dataset_file_path, scaler, epochs,
 
     return model,results_list
 
-def main(foundation_model,init_time,settings):
+def main(model, init_time, training_datasets_folder_path, scalar, beginning_daytime, end_daytime, repeat_count, epochs, batch_size, results_list):
 
-    # Setup results dataframe
-    results = set_results_frame()
-
-    # --- Setting
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = settings['OS']['TF_CPP_MIN_LOG_LEVEL']  # log amount
-    os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = settings['OS']['TF_FORCE_GPU_ALLOW_GROWTH']  # gpu mem limit
-    os.environ["CUDA_VISIBLE_DEVICES"] = settings['OS']['CUDA_VISIBLE_DEVICES']  # cpu : -1
-    is_pass_exist(settings['Datasets']['DIR_PATH'])
-
-    # --- Field
-    model = foundation_model
-    training_datasets_folder_path = settings['Datasets']['DIR_PATH']
-    beginning_daytime = datetime.strptime(settings['Datasets']['BEGINNING_DAYTIME'],"%Y%m%d%H%M%S")
-    days = settings['Datasets']['LearningRange']['DAYS']
-    hours = settings['Datasets']['LearningRange']['HOURS']
-    minutes = settings['Datasets']['LearningRange']['MINUTES']
-    seconds = settings['Datasets']['LearningRange']['SECONDS']
-    epochs = settings['LearningDefine']['EPOCHS']
-    batch_size = settings['LearningDefine']['BATCH_SIZE']
-    repeat_count = settings['LearningDefine']['REPEAT_COUNT']
-    end_daytime = beginning_daytime + timedelta(days=days,hours=hours,minutes=minutes,seconds=seconds)
-    scaler = StandardScaler()
-    results_list = results.values
+    # Setup
     training_count = 0
 
     # --- Get each csv file in training dataset folder and calling model_training
@@ -140,23 +102,16 @@ def main(foundation_model,init_time,settings):
             training_count += 1
             training_dataset_file_path = os.path.join(training_datasets_folder_path, training_dataset_file)
             model,results_list = model_training(
-                model,
-                init_time,
-                training_dataset_file_path,
-                scaler,
-                epochs,
-                batch_size,
-                training_count,
-                results_list
+                model=model,
+                init_time=init_time,
+                training_dataset_file_path=training_dataset_file_path,
+                scaler=scalar,
+                epochs=epochs,
+                batch_size=batch_size,
+                training_count=training_count,
+                results_list=results_list
             )
             end = time.time()
             print(f"\n>\n= > <<< done: {str(end-start)} >>> ")
 
-    # --- save settings and results
-    settings['Log']['BEGINNING_DAYTIME'] = beginning_daytime.isoformat()
-    settings['Log']['END_DAYTIME'] = end_daytime.isoformat()
-    with open(f"outputs/{init_time}_executed/settings_log.json", "w") as f:
-        json.dump(settings, f, indent=1)
-    save_results(results_list, init_time, results)
-
-    return model
+    return model,results_list

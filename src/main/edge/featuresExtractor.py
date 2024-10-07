@@ -27,7 +27,7 @@ online_flag = False
 if pcap_dir_name == "online":
     online_flag = True
 #---------------------------------------------------------------------------------
-settings = json.load(open("settings.json", "r"))
+settings = json.load(open("src/main/edge/settings.json", "r"))
 
 pcap_fl_id = settings["pcap_file_identifier"] # pcap file identifier(ex: ".pcap")
 subdir_year_month = settings["subdirectory_year_month"]

@@ -1,10 +1,13 @@
 {
   "Datasets": {
-    "DIR_PATH": "pcap_csv/2023040415-2023061723-pcap_csv",
+    "Dir_Path": {
+      "TRAINING": "src/main/edge/pcap_csv/2023040415-2023061723-pcap_csv",
+      "TEST": "src/main/edge/pcap_csv/sample_pcap_csv"
+    },
     "BEGINNING_DAYTIME": "20230404060000",
     "LearningRange": {
-      "DAYS": 365,
-      "HOURS": 0,
+      "DAYS": 0,
+      "HOURS": 1,
       "MINUTES": 0,
       "SECONDS": 0
     }
@@ -19,7 +22,7 @@
   "LearningDefine": {
     "EPOCHS": 30,
     "BATCH_SIZE": 10,
-    "REPEAT_COUNT": 2
+    "REPEAT_COUNT": 1
   },
   "pcap_file_identifier":"",
   "subdirectory_year_month":"202201",
