@@ -14,12 +14,12 @@ def is_dataset_within_range(dataset_file_name,beginning_daytime,end_daytime):
     if not beginning_daytime <= dataset_captured_datetime:
         print(f">\n=  target dataset captured time : {dataset_captured_datetime}"
               f">\n=  beginning-daytime : {beginning_daytime}"
-              f">\n=  error : target dataset captured time > beginning-daytime")
+              f">\n=  no dataset in specified beginning-daytime")
         within_range_flag = False
     elif not dataset_captured_datetime <= end_daytime:
-        print(f">\n=  target dataset captured time : {dataset_captured_datetime}"
+        print(f">\n= target dataset captured time : {dataset_captured_datetime}"
               f">\n= end-daytime : {end_daytime}"
-              f">\n=  error : target dataset captured time > end-daytime")
+              f">\n= no dataset in specified end-daytime")
         within_range_flag = False
     return within_range_flag
 
