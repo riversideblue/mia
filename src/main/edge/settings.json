@@ -1,28 +1,33 @@
 {
-  "Datasets": {
-    "Dir_Path": {
-      "TRAINING": "src/main/edge/pcap_csv/2023040415-2023061723-pcap_csv",
-      "TEST": "src/main/edge/pcap_csv/sample_pcap_csv"
-    },
+  "Training": {
+    "DATASETS_FOLDER_PATH": "src/main/edge/pcap_csv/2023040415-2023061723-pcap_csv",
     "BEGINNING_DAYTIME": "20230404060000",
-    "LearningRange": {
+    "TargetRange": {
       "DAYS": 0,
       "HOURS": 1,
       "MINUTES": 0,
-      "SECONDS": 0
+      "SECONDS": 1
+    },
+      "LearningDefine": {
+        "EPOCHS": 30,
+        "BATCH_SIZE": 10,
+        "REPEAT_COUNT": 1
+      }
+  },
+  "Evaluate": {
+    "DATASETS_FOLDER_PATH": "src/main/edge/pcap_csv/sample_pcap_csv",
+    "BEGINNING_DAYTIME": "20230409150000",
+    "TargetRange": {
+      "DAYS": 0,
+      "HOURS": 1,
+      "MINUTES": 0,
+      "SECONDS": 1
     }
   },
-
   "OS": {
     "TF_CPP_MIN_LOG_LEVEL": "3",
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
-  },
-
-  "LearningDefine": {
-    "EPOCHS": 30,
-    "BATCH_SIZE": 10,
-    "REPEAT_COUNT": 1
   },
   "pcap_file_identifier":"",
   "subdirectory_year_month":"202201",
