@@ -133,7 +133,7 @@ if __name__ == "__main__":
     )
 
     # --- Evaluate model
-    evaluate_results_list = modelEvaluator.main(
+    evaluate_results_list, confusion_matrix = modelEvaluator.main(
         model=model,
         datasets_folder_path=evaluate_datasets_folder_path,
         scalar=scaler,
@@ -151,3 +151,10 @@ if __name__ == "__main__":
         evaluate=evaluate_results,
         output_dir=output_dir_path
     )
+
+    framed_matrix = pd.DataFrame(
+        data=confusion_matrix,
+        index=["PredictionPositive","PredictionNegative"],
+        columns=["TargetPositive", "TargetNegative"]
+    )
+    print(framed_matrix)

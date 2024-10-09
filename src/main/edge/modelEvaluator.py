@@ -7,23 +7,17 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 
+
 def is_dataset_out_of_range(dataset_file_name,beginning_daytime,end_daytime):
     within_range_flag: bool = False
     dataset_captured_datetime = datetime.strptime(dataset_file_name.split(".")[0] + "0000", "%Y%m%d%H%M%S")
     if not beginning_daytime <= dataset_captured_datetime:
-        print(f"evaluate: no dataset in specified beginning-daytime")
+        print(f"evaluate: {dataset_captured_datetime} dataset ignored by Evaluate/BEGINNING_DAYTIME setting")
         within_range_flag = True
     elif not dataset_captured_datetime <= end_daytime:
-        print(f"evaluate: no dataset in specified end-daytime")
+        print(f"evaluate: {dataset_captured_datetime} dataset ignored by Evaluate/TargetRange settings")
         within_range_flag = True
     return within_range_flag
-
-def output_confusion_matrix(target,prediction):
-    label = [1,0]
-    matrix = confusion_matrix(target, prediction,label)
-    print(matrix)
-    framed_matrix = pd.DataFrame(data=matrix,index=["PredictionPositive","PredictionNegative"],columns=["TargetPositive", "TargetNegative"])
-    print(framed_matrix)
 
 
 def model_evaluate(model, dataset_file, scaler):
@@ -42,27 +36,31 @@ def model_evaluate(model, dataset_file, scaler):
         # --- Prediction
         prediction_values = model.predict(scaled_feature_matrix)
         prediction_binary_values = (prediction_values >= 0.5).astype(int)
-        print(target_values)
-        print(prediction_binary_values)
 
         # --- Evaluate
-        output_confusion_matrix(target_values,prediction_binary_values)
         accuracy = accuracy_score(target_values, prediction_binary_values)
         precision = precision_score(target_values, prediction_binary_values)
         recall = recall_score(target_values, prediction_binary_values)
         f1 = f1_score(target_values, prediction_binary_values)
 
-        return [accuracy,precision,recall,f1]
+
+        # --- Confusion matrix
+        matrix = confusion_matrix(target_values, prediction_binary_values, labels=[0,1])
+
+        return [accuracy,precision,recall,f1], matrix
 
 
 # ----- Model evaluate
 def main(model, datasets_folder_path, scalar, beginning_daytime, end_daytime, results_list):
 
+    results_matrix = [[0,0],[0,0]]
+
     # --- Calling
     for dataset_file in os.listdir(datasets_folder_path):
         if not is_dataset_out_of_range(dataset_file,beginning_daytime,end_daytime):
             dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
-            results_array = model_evaluate(model, dataset_file_path, scalar)
+            results_array,matrix = model_evaluate(model, dataset_file_path, scalar)
             results_list = np.vstack([results_list, results_array])
+            results_matrix = matrix + results_matrix
 
-    return results_list
+    return results_list,results_matrix
