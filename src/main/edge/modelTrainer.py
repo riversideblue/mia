@@ -23,7 +23,6 @@ def is_dataset_within_range(dataset_file_name,beginning_daytime,end_daytime):
         within_range_flag = False
     return within_range_flag
 
-
 def is_previous_file_exist(dir_name, file_format):
     file_list = sorted(glob.glob(os.path.join(dir_name, file_format)))
     previous_weight_file = None
@@ -32,10 +31,10 @@ def is_previous_file_exist(dir_name, file_format):
     return previous_weight_file
 
 
-def model_training(model, init_time, dataset_file_path, scaler, epochs, batch_size, training_count, results_list):
+def model_training(model, output_dir_path, dataset_file_path, scaler, epochs, batch_size, training_count, results_list):
 
     training_file_date = os.path.basename(dataset_file_path).split(".")[0]
-    previous_weights_file = is_previous_file_exist(f"src/main/edge/outputs/{init_time}_executed/model_weights",
+    previous_weights_file = is_previous_file_exist(f"{output_dir_path}/model_weights",
                                                 "*-weights.pickle")
 
     print(f"= > training_dataset_path: {dataset_file_path} \n>")
@@ -67,7 +66,7 @@ def model_training(model, init_time, dataset_file_path, scaler, epochs, batch_si
     train_end_time = time.time()
     training_time = train_end_time - train_start_time
 
-    with open(f"src/main/edge/outputs/{init_time}_executed/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
+    with open(f"{output_dir_path}/model_weights/{training_file_date}-weights.pickle", 'wb') as f:
         pickle.dump(model.get_weights(), f) # type: ignore
 
     # --- count benign and malicious
@@ -83,25 +82,25 @@ def model_training(model, init_time, dataset_file_path, scaler, epochs, batch_si
         results_list, [training_count, training_time, benign_count, malicious_count]
     ])
 
-    return model,results_list
+    return model,[training_count, training_time, benign_count, malicious_count]
 
-def main(model, init_time, datasets_folder_path, scalar, beginning_daytime, end_daytime, repeat_count, epochs, batch_size, results_list):
+def main(model, output_dir_path, datasets_folder_path, scalar, beginning_daytime, end_daytime, repeat_count, epochs, batch_size, results_list):
 
     # Setup
-    training_count = 0
+    training_count:int = 0
 
     # --- Get each csv file in training dataset folder and calling model_training
     for dataset_file in os.listdir(datasets_folder_path):
         start = time.time()
-        if not is_dataset_within_range(dataset_file,beginning_daytime,end_daytime):
+        if not is_dataset_within_range(dataset_file, beginning_daytime, end_daytime):
             break
         for i in range(repeat_count):
             print(">\n= > <<< calling model_training >>> \n>")
             training_count += 1
-            dataset_file_path = os.path.join(datasets_folder_path, dataset_file)
-            model,results_list = model_training(
+            dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
+            model,results_array = model_training(
                 model=model,
-                init_time=init_time,
+                output_dir_path=output_dir_path,
                 dataset_file_path=dataset_file_path,
                 scaler=scalar,
                 epochs=epochs,
@@ -109,6 +108,7 @@ def main(model, init_time, datasets_folder_path, scalar, beginning_daytime, end_
                 training_count=training_count,
                 results_list=results_list
             )
+            results_list = np.vstack([results_list, results_array])
             end = time.time()
             print(f"\n>\n= > <<< done: {str(end-start)} >>> ")
 

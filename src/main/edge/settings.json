@@ -6,7 +6,7 @@
       "DAYS": 0,
       "HOURS": 1,
       "MINUTES": 0,
-      "SECONDS": 1
+      "SECONDS": 0
     },
       "LearningDefine": {
         "EPOCHS": 30,
@@ -19,9 +19,9 @@
     "BEGINNING_DAYTIME": "20230409150000",
     "TargetRange": {
       "DAYS": 0,
-      "HOURS": 1,
+      "HOURS": 5,
       "MINUTES": 0,
-      "SECONDS": 1
+      "SECONDS": 0
     }
   },
   "OS": {
