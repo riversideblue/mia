@@ -19,7 +19,7 @@ def set_results_frame(column):
 
 def is_pass_exist(path):
     if not os.path.exists(path):  # error >> argument 1 name
-        print(f"= > cannot find training dataset: {os.path.basename(path)} \n>")
+        print(f"Cannot find training dataset: {os.path.basename(path)}")
         sys.exit(1)
 
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     # --- Field
     settings['Log']['Training'] = {}
     training_datasets_folder_path:str = settings['Training']['DATASETS_FOLDER_PATH']
-    training_beginning_daytime = datetime.strptime(settings['Training']['BEGINNING_DAYTIME'],"%Y%m%d%H%M%S")
+    training_beginning_daytime = datetime.strptime(settings['Training']['BEGINNING_DAYTIME'],"%Y-%m-%d %H:%M:%S")
     settings['Log']['Training']['BEGINNING_DAYTIME'] = training_beginning_daytime.isoformat()
     training_days:int = settings['Training']['TargetRange']['DAYS']
     training_hours:int = settings['Training']['TargetRange']['HOURS']
@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     settings['Log']['Evaluate'] = {}
     evaluate_datasets_folder_path:str = settings['Evaluate']['DATASETS_FOLDER_PATH']
-    evaluate_beginning_daytime:datetime = datetime.strptime(settings['Evaluate']['BEGINNING_DAYTIME'],"%Y%m%d%H%M%S")
+    evaluate_beginning_daytime = datetime.strptime(settings['Evaluate']['BEGINNING_DAYTIME'],"%Y-%m-%d %H:%M:%S")
     settings['Log']['Evaluate']['BEGINNING_DAYTIME'] = evaluate_beginning_daytime.isoformat()
     evaluate_days:int = settings['Evaluate']['TargetRange']['DAYS']
     evaluate_hours:int = settings['Evaluate']['TargetRange']['HOURS']

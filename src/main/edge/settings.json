@@ -1,12 +1,12 @@
 {
   "Training": {
     "DATASETS_FOLDER_PATH": "src/main/edge/pcap_csv/2023040415-2023061723-pcap_csv",
-    "BEGINNING_DAYTIME": "20230404060000",
+    "BEGINNING_DAYTIME": "2023-04-04 06:00:00",
     "TargetRange": {
       "DAYS": 0,
       "HOURS": 1,
       "MINUTES": 0,
-      "SECONDS": 0
+      "SECONDS": 1
     },
       "LearningDefine": {
         "EPOCHS": 30,
@@ -15,11 +15,11 @@
       }
   },
   "Evaluate": {
-    "DATASETS_FOLDER_PATH": "src/main/edge/pcap_csv/sample_pcap_csv",
-    "BEGINNING_DAYTIME": "20230409150000",
+    "DATASETS_FOLDER_PATH": "src/main/edge/pcap_csv/2023040415-2023061723-pcap_csv",
+    "BEGINNING_DAYTIME": "2023-06-01 00:00:00",
     "TargetRange": {
-      "DAYS": 0,
-      "HOURS": 5,
+      "DAYS": 1,
+      "HOURS": 0,
       "MINUTES": 0,
       "SECONDS": 0
     }

@@ -7,26 +7,23 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 
-def is_dataset_within_range(dataset_file_name,beginning_daytime,end_daytime):
-    within_range_flag: bool = True
+def is_dataset_out_of_range(dataset_file_name,beginning_daytime,end_daytime):
+    within_range_flag: bool = False
     dataset_captured_datetime = datetime.strptime(dataset_file_name.split(".")[0] + "0000", "%Y%m%d%H%M%S")
     if not beginning_daytime <= dataset_captured_datetime:
-        print(f">\n=  no dataset in specified beginning-daytime")
-        within_range_flag = False
+        print(f"evaluate: no dataset in specified beginning-daytime")
+        within_range_flag = True
     elif not dataset_captured_datetime <= end_daytime:
-        print(f">\n= no dataset in specified end-daytime")
-        within_range_flag = False
+        print(f"evaluate: no dataset in specified end-daytime")
+        within_range_flag = True
     return within_range_flag
 
-def output_confusion_matrix(target,precision):
-    matrix = confusion_matrix(target,precision)
+def output_confusion_matrix(target,prediction):
+    label = [1,0]
+    matrix = confusion_matrix(target, prediction,label)
     print(matrix)
-    framed_matrix = pd.concat([matrix,pd.DataFrame(
-        columns=['Target:Positive','Target:Negative'],
-        index=['Precision:Negative','Precision:Negative']
-    )])
-    print(framd_matrix)
-
+    framed_matrix = pd.DataFrame(data=matrix,index=["PredictionPositive","PredictionNegative"],columns=["TargetPositive", "TargetNegative"])
+    print(framed_matrix)
 
 
 def model_evaluate(model, dataset_file, scaler):
@@ -34,7 +31,7 @@ def model_evaluate(model, dataset_file, scaler):
 
     # --- Check dataset not null
     if len(evaluate_df) == 0:
-        print(f"= > specified test dataset file: {dataset_file} no data \n>")
+        print(f"specified test dataset file: {dataset_file} no data \n>")
         sys.exit()
     else:
         # --- Get labels and eval dataset
@@ -63,10 +60,9 @@ def main(model, datasets_folder_path, scalar, beginning_daytime, end_daytime, re
 
     # --- Calling
     for dataset_file in os.listdir(datasets_folder_path):
-        if not is_dataset_within_range(dataset_file,beginning_daytime,end_daytime):
-            break
-        dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
-        results_array = model_evaluate(model, dataset_file_path, scalar)
-        results_list = np.vstack([results_list, results_array])
+        if not is_dataset_out_of_range(dataset_file,beginning_daytime,end_daytime):
+            dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
+            results_array = model_evaluate(model, dataset_file_path, scalar)
+            results_list = np.vstack([results_list, results_array])
 
     return results_list

@@ -9,17 +9,13 @@ import pandas as pd
 import pickle
 
 def is_dataset_within_range(dataset_file_name,beginning_daytime,end_daytime):
-    within_range_flag: bool = True
+    within_range_flag:bool = True
     dataset_captured_datetime = datetime.strptime(dataset_file_name.split(".")[0] + "0000", "%Y%m%d%H%M%S")
     if not beginning_daytime <= dataset_captured_datetime:
-        print(f">\n=  target dataset captured time : {dataset_captured_datetime}"
-              f">\n=  beginning-daytime : {beginning_daytime}"
-              f">\n=  no dataset in specified beginning-daytime")
+        print(f"training: no dataset in specified beginning-daytime")
         within_range_flag = False
     elif not dataset_captured_datetime <= end_daytime:
-        print(f">\n= target dataset captured time : {dataset_captured_datetime}"
-              f">\n= end-daytime : {end_daytime}"
-              f">\n= no dataset in specified end-daytime")
+        print(f"training: no dataset in specified end-daytime")
         within_range_flag = False
     return within_range_flag
 
@@ -37,7 +33,7 @@ def model_training(model, output_dir_path, dataset_file_path, scaler, epochs, ba
     previous_weights_file = is_previous_file_exist(f"{output_dir_path}/model_weights",
                                                 "*-weights.pickle")
 
-    print(f"= > training_dataset_path: {dataset_file_path} \n>")
+    print(f"training_dataset_path: {dataset_file_path}")
 
     # --- csv processing
     df = pd.read_csv(dataset_file_path)
@@ -48,19 +44,19 @@ def model_training(model, output_dir_path, dataset_file_path, scaler, epochs, ba
     if previous_weights_file is not None:
         df_x_label = scaler.transform(df_x_label)
         with open(previous_weights_file, 'rb') as f:
-            print(f"= > previous -weights.pickle file: {previous_weights_file} found \n>")
+            print(f"previous -weights.pickle file: {previous_weights_file} found \n>")
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
     else:
         df_x_label = scaler.fit_transform(df_x_label)
-        print("= > previous -weights.pickle file: not found \n>")
-        print("= > initialize model weights ... \n>")
+        print("previous -weights.pickle file: not found")
+        print("initialize model weights ... ")
 
     x_train = df_x_label
     y_train = df_y_label
 
     # --- execute model training
-    print("= > <<< execute model training ... >>> \n>\n")
+    print("<<< execute model training ... >>> ")
     train_start_time = time.time()
     model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size)
     train_end_time = time.time()
@@ -91,7 +87,7 @@ def main(model, output_dir_path, datasets_folder_path, scalar, beginning_daytime
         if not is_dataset_within_range(dataset_file, beginning_daytime, end_daytime):
             break
         for i in range(repeat_count):
-            print(">\n= > <<< calling model_training >>> \n>")
+            print("<<< calling model_training >>>")
             training_count += 1
             dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
             model,results_array = model_training(
@@ -106,6 +102,6 @@ def main(model, output_dir_path, datasets_folder_path, scalar, beginning_daytime
             )
             results_list = np.vstack([results_list, results_array])
             end = time.time()
-            print(f"\n>\n= > <<< done: {str(end-start)} >>> ")
+            print(f"<<< done: {str(end-start)} >>> ")
 
     return model,results_list
