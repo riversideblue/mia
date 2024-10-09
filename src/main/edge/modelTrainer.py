@@ -78,10 +78,6 @@ def model_training(model, output_dir_path, dataset_file_path, scaler, epochs, ba
         elif int(y) == 1:
             malicious_count += 1
 
-    results_list = np.vstack([
-        results_list, [training_count, training_time, benign_count, malicious_count]
-    ])
-
     return model,[training_count, training_time, benign_count, malicious_count]
 
 def main(model, output_dir_path, datasets_folder_path, scalar, beginning_daytime, end_daytime, repeat_count, epochs, batch_size, results_list):

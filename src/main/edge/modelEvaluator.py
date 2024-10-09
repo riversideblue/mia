@@ -4,7 +4,7 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 
 def is_dataset_within_range(dataset_file_name,beginning_daytime,end_daytime):
@@ -18,6 +18,16 @@ def is_dataset_within_range(dataset_file_name,beginning_daytime,end_daytime):
         within_range_flag = False
     return within_range_flag
 
+def output_confusion_matrix(target,precision):
+    matrix = confusion_matrix(target,precision)
+    print(matrix)
+    framed_matrix = pd.concat([matrix,pd.DataFrame(
+        columns=['Target:Positive','Target:Negative'],
+        index=['Precision:Negative','Precision:Negative']
+    )])
+    print(framd_matrix)
+
+
 
 def model_evaluate(model, dataset_file, scaler):
     evaluate_df = pd.read_csv(dataset_file)
@@ -27,7 +37,7 @@ def model_evaluate(model, dataset_file, scaler):
         print(f"= > specified test dataset file: {dataset_file} no data \n>")
         sys.exit()
     else:
-        # --- Get
+        # --- Get labels and eval dataset
         feature_matrix = evaluate_df.iloc[:,3:-1].values
         scaled_feature_matrix = scaler.transform(feature_matrix)
         target_values = evaluate_df.loc[:,"label"].values
@@ -35,8 +45,11 @@ def model_evaluate(model, dataset_file, scaler):
         # --- Prediction
         prediction_values = model.predict(scaled_feature_matrix)
         prediction_binary_values = (prediction_values >= 0.5).astype(int)
+        print(target_values)
+        print(prediction_binary_values)
 
-        # --- evaluate
+        # --- Evaluate
+        output_confusion_matrix(target_values,prediction_binary_values)
         accuracy = accuracy_score(target_values, prediction_binary_values)
         precision = precision_score(target_values, prediction_binary_values)
         recall = recall_score(target_values, prediction_binary_values)
