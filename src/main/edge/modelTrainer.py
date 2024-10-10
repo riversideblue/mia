@@ -26,6 +26,10 @@ def is_previous_file_exist(dir_name, file_format):
         previous_weight_file = file_list[-1]
     return previous_weight_file
 
+def save_results(training_list, training, output_dir):
+    training = pd.concat([training, pd.DataFrame(training_list, columns=training.columns)])
+    training.to_csv(f"{output_dir}/results_training.csv",index=False)
+
 
 def model_training(model, output_dir_path, dataset_file_path, scaler, epochs, batch_size, training_count, results_list):
 
@@ -37,27 +41,24 @@ def model_training(model, output_dir_path, dataset_file_path, scaler, epochs, ba
 
     # --- csv processing
     df = pd.read_csv(dataset_file_path)
-    df_x_label = df.iloc[:, 3:-1].values
-    df_y_label = df.loc[:, "label"].values
+    feature_matrix = df.iloc[:, 3:-1].values
+    target_values = df.loc[:, "label"].values
 
     # --- load previous model weights file if exist
     if previous_weights_file is not None:
-        df_x_label = scaler.transform(df_x_label)
+        feature_matrix = scaler.transform(feature_matrix)
         with open(previous_weights_file, 'rb') as f:
             print(f"previous -weights.pickle file: {previous_weights_file} found")
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
     else:
-        df_x_label = scaler.fit_transform(df_x_label)
+        feature_matrix = scaler.fit_transform(feature_matrix)
         print("previous -weights.pickle file: not found")
         print("initialize model weights ... ")
 
-    x_train = df_x_label
-    y_train = df_y_label
-
     # --- execute model training
     train_start_time = time.time()
-    model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size)
+    model.fit(feature_matrix, target_values, epochs=epochs, batch_size=batch_size)
     train_end_time = time.time()
     training_time = train_end_time - train_start_time
 
@@ -67,15 +68,15 @@ def model_training(model, output_dir_path, dataset_file_path, scaler, epochs, ba
     # --- count benign and malicious
     benign_count = 0
     malicious_count = 0
-    for y in y_train:
-        if int(y) == 0:
+    for target_value in target_values:
+        if int(target_value) == 0:
             benign_count += 1
-        elif int(y) == 1:
+        elif int(target_value) == 1:
             malicious_count += 1
 
     return model,[training_count, training_time, benign_count, malicious_count]
 
-def main(model, output_dir_path, datasets_folder_path, scalar, beginning_daytime, end_daytime, repeat_count, epochs, batch_size, results_list):
+def main(model, output_dir_path, datasets_folder_path, scalar, beginning_daytime, end_daytime, repeat_count, epochs, batch_size, results, results_list):
 
     # Setup
     training_count:int = 0
@@ -101,4 +102,8 @@ def main(model, output_dir_path, datasets_folder_path, scalar, beginning_daytime
                 end = time.time()
                 print(f"----- done: {str(end-start)} ----- ")
 
-    return model,results_list
+    save_results(
+        training_list=results_list,
+        training=results,
+        output_dir=output_dir_path
+    )

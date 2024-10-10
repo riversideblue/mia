@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import sys
@@ -7,14 +8,8 @@ import pandas as pd
 import pytz
 from sklearn.preprocessing import StandardScaler
 
-import modelCreator
-import modelSender
-import modelTrainer
-import modelEvaluator
-
-def set_results_frame(column):
-    results_frame = pd.DataFrame(columns=column)
-    return results_frame
+from main.other import modelCreator
+from main.edge import driftDetector,modelSender,modelTrainer,trafficServer
 
 
 def is_pass_exist(path):
@@ -36,31 +31,45 @@ def save_settings_log(settings_log, output_dir):
         json.dump(settings_log, f, indent=1) # type: ignore
 
 
-def save_results(training_list, training, evaluate_list, evaluate, output_dir):
-    training = pd.concat([training, pd.DataFrame(training_list, columns=training.columns)])
-    training.to_csv(f"{output_dir}/results_training.csv",index=False)
-    evaluate = pd.concat([evaluate, pd.DataFrame(evaluate_list, columns=evaluate.columns)])
-    evaluate.to_csv(f"{output_dir}/results_evaluate.csv", index=False)
+async def training_activate(dynamic_mode,static_interval,model,output_dir_path,datasets_folder_path,scaler,beginning_daytime,end_daytime,repeat_count,epochs,batch_size,results,results_list):
+    if not dynamic_mode:
+        while True:
+            modelTrainer.main(
+                model=model,
+                output_dir_path=output_dir_path,
+                datasets_folder_path=datasets_folder_path,
+                scalar=scaler,
+                beginning_daytime=beginning_daytime,
+                end_daytime=end_daytime,
+                repeat_count=repeat_count,
+                epochs=epochs,
+                batch_size=batch_size,
+                results=results,
+                results_list=results_list
+            )
+            await asyncio.sleep(static_interval)
+    else:
+        print("dynamic_mode on")
+        driftDetector.main(model)
 
+async def traffic_server_activate():
+    trafficServer.main()
 
 # ----- Main
 
-if __name__ == "__main__":
-
-    # --- load settings
+async def main():
+    # --- Load settings
     settings = json.load(open('src/main/edge/settings.json', 'r'))
     settings['Log'] = {}
 
-    # --- get current time in JST
+    # --- Get current time in JST
     jst = pytz.timezone('Asia/Tokyo')
     init_time:str = datetime.now(jst).strftime("%Y%m%d%H%M%S")
     settings['Log']['INIT_TIME'] = init_time
 
-    # --- set results DataFrame
-    training_results = set_results_frame(['training_count','training_time','benign_count','malicious_count'])
-    training_results_list = training_results.values
-    evaluate_results = set_results_frame(['accuracy','f1_score','precision','recall'])
-    evaluate_results_list = evaluate_results.values
+    # --- Set results DataFrame
+    results = pd.DataFrame(columns=['training_count','training_time','benign_count','malicious_count'])
+    results_list = results.values
 
     # --- Setting
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = settings['OS']['TF_CPP_MIN_LOG_LEVEL']  # log amount
@@ -69,92 +78,87 @@ if __name__ == "__main__":
 
     # --- Field
     settings['Log']['Training'] = {}
-    training_datasets_folder_path:str = settings['Training']['DATASETS_FOLDER_PATH']
-    training_beginning_daytime = datetime.strptime(settings['Training']['BEGINNING_DAYTIME'],"%Y-%m-%d %H:%M:%S")
-    settings['Log']['Training']['BEGINNING_DAYTIME'] = training_beginning_daytime.isoformat()
-    training_days:int = settings['Training']['TargetRange']['DAYS']
-    training_hours:int = settings['Training']['TargetRange']['HOURS']
-    training_minutes:int = settings['Training']['TargetRange']['MINUTES']
-    training_seconds:int = settings['Training']['TargetRange']['SECONDS']
-    training_end_daytime:datetime = training_beginning_daytime + timedelta(
-        days=training_days,
-        hours=training_hours,
-        minutes=training_minutes,
-        seconds=training_seconds
+    datasets_folder_path:str = settings['Training']['DATASETS_FOLDER_PATH']
+    beginning_daytime = datetime.strptime(settings['Training']['BEGINNING_DAYTIME'],"%Y-%m-%d %H:%M:%S")
+    settings['Log']['Training']['BEGINNING_DAYTIME'] = beginning_daytime.isoformat()
+    days:int = settings['Training']['TargetRange']['DAYS']
+    hours:int = settings['Training']['TargetRange']['HOURS']
+    minutes:int = settings['Training']['TargetRange']['MINUTES']
+    seconds:int = settings['Training']['TargetRange']['SECONDS']
+    end_daytime:datetime = beginning_daytime + timedelta(
+        days=days,
+        hours=hours,
+        minutes=minutes,
+        seconds=seconds
     )
-    settings['Log']['Training']['END_DAYTIME'] = training_end_daytime.isoformat()
+    settings['Log']['Training']['END_DAYTIME'] = end_daytime.isoformat()
     epochs:int = settings['Training']['LearningDefine']['EPOCHS']
     batch_size:int = settings['Training']['LearningDefine']['BATCH_SIZE']
     repeat_count:int = settings['Training']['LearningDefine']['REPEAT_COUNT']
 
-    settings['Log']['Evaluate'] = {}
-    evaluate_datasets_folder_path:str = settings['Evaluate']['DATASETS_FOLDER_PATH']
-    evaluate_beginning_daytime = datetime.strptime(settings['Evaluate']['BEGINNING_DAYTIME'],"%Y-%m-%d %H:%M:%S")
-    settings['Log']['Evaluate']['BEGINNING_DAYTIME'] = evaluate_beginning_daytime.isoformat()
-    evaluate_days:int = settings['Evaluate']['TargetRange']['DAYS']
-    evaluate_hours:int = settings['Evaluate']['TargetRange']['HOURS']
-    evaluate_minutes:int = settings['Evaluate']['TargetRange']['MINUTES']
-    evaluate_seconds:int = settings['Evaluate']['TargetRange']['SECONDS']
-    evaluate_end_daytime:datetime = evaluate_beginning_daytime + timedelta(
-        days=evaluate_days,
-        hours=evaluate_hours,
-        minutes=evaluate_minutes,
-        seconds=evaluate_seconds
-    )
-    settings['Log']['Evaluate']['END_DAYTIME'] = evaluate_end_daytime.isoformat()
-    scaler = StandardScaler()
+    online_mode:bool = settings['Training']['RetrainingCycle']['ONLINE_MODE']
+    dynamic_mode:bool = settings['Training']['RetrainingCycle']['DYNAMIC_MODE']
+    static_interval:int = settings['Training']['RetrainingCycle']['STATIC_INTERVAL']
 
-    # --- Pass check
-    is_pass_exist(training_datasets_folder_path)
-    is_pass_exist(evaluate_datasets_folder_path)
+    scaler = StandardScaler()
+    is_pass_exist(datasets_folder_path)
 
     # --- Create output directory
     output_dir_path:str = f"src/main/edge/outputs/{init_time}_executed"
     output_mkdir(output_dir_path, settings)
 
     # --- Create foundation model
-    foundation_model = modelCreator.main()
+    model = modelCreator.main()
 
-    # --- Send foundation model to Gateway
-    modelSender.main(foundation_model)
+    # --- Online mode or not
 
-    # --- Training model
-    model,training_results_list = modelTrainer.main(
-        model=foundation_model,
-        output_dir_path=output_dir_path,
-        datasets_folder_path=training_datasets_folder_path,
-        scalar=scaler,
-        beginning_daytime=training_beginning_daytime,
-        end_daytime=training_end_daytime,
-        repeat_count=repeat_count,
-        epochs=epochs,
-        batch_size=batch_size,
-        results_list=training_results_list
-    )
+    if not online_mode:
+        print("\noffline mode activated")
+        modelTrainer.main(
+            model=model,
+            output_dir_path=output_dir_path,
+            datasets_folder_path=datasets_folder_path,
+            scalar=scaler,
+            beginning_daytime=beginning_daytime,
+            end_daytime=end_daytime,
+            repeat_count=repeat_count,
+            epochs=epochs,
+            batch_size=batch_size,
+            results=results,
+            results_list=results_list
+        )
+    else:
+        print("\nonline mode activated")
+        # --- Send foundation model to Gateway
+        modelSender.main(model)
 
-    # --- Evaluate model
-    evaluate_results_list, confusion_matrix = modelEvaluator.main(
-        model=model,
-        datasets_folder_path=evaluate_datasets_folder_path,
-        scalar=scaler,
-        beginning_daytime=evaluate_beginning_daytime,
-        end_daytime=evaluate_end_daytime,
-        results_list=evaluate_results_list
-    )
+        # --- Wait reserve traffic data
+
+        # --- Convert pcap to csv
+
+        # --- Retraining model
+        await asyncio.gather(
+            traffic_server_activate(),
+            training_activate(
+                dynamic_mode=dynamic_mode,
+                static_interval=static_interval,
+                model=model,
+                output_dir_path=output_dir_path,
+                datasets_folder_path=datasets_folder_path,
+                scaler=scaler,
+                beginning_daytime=beginning_daytime,
+                end_daytime=end_daytime,
+                repeat_count=repeat_count,
+                epochs=epochs,
+                batch_size=batch_size,
+                results=results,
+                results_list=results_list # この後ゲートウェイへのモデル送信を行う
+            )
+        )
 
     # --- Save settings_log and results
     save_settings_log(settings,output_dir_path)
-    save_results(
-        training_list=training_results_list,
-        training=training_results,
-        evaluate_list=evaluate_results_list,
-        evaluate=evaluate_results,
-        output_dir=output_dir_path
-    )
 
-    framed_matrix = pd.DataFrame(
-        data=confusion_matrix,
-        index=["PredictionPositive","PredictionNegative"],
-        columns=["TargetPositive", "TargetNegative"]
-    )
-    print(framed_matrix)
+if __name__ == "__main__":
+
+    asyncio.run(main())
