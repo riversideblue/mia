@@ -1,3 +1,4 @@
+import asyncio
 import warnings
 
 import pandas as pd
@@ -17,18 +18,18 @@ import json
 
 def is_flow_exist(labeled_features, flow_box):
     for i in flow_box.shape(axis=0): # i番目のフローに特徴量が一致するパケットがあるかどうか
-        if flow_box[i,0,0] == labeled_features[0] and \
-                flow_box[i,0,1] == labeled_features[1] and \
-                    flow_box[i,0,2] == labeled_features[2]:
+        if flow_box[i,:,0] == labeled_features[0] and \
+                flow_box[i,:,1] == labeled_features[1] and \
+                    flow_box[i,:,2] == labeled_features[2]:
             return True
         else: pass
     return False
 
-async def remove_flow(delay, flow_box, labeled_features):
-    #　時間計測を開始a
-    # フローリストの最後尾に新しいフローを追加
-    flow_box = np.concatenate([flow_box, labeled_features], axis=0)
-    # フロー
+async def remove_flow(delay, flow_box, flow_id,labeled_features):
+    #　時間計測を開始
+    await asyncio.sleep(delay)
+    # 要素を削除（最後の要素を削除）どこの要素を削除するのか？
+    flow_box = np.delete(flow_box,flow_id,axis=0)
     return flow_box
 
 def feature_extract_from_flow():
@@ -38,7 +39,8 @@ def feature_extract_from_flow():
 def callback_online(packet):
 
     # --- Field
-    flow_box = np.array([np.newaxis,np.newaxis,np.newaxis]) # axis [0,flow][1,packets][2,features]
+    flow_box = np.array([np.newaxis,np.newaxis,np.newaxis]) # axis [0,flow_id][1,packets][2,features]
+    flow_id = np.array([np.newaxis,np.newaxis])
 
     # --- IPv4 or not
     if packet[Ether].type == 0x0800 and \
@@ -61,7 +63,8 @@ def callback_online(packet):
         # もしパケットが新しいフローであると判断できる場合
         if not is_flow_exist(labeled_features,flow_box):
             flow_box = np.concatenate([flow_box, labeled_features], axis=0)
-            remove_flow()
+            flow_id = [-1,flow_box.shape[0]]
+            remove_flow(3600,flow_box,flow_id,labeled_features)
 
         # もしパケットが以前のフローであると判断できる場合
         else:
