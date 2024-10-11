@@ -41,25 +41,25 @@ def model_training(model, output_dir_path, dataset_file_path, scaler, epochs, ba
 
     # --- csv processing
     df = pd.read_csv(dataset_file_path)
-    feature_matrix = df.iloc[:, 3:-1].values
+    explanatory_values = df.iloc[:, 3:-1].values
     target_values = df.loc[:, "label"].values
 
     # --- load previous model weights file if exist
     if previous_weights_file is not None:
-        feature_matrix = scaler.transform(feature_matrix)
+        explanatory_values = scaler.transform(explanatory_values)
         with open(previous_weights_file, 'rb') as f:
             print(f"previous -weights.pickle file: {previous_weights_file} found")
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
     else:
-        feature_matrix = scaler.fit_transform(feature_matrix)
+        explanatory_values = scaler.fit_transform(explanatory_values)
         print("previous -weights.pickle file: not found")
         print("initialize model weights ... ")
 
     # --- execute model training
     print(f"----- execute model_training ----- ")
     train_start_time = time.time()
-    model.fit(feature_matrix, target_values, epochs=epochs, batch_size=batch_size)
+    model.fit(explanatory_values, target_values, epochs=epochs, batch_size=batch_size)
     train_end_time = time.time()
     training_time = train_end_time - train_start_time
 
