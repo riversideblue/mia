@@ -57,6 +57,7 @@ def model_training(model, output_dir_path, dataset_file_path, scaler, epochs, ba
         print("initialize model weights ... ")
 
     # --- execute model training
+    print(f"----- execute model_training ----- ")
     train_start_time = time.time()
     model.fit(feature_matrix, target_values, epochs=epochs, batch_size=batch_size)
     train_end_time = time.time()
