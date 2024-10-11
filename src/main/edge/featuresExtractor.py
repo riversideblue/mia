@@ -15,13 +15,62 @@ import os
 import ipaddress
 import json
 
+def is_flow_exist(labeled_features, flow_box):
+    for i in flow_box.shape(axis=0): # i番目のフローに特徴量が一致するパケットがあるかどうか
+        if flow_box[i,0,0] == labeled_features[0] and \
+                flow_box[i,0,1] == labeled_features[1] and \
+                    flow_box[i,0,2] == labeled_features[2]:
+            return True
+        else: pass
+    return False
+
+async def remove_flow(delay, flow_box, labeled_features):
+    #　時間計測を開始a
+    # フローリストの最後尾に新しいフローを追加
+    flow_box = np.concatenate([flow_box, labeled_features], axis=0)
+    # フロー
+    return flow_box
+
+def feature_extract_from_flow():
+
+    return
 
 def callback_online(packet):
+
+    # --- Field
+    flow_box = np.array([np.newaxis,np.newaxis,np.newaxis]) # axis [0,flow][1,packets][2,features]
+
+    # --- IPv4 or not
     if packet[Ether].type == 0x0800 and \
             packet[IP].src not in ex_addr_list and \
             packet[IP].dst not in ex_addr_list and \
             (packet[IP].proto == 6 or packet[IP].proto == 17):
         print(packet.summuerize())
+
+        # 特徴情報を抽出
+        explanatory_variable_array = ["","",""]
+
+        # パケットのラベル付けを行う(これはフロー確定後でも良いかも)
+        target_variable = [0]
+
+        # ラベル付けされた特徴量
+        labeled_features = ["","","",""]
+
+        # フロー番号，パケット番号，特徴量リストをもつ3次元配列を定義
+
+        # もしパケットが新しいフローであると判断できる場合
+        if not is_flow_exist(labeled_features,flow_box):
+            flow_box = np.concatenate([flow_box, labeled_features], axis=0)
+            remove_flow()
+
+        # もしパケットが以前のフローであると判断できる場合
+        else:
+        # フローリストの該当フローリストに特徴量配列を追加
+            flow_box[1].add(explanatory_variable_array)
+        # 指定時間後，フローが終了したと判断された場合
+        # まとまった状態で特徴量を抽出する
+
+    # flow_boxを次の処理に渡す必要がある
     return
 
 def callback_offline(packet):
@@ -29,8 +78,8 @@ def callback_offline(packet):
 
 
 
-def write_csv(explanatory_variable_list, explanatory_variable, output_dir):
-    explanatory_variable = pd.concat([explanatory_variable, pd.DataFrame(explanatory_variable_list, columns=explanatory_variable.columns)])
+def write_csv(feature_matrix_list, feature_matrix, output_dir):
+    explanatory_variable = pd.concat([feature_matrix, pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)])
     explanatory_variable.to_csv(f"{output_dir}/results_training.csv",index=False)
 
 def online():
@@ -46,7 +95,37 @@ def offline(file_path):
                 sniff(offline = file_path, prn = callback_offline, store = False)
                 print(file_path + ":finish")
 
-# 与えられたフォルダまたはファイルに含まれるトラヒックデータpcapから特徴量を抽出してcsvファイルに書き込む
+# パターン1
+# settings.jsonを読み込む done
+# featuresExtractor一回の実行処理に対してひとつのfeature_matrix=pd.DataFrameを定義 done
+# 処理高速化のためDataFrameからvalueを抽出feature_matrix_list:np.arrayを定義 done
+# ディレクトリかファイルかを判断，ディレクトリならディレクトリ内に含まれるすべてのpcapファイルを読み込む done
+# 読み込んだpcapファイルについて，すべての（フローごと？）のパケットのデータを読み込む
+# それぞれパケットデータに対して必要な特徴量を抽出し，一時的に配列に登録する(explanatory_variable_array)
+# それぞれのパケットデータに対してラベル付けを行う(target_variable)
+# explanatory_variable_arrayとtarget_variableを合わせてfeature_matrix_arrayに登録
+# 読み込んだpcapファイルについて特徴量の抽出が完了したら，feature_matrix_listをまとめてfeature_matrixに登録
+# feature_matrixをもとにcsvファイルを出力
+# すべてのpcapファイルの読み込みが終わるまで継続
+
+# パターン2 とりあえずこっち　上手くいかなかったらパターン1に変更
+# settings.jsonを読み込む done
+# featuresExtractor一回の実行処理に対してひとつのfeature_matrix=pd.DataFrameを定義 done
+# 処理高速化のためDataFrameからvalueを抽出feature_matrix_list:np.arrayを定義 done
+# ディレクトリかファイルかを判断，ディレクトリならディレクトリ内に含まれるすべてのpcapファイルを読み込む done
+# 読み込んだpcapファイルについてパケットをひとつづつ読み込む done
+# 読み込んだパケットをフローごとにまとめる done
+# フローごとのパケットデータに対して必要な特徴量を抽出し，一時的に配列に登録する(explanatory_variable_array)　done
+# それぞれのパケットデータに対してラベル付けを行う(target_variable) done
+# explanatory_variable_arrayとtarget_variableを合わせてfeature_matrix_arrayに登録
+# すべてのpcapファイルの読み込みが終わるまで継続
+# すべてのpcapファイルについて特徴量の抽出が完了したら，feature_matrix_listをまとめてfeature_matrixに登録
+# feature_matrixをもとにcsvファイルを出力
+# とてつもない大きさの配列リストを保持し続ける必要があるという懸念
+# しかし全ての特徴量が同一csvファイルにあるのは便利，実環境に近い
+
+
+# 与えられたフォルダまたはファイルに含まれるトラヒックデータ（pcapファイル）から特徴量を抽出してcsvファイルに書き込む
 if __name__ == "__main__":
 
     # --- Load settings
@@ -59,7 +138,7 @@ if __name__ == "__main__":
     # --- Field
     online_mode = settings["FeatureExtract"]["ONLINE_MODE"]
     traffic_data_path = settings["FeatureExtract"]["TRAFFIC_DATA_PATH"]
-    explanatory_variable_column = settings["FeatureExtract"]["EXPLANATORY_VARIABLE_COLUMN"]
+    feature_matrix_column = settings["FeatureExtract"]["EXPLANATORY_VARIABLE_COLUMN"]
     pcap_fl_id = settings["FeatureExtract"]["PCAP_FILE_IDENTIFIER"]  # pcap file identifier (例: ".pcap")
     subdir_year_month = settings["FeatureExtract"]["SUBDIRECTORY_YEAR_MONTH"]
     subdir_start_d = settings["FeatureExtract"]["SUBDIRECTORY_ELAPSED_DAY"]  # subdir start day
@@ -79,8 +158,8 @@ if __name__ == "__main__":
     os.makedirs(outputs_dir_path)
 
     # --- Set results DataFrame
-    explanatory_variables = pd.DataFrame(columns=explanatory_variable_column)
-    explanatory_variable_list = explanatory_variables.values
+    feature_matrix = pd.DataFrame(columns=feature_matrix_column)
+    feature_matrix_list = feature_matrix.values
 
     malicious_address_list = []
     for net in malicious_network_address_list:
@@ -119,12 +198,12 @@ if __name__ == "__main__":
             for pcap_file in os.listdir(traffic_data_path):
                 pcap_file_path:str=os.path.join(traffic_data_path,pcap_file)
                 offline(pcap_file_path)
-                write_csv(explanatory_variable_list=explanatory_variable_list,explanatory_variable=explanatory_variables,output_dir=outputs_dir_path)
+                write_csv(feature_matrix_list=feature_matrix_list,feature_matrix=feature_matrix,output_dir=outputs_dir_path)
             print("all pcap file sniffed")
         elif os.path.isfile(traffic_data_path):
             print("file")
             offline(traffic_data_path)
-            write_csv(explanatory_variable_list=explanatory_variable_list,explanatory_variable=explanatory_variables,output_dir=outputs_dir_path)
+            write_csv(feature_matrix_list=feature_matrix_list,feature_matrix=feature_matrix,output_dir=outputs_dir_path)
             print("all pcap file sniffed")
         else:
             print(f"traffic data path : {traffic_data_path} not found")
