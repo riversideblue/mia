@@ -1,5 +1,6 @@
 import asyncio
 import warnings
+from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 import pytz
@@ -18,6 +19,7 @@ import json
 
 def is_flow_exist(labeled_features, flow_box):
     flow_id = 0
+    print(labeled_features)
     for flow_id in flow_box.shape[0]: # axis 0 = flow_id
         if flow_box[flow_id,:,0] == labeled_features[0] and \
                 flow_box[flow_id,:,1] == labeled_features[1] and \
@@ -26,93 +28,11 @@ def is_flow_exist(labeled_features, flow_box):
         else: pass
     return False,flow_id+1 # not exist
 
-async def remove_flow(delay, flow_box, flow_id,labeled_features):
-    #　時間計測を開始
-    await asyncio.sleep(delay)
-    # フローに含まれている情報から特徴量を抽出
-
-    # 要素を削除（最後の要素を削除）どこの要素を削除するのか？
-    flow_box = np.delete(flow_box,flow_id,axis=0)
-    return flow_box
-
 def labeling_features(pkt):
 
-    #IPのプロトコル番号が6の時、プロトコルをtcp
-    if pkt[IP].proto == 6:
-        protocol = "tcp"   # feat: protocol(str) : "tcp"
-
-    #IPのプロトコル番号が17の時、プロトコルをudp
-    elif pkt[IP].proto == 17:
-        protocol = "udp"   # feat: protocol(str) : "udp"
-
-    length = int(pkt[IP].len)   # feat: length(int) : 64
-
-    # src : malicious address
-    #パケットの送信元IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
-    if str(pkt[IP].src) in arr_malicious_address_list:
-        addr = str(pkt[IP].dst) # feat: addr(str) : "192.0.2.0"
-        partner = str(pkt[IP].src)  # feat: partner(str) : "192.168.0.1"
-        label = "1"         # feat: label(str)   : "1"
-        direction = "snd"       # feat: direction(str) : "snd"
-        if protocol == "tcp":
-            port = pkt[TCP].sport   # feat: port(int) : 23
-            tcpflag = str(pkt[TCP].flags)  # feat: tcpflag(str) : "S"
-        elif protocol == "udp":
-            port = pkt[UDP].sport
-            tcpflag = "-1"
-
-        #summarize関数に値を送る
-        summarize(day, hour, minute, seconds, protocol, length, addr, partner, label, direction, port, tcpflag)
-
-    # dst : malicious address
-    #パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
-    elif str(pkt[IP].dst) in arr_malicious_address_list:
-        addr = str(pkt[IP].src)
-        partner = str(pkt[IP].dst)
-        label = "1"
-        direction = "rcv"
-        if protocol == "tcp":
-            port = pkt[TCP].dport
-            tcpflag = str(pkt[TCP].flags)
-        elif protocol == "udp":
-            port = pkt[UDP].dport
-            tcpflag = "-1"
-
-        summarize(day, hour, minute, seconds, protocol, length, addr, partner, label, direction, port, tcpflag)
-
-    # src : benign address
-    #パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
-    elif str(pkt[IP].src) in arr_benign_address_list and str(pkt[IP].dst) not in arr_benign_address_list:
-        addr = str(pkt[IP].dst)
-        partner = str(pkt[IP].src)
-        label = "0"
-        direction = "snd"
-        if protocol == "tcp":
-            port = pkt[TCP].sport
-            tcpflag = str(pkt[TCP].flags)
-        elif protocol == "udp":
-            port = pkt[UDP].sport
-            tcpflag = "-1"
-
-        summarize(day, hour, minute, seconds, protocol, length, addr, partner, label, direction, port, tcpflag)
-
-    # dst : benign address
-    #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、送信元IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
-    elif str(pkt[IP].dst) in arr_benign_address_list and str(pkt[IP].src) not in arr_benign_address_list:
-        addr = str(pkt[IP].src)
-        partner = str(pkt[IP].dst)
-        label = "0"
-        direction = "rcv"
-        if protocol == "tcp":
-            port = pkt[TCP].dport
-            tcpflag = str(pkt[TCP].flags)
-        elif protocol == "udp":
-            port = pkt[UDP].dport
-            tcpflag = "-1"
-
-        summarize(day, hour, minute, seconds, protocol, length, addr, partner, label, direction, port, tcpflag)
-
-    return []
+    if True:
+        return 1
+    return 0
 
 #summarize引数
 #day=日付, hour=時間, minute=分, seconds=秒, protocol=プロトコル(tcp/udp), length=IPアドレス長?
@@ -231,12 +151,34 @@ def summarize(day, hour, minute, seconds, protocol, length, addr, partner, label
         timeout_count = 0
     #-------------------------------------------------------------------------------------
 
-def feature_extract(pkt):
-    # パケットから各種特徴量を抽出
-    explanatory_variable = []
-    return explanatory_variable
+def flow_features_extract(pkt):
+    # フローから各種特徴量を抽出
+    flow_explanatory_variable = []
+    return flow_explanatory_variable
 
-def callback(pkt):
+def packet_features_extract(pkt):
+    # パケットからフロー判定に必要な情報を抽出
+    src_address = pkt[IP].src
+    dst_address = pkt[IP].dst
+    capture_date = datetime.fromtimestamp(pkt.time)
+    return [src_address,dst_address,capture_date]
+
+async def flow_controller(flow_box, explanatory_variable_array):
+    # flow_boxのflow_id番目に説明変数配列を追加
+    flow_box = np.concatenate([flow_box, explanatory_variable_array], axis=0)
+    explanatory_variable_matrix = []
+    # timerの計測を開始
+
+    # 一定時間他のパケットのこのフローへの追加を待機
+
+    # 一定時間経過したらパケットの説明変数行列をまとめてフローの説明変数配列を抽出
+    flow_explanatory_variable_array = flow_features_extract(explanatory_variable_matrix)
+    # フローの説明変数配列をラベリング
+    labeled_features = labeling_features(flow_explanatory_variable_array)
+    # ラベリングされた特徴量配列を特徴量行列に追加
+    labeled_features_matrix = [-1,labeled_features]
+
+async def callback(pkt):
 
     print(pkt.show())
     flow_box = np.array([np.newaxis,np.newaxis,np.newaxis]) # axis [0,flow_id][1,packet_id][2,features]
@@ -248,8 +190,8 @@ def callback(pkt):
         pkt[IP].dst not in ex_addr_list and \
         (pkt[IP].proto == 6 or pkt[IP].proto == 17):
 
-        # フローのラベリング、特徴量の抽出
-        explanatory_variable = feature_extract(pkt)
+        # パケットからフロー判定に必要な情報を抽出
+        explanatory_variable = packet_features_extract(pkt)
 
         # もしパケットが新しいフローであると判断できる場合
         # 新しいflow_idにlabeled_featuresを追加
@@ -258,26 +200,20 @@ def callback(pkt):
         # 待機が終了したらフローから特徴量を抽出する
         flow_exist,flow_id = is_flow_exist(explanatory_variable,flow_box)
         if not flow_exist:
-            # 作成したフローは別スレッドで動かす必要がある
-            flow_box = np.concatenate([flow_box, explanatory_variable], axis=0)
-            remove_flow(3600,flow_box,flow_id,explanatory_variable)
-            # フローをラベリング
-            labeled_features = labeling_features(pkt)
-            # 指定時間後，フローが終了したと判断された場合，特徴量行列に書き込む
-            labeled_features_matrix = [-1,labeled_features]
+            # run_in_executorを使って別スレッドで特徴量抽出
+            loop = asyncio.get_running_loop()
+            with ThreadPoolExecutor() as executor:
+                await loop.run_in_executor(executor, flow_controller,(flow_box, flow_id, explanatory_variable))
         # もしパケットが以前のフローであると判断できる場合
         else:
             # フローリストの該当フローリストに特徴量配列を追加
             flow_box[flow_id] = explanatory_variable
 
-def write_csv(feature_matrix_list, feature_matrix, output_dir):
-    explanatory_variable = pd.concat([feature_matrix, pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)])
-    explanatory_variable.to_csv(f"{output_dir}/results_training.csv",index=False)
 
 def online():
     print("online mode")
     while 1:
-        sniff(prn = callback, timeout = captime, store = False)
+        sniff(prn=lambda pkt: asyncio.run(callback(pkt)), timeout = captime, store = False)
 
 def offline(file_path):
     print("offline mode")
@@ -285,7 +221,7 @@ def offline(file_path):
         print(file_path + ":no data")
     else:
         print(file_path + ":sniffing...")
-        sniff(offline = file_path, prn = callback, store = False)
+        sniff(offline = file_path, prn=lambda pkt: asyncio.run(callback(pkt)), store = False)
         print(file_path + ":finish")
 
     return feature_matrix_list
