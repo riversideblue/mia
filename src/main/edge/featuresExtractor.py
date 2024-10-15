@@ -17,19 +17,16 @@ import os
 import ipaddress
 import json
 
-def is_flow_exist(labeled_features, flow_box):
+def is_flow_exist(src,dst,flow_box):
     flow_id = 0
-    print(labeled_features)
-    for flow_id in flow_box.shape[0]: # axis 0 = flow_id
-        if flow_box[flow_id,:,0] == labeled_features[0] and \
-                flow_box[flow_id,:,1] == labeled_features[1] and \
-                    flow_box[flow_id,:,2] == labeled_features[2]:
+    for flow_id in range(flow_box.shape[0]): # axis 0 = flow_id
+        if flow_box[flow_id,:,0] == src and \
+                flow_box[flow_id,:,1] == dst:
                         return True,flow_id # if exist return flow_id
         else: pass
     return False,flow_id+1 # not exist
 
 def labeling_features(pkt):
-
     if True:
         return 1
     return 0
@@ -156,13 +153,6 @@ def flow_features_extract(pkt):
     flow_explanatory_variable = []
     return flow_explanatory_variable
 
-def packet_features_extract(pkt):
-    # パケットからフロー判定に必要な情報を抽出
-    src_address = pkt[IP].src
-    dst_address = pkt[IP].dst
-    capture_date = datetime.fromtimestamp(pkt.time)
-    return [src_address,dst_address,capture_date]
-
 async def flow_controller(flow_box, explanatory_variable_array):
     # flow_boxのflow_id番目に説明変数配列を追加
     flow_box = np.concatenate([flow_box, explanatory_variable_array], axis=0)
@@ -178,42 +168,40 @@ async def flow_controller(flow_box, explanatory_variable_array):
     # ラベリングされた特徴量配列を特徴量行列に追加
     labeled_features_matrix = [-1,labeled_features]
 
-async def callback(pkt):
+def callback_closure(pkt, ex_address_list, feature_matrix):
+    async def callback(pkt):
+        flow_box = np.empty((0, 0, 0))  # 空の3次元配列を初期化 [0,flow_id][1,packet_id][2,features]
 
-    print(pkt.show())
-    flow_box = np.array([np.newaxis,np.newaxis,np.newaxis]) # axis [0,flow_id][1,packet_id][2,features]
-    feature_matrix = pd.DataFrame() # mainから引っ張ってくるように修正
+        # --- IPv4 or not
+        if pkt[Ether].type == 0x0800 and \
+            pkt[IP].src not in ex_address_list and \
+            pkt[IP].dst not in ex_address_list and \
+            (pkt[IP].proto == 6 or pkt[IP].proto == 17):
 
-    # --- IPv4 or not
-    if pkt[Ether].type == 0x0800 and \
-        pkt[IP].src not in ex_addr_list and \
-        pkt[IP].dst not in ex_addr_list and \
-        (pkt[IP].proto == 6 or pkt[IP].proto == 17):
-
-        # パケットからフロー判定に必要な情報を抽出
-        explanatory_variable = packet_features_extract(pkt)
-
-        # もしパケットが新しいフローであると判断できる場合
-        # 新しいflow_idにlabeled_featuresを追加
-        # 追加してから60秒待機 その間他のパケットによる同一フローへの追加を許可する
-        # つまりこのコールバック関数を待機状態にしたうえで他のコールバック関数が呼ばれるように処理を一時的に他のプロセスに受け渡す必要がある
-        # 待機が終了したらフローから特徴量を抽出する
-        flow_exist,flow_id = is_flow_exist(explanatory_variable,flow_box)
-        if not flow_exist:
-            # run_in_executorを使って別スレッドで特徴量抽出
-            loop = asyncio.get_running_loop()
-            with ThreadPoolExecutor() as executor:
-                await loop.run_in_executor(executor, flow_controller,(flow_box, flow_id, explanatory_variable))
-        # もしパケットが以前のフローであると判断できる場合
-        else:
-            # フローリストの該当フローリストに特徴量配列を追加
-            flow_box[flow_id] = explanatory_variable
+            # もしパケットが新しいフローであると判断できる場合
+            # 新しいflow_idにlabeled_featuresを追加
+            # 追加してから60秒待機 その間他のパケットによる同一フローへの追加を許可する
+            # つまりこのコールバック関数を待機状態にしたうえで他のコールバック関数が呼ばれるように処理を一時的に他のプロセスに受け渡す必要がある
+            # 待機が終了したらフローから特徴量を抽出する
+            flow_exist,flow_id = is_flow_exist(src=pkt[IP].src,dst=pkt[IP].dst,flow_box=flow_box)
+            if not flow_exist:
+                # run_in_executorを使って別スレッドで特徴量抽出
+                print("flow_non-exist")
+                loop = asyncio.get_running_loop()
+                with ThreadPoolExecutor() as executor:
+                    await loop.run_in_executor(executor, flow_controller,[flow_box, flow_id, explanatory_variable])
+            # もしパケットが以前のフローであると判断できる場合
+            else:
+                print("flow_exist")
+                # フローリストの該当フローリストに特徴量配列を追加
+                flow_box[flow_id] = explanatory_variable
+    return callback(pkt)
 
 
 def online():
     print("online mode")
     while 1:
-        sniff(prn=lambda pkt: asyncio.run(callback(pkt)), timeout = captime, store = False)
+        sniff(prn=lambda pkt: asyncio.run(callback_closure(pkt,ex_addr_list,feature_matrix)), timeout = captime, store = False)
 
 def offline(file_path):
     print("offline mode")
@@ -221,9 +209,8 @@ def offline(file_path):
         print(file_path + ":no data")
     else:
         print(file_path + ":sniffing...")
-        sniff(offline = file_path, prn=lambda pkt: asyncio.run(callback(pkt)), store = False)
+        sniff(offline = file_path, prn=lambda pkt: asyncio.run(callback_closure(pkt,ex_addr_list,feature_matrix)), store = False)
         print(file_path + ":finish")
-
     return feature_matrix_list
 
 # パターン1
