@@ -1,11 +1,11 @@
 {
   "Evaluate": {
-    "MODEL_PATH": "src/main/edge/outputs/20241010162341_executed/model_weights/2023040407-weights.pickle",
-    "TRAINING_OUTPUT_PATH": "src/main/edge/outputs/20241010162341_executed",
-    "DATASETS_FOLDER_PATH": "src/main/edge/pcap_csv/2022080409-2022081617-pcap_csv",
-    "BEGINNING_DAYTIME": "2022-08-02 07:00:00",
+    "MODEL_PATH": "src/main/edge/outputs/20241015093248_executed/model_weights/2023040407-weights.pickle",
+    "TRAINING_OUTPUT_PATH": "src/main/edge/outputs/20241015093248_executed",
+    "DATASETS_FOLDER_PATH": "src/main/edge/pcap_csv/2023040415-2023061723-pcap_csv",
+    "BEGINNING_DAYTIME": "2023-04-04 06:00:00",
     "TargetRange": {
-      "DAYS": 17,
+      "DAYS": 100,
       "HOURS": 0,
       "MINUTES": 0,
       "SECONDS": 0

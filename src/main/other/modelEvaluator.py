@@ -40,7 +40,7 @@ def save_settings_log(settings_log, output_dir):
         json.dump(settings_log, f, indent=1)  # type: ignore
 
 
-def model_evaluate(model, dataset_file, scaler, scaled_flag):
+def model_evaluate(model, dataset_file, scaler, scaled_flag, count):
     evaluate_df = pd.read_csv(dataset_file)
     explanatory_values = evaluate_df.iloc[:, 3:-1].values
     target_values = evaluate_df.loc[:, "label"].values
@@ -70,7 +70,7 @@ def model_evaluate(model, dataset_file, scaler, scaled_flag):
         # --- Confusion matrix
         matrix = confusion_matrix(target_values, prediction_binary_values, labels=[0, 1])
 
-        return [accuracy, precision, recall, f1], matrix, scaled_flag
+        return [count, accuracy, precision, recall, f1], matrix, scaled_flag
 
 
 # ----- Model other
@@ -80,7 +80,7 @@ def main():
     settings["Log"] = {}
 
     # --- Set results dataframe
-    results = pd.DataFrame(columns=["accuracy", "f1_score", "precision", "recall"])
+    results = pd.DataFrame(columns=["count","accuracy", "f1_score", "precision", "recall"])
     results_list = results.values
 
     # --- Field
@@ -113,11 +113,15 @@ def main():
         init_weights = pickle.load(f)
         model.set_weights(init_weights)
 
+    # Setup
+    count:int = 0
+
     # --- Calling
     for dataset_file in os.listdir(datasets_folder_path):
+        count += 1
         if not is_dataset_out_of_range(dataset_file, beginning_daytime, end_daytime):
             dataset_file_path: str = f"{datasets_folder_path}/{dataset_file}"
-            results_array, matrix, scaled_flag = model_evaluate(model, dataset_file_path, scaler, scaled_flag)
+            results_array, matrix, scaled_flag = model_evaluate(model, dataset_file_path, scaler, scaled_flag,count)
             results_list = np.vstack([results_list, results_array])
             results_matrix = matrix + results_matrix
             scaled_flag = scaled_flag
