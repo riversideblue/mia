@@ -36,7 +36,7 @@ def save_results(results_list, results, output_dir):
 
 
 def save_settings_log(settings_log, output_dir):
-    with open(os.path.join(output_dir, "settings_log.json"), "w") as f:
+    with open(os.path.join(output_dir, "settings_log_evaluator.json"), "w") as f:
         json.dump(settings_log, f, indent=1)  # type: ignore
 
 

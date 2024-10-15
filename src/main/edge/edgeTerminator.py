@@ -18,18 +18,6 @@ def is_pass_exist(path):
         sys.exit(1)
 
 
-def output_mkdir(dir_path, settings_file):
-    os.makedirs(dir_path)
-    os.makedirs(f"{dir_path}/model_weights")
-    with open(f"{dir_path}/settings_log.json", "w") as f:
-        json.dump(settings_file, f, indent=1)  # type: ignore
-
-
-def save_settings_log(settings_log, output_dir):
-    with open(f"{output_dir}/settings_log.json", "w") as f:
-        json.dump(settings_log, f, indent=1)  # type: ignore
-
-
 async def training_activate(dynamic_mode, static_interval, model, output_dir_path, datasets_folder_path, scaler, beginning_daytime, end_daytime, repeat_count, epochs, batch_size, results, results_list):
     if not dynamic_mode:
         while True:
@@ -106,7 +94,8 @@ async def main():
 
     # --- Create output directory
     output_dir_path: str = f"src/main/edge/outputs/{init_time}_executed"
-    output_mkdir(output_dir_path, settings)
+    os.makedirs(output_dir_path)
+    os.makedirs(f"{output_dir_path}/model_weights")
 
     # --- Create foundation model
     model = modelCreator.main()
@@ -159,7 +148,8 @@ async def main():
         )
 
     # --- Save settings_log and results
-    save_settings_log(settings, output_dir_path)
+    with open(f"{output_dir_path}/settings_log_edge.json", "w") as f:
+        json.dump(settings, f, indent=1)  # type: ignore
 
 if __name__ == "__main__":
     asyncio.run(main())

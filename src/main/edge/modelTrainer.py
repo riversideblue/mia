@@ -31,7 +31,7 @@ def save_results(training_list, training, output_dir):
     training.to_csv(f"{output_dir}/results_training.csv",index=False)
 
 
-def model_training(model, output_dir_path, dataset_file_path, scaler, epochs, batch_size, training_count, results_list):
+def model_training(model, output_dir_path, dataset_file_path, scaler, epochs, batch_size, training_count):
 
     training_file_date = os.path.basename(dataset_file_path).split(".")[0]
     previous_weights_file = is_previous_file_exist(f"{output_dir_path}/model_weights",
@@ -96,8 +96,7 @@ def main(model, output_dir_path, datasets_folder_path, scalar, beginning_daytime
                     scaler=scalar,
                     epochs=epochs,
                     batch_size=batch_size,
-                    training_count=training_count,
-                    results_list=results_list
+                    training_count=training_count
                 )
                 results_list = np.vstack([results_list, results_array])
                 end = time.time()

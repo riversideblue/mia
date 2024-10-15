@@ -16,8 +16,6 @@ import os
 import ipaddress
 import json
 
-
-
 def is_flow_exist(labeled_features, flow_box):
     flow_id = 0
     for flow_id in flow_box.shape[0]: # axis 0 = flow_id
