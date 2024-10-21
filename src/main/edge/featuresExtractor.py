@@ -81,18 +81,18 @@ class FlowManager:
                 print("flow_exist")
                 self.add_new_packet(flow_id,pkt)
 
-def online():
+def online(flow_manager):
     print("online mode")
     while 1:
-        sniff(prn=lambda pkt: flow_box.callback(pkt=pkt), timeout = captime, store = False)
+        sniff(prn=flow_manager.callback, timeout = captime, store = False)
 
-def offline(file_path,pkt):
+def offline(file_path,flow_manager):
     print("offline mode")
     if os.path.getsize(file_path) == 0:
         print(file_path + ":no data")
     else:
         print(file_path + ":sniffing...")
-        sniff(offline = file_path, prn=lambda pkt: flow_box.callback(), store = False)
+        sniff(offline = file_path, prn=flow_manager.callback, store = False)
         print(file_path + ":finish")
     return feature_matrix_list
 
@@ -148,13 +148,26 @@ if __name__ == "__main__":
     timeout_check_interval = settings["FeatureExtract"]["PACKET_INTERVAL_CHECK_TIMEOUT"]  # check timeout at N packets intervals
 
     malicious_network_address_list = settings["FeatureExtract"]["NetworkAddress"]["MALICIOUS"]
+    malicious_address_list = []
+    for net in malicious_network_address_list:
+        for malicious in ipaddress.ip_network(net):
+            malicious_address_list.append(str(malicious))
+    arr_malicious_address_list = np.array(malicious_address_list)  # list to ndarray
+
     benign_network_address_list = settings["FeatureExtract"]["NetworkAddress"]["BENIGN"]
+    benign_address_list = []
+    for net in benign_network_address_list:
+        for benign in ipaddress.ip_network(net):
+            benign_address_list.append(str(benign))
+    arr_benign_address_list = np.array(benign_address_list)
+
     ex_addr_list = settings["FeatureExtract"]["NetworkAddress"]["EXCEPTION"]
 
     captime = settings["FeatureExtract"]["CAPTURE_TIME"]  # capture time for online mode [seconds]
     pcap_saved_dir_name = settings["FeatureExtract"]["PCAP_FILES_SAVED_DIR_NAME"]
+    delete_after_seconds = settings["FeatureExtract"]["DELETE_AFTER_SECONDS"]
 
-    flow_box = FlowManager
+    flow_manager = FlowManager(ex_addr_list,delete_after_seconds)
 
     # --- Create output directory for csv
     outputs_dir_path: str = f"src/main/edge/outputs/{init_time}_extracted/features"
@@ -164,51 +177,26 @@ if __name__ == "__main__":
     feature_matrix = pd.DataFrame(columns=feature_matrix_column)
     feature_matrix_list = feature_matrix.values
 
-    malicious_address_list = []
-    for net in malicious_network_address_list:
-        for malicious in ipaddress.ip_network(net):
-            malicious_address_list.append(str(malicious))
-    arr_malicious_address_list = np.array(malicious_address_list)  # list to ndarray
-
-    benign_address_list = []
-    for net in benign_network_address_list:
-        for benign in ipaddress.ip_network(net):
-            benign_address_list.append(str(benign))
-    arr_benign_address_list = np.array(benign_address_list)
-
-    first_packet_flag = False
-    now_csv_file_name = ""
-
-    connecting_address_list = []
-    connecting_object_list = []
-    output_list = []
-
-    timeout_count = 0
-    current_time = 0
-
-    packet_list = []
-    termination_flag = False
-    start_datetime = ""
-
     # --- Online mode
     if online_mode:
-        online()
+        online(flow_manager)
 
     # --- Offline mode
+    # --- データセット内のpcapファイルごとに特徴量抽出を行う
     else:
         if os.path.isdir(traffic_data_path):
             print("folder")
             for pcap_file in os.listdir(traffic_data_path):
                 pcap_file_path:str=os.path.join(traffic_data_path,pcap_file)
-                feature_matrix_list = offline(pcap_file_path,flow_box)
+                feature_matrix_list = offline(pcap_file_path,flow_manager)
                 feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
-                feature_matrix.to_csv(f"{outputs_dir_path}/results_training.csv",index=False)
+                feature_matrix.to_csv(f"{outputs_dir_path}/{pcap_file}.csv",index=False)
             print("all pcap file sniffed")
         elif os.path.isfile(traffic_data_path):
             print("file")
-            feature_matrix_list = offline(traffic_data_path,flow_box)
+            feature_matrix_list = offline(traffic_data_path,flow_manager)
             feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
-            feature_matrix.to_csv(f"{outputs_dir_path}/results_training.csv",index=False)
+            feature_matrix.to_csv(f"{outputs_dir_path}/{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
             print("all pcap file sniffed")
         else:
             print(f"traffic data path : {traffic_data_path} not found")
