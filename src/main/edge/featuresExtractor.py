@@ -1,6 +1,5 @@
-import asyncio
+import threading
 import warnings
-from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 import pytz
@@ -17,165 +16,53 @@ import os
 import ipaddress
 import json
 
-def is_flow_exist(src,dst,flow_box):
-    flow_id = 0
-    for flow_id in range(flow_box.shape[0]): # axis 0 = flow_id
-        if flow_box[flow_id,:,0] == src and \
-                flow_box[flow_id,:,1] == dst:
-                        return True,flow_id # if exist return flow_id
-        else: pass
-    return False,flow_id+1 # not exist
-
-def labeling_features(pkt):
-    if True:
-        return 1
-    return 0
-
-#summarize引数
-#day=日付, hour=時間, minute=分, seconds=秒, protocol=プロトコル(tcp/udp), length=IPアドレス長?
-#addr=宛先アドレス, partner=送信元アドレス, label = 1/0, direction=snd/rcv, port=ポート番号, tcpflag= /-1
-def summarize(day, hour, minute, seconds, protocol, length, addr, partner, label, direction, port, tcpflag):
-    global connecting_address_list
-    global connecting_object_list
-    global output_list
-    global timeout_count
-
-    timeout_count += 1
-    #----------------------- first packet(no connection) ---------------------------------
-    #最初のパケット(接続なし)
-
-    #変数addrが、リストconnecting_address_listに含まれていない場合
-    #connecting_address_listにaddrを追加
-    #フローが始まった日時date作成?
-    #FlowFeaturesClassのインスタンスを作成し、変数objに格納
-    #FlowFeaturesClass = フローごとに作成されるオブジェクトのクラスファイル。
-    #このファイルに追記することで抽出する特徴量を増やしたりもできる。alt_val は欠損値の代わりに書き込まれる値。
-    if addr not in connecting_address_list:
-        connecting_address_list.append(addr)
-
-        date = day + hour + minute
-        obj = FlowFeaturesClass(date, addr, partner, label) # create instance
-
-        #drectionがrcv(受信)のとき
-        #オブジェクトの属性rcv_packet_count(受信パケット数)を1増やす
-        #rcv_tmp_timeに秒を格納
-        #rcv_length_list(リスト)にlengthの値を追加
-        if direction == "rcv":
-            obj.rcv_packet_count += 1
-            obj.rcv_tmp_time = seconds
-            obj.rcv_length_list.append(length)
-
-        #drectionがsnd(送信)のとき
-        #snd_packet_count(送信パケット数)を1増やす
-        #snd_tmp_timeに秒を格納
-        #snd_length_list(リスト)にlengthの値を追加
-        elif direction == "snd":
-            obj.snd_packet_count += 1
-            obj.snd_tmp_time = seconds
-            obj.snd_length_list.append(length)
-
-        #protcol_listにprotocolの値追加
-        #port_listにportの値追加
-        obj.protocol_list.append(protocol)
-        obj.port_list.append(port)
-
-        #last_secondsにsecondsの値追加
-        obj.last_seconds = seconds
-
-        #connecting_object_listにオブジェクトobjを追加
-        connecting_object_list.append(obj)
-
-    #----------------------- already connecting ------------------------------------------
-    #すでに接続しているとき
-    #connecting_address_listからaddrがある行の値をaddr_indexに格納
+def labeling_features(feature):
+    # --- if feature seems to be malicious
+    if feature == 1:
+        labeled_feature = np.concatenate((feature, [1]), axis=1)
     else:
-        addr_index = connecting_address_list.index(addr)
+    # --- if feature seems to be benign
+        labeled_feature = np.concatenate((feature, [0]), axis=1)
+    return labeled_feature
 
-        #rcvのとき
-        #connecting_object_listのaddr_indexにあるrcv_packet_count(受信パケット数)を1増やす
-        #connecting_object_list[addr_index]のメソッドcalculateTimeIntervalにsecondsとdirectionの値を入れる
-        #connecting_object_list[addr_index]のrcv_length_listにlengthの値が追加される
-        if direction == "rcv":
-            connecting_object_list[addr_index].rcv_packet_count += 1
-            connecting_object_list[addr_index].calculateTimeInterval(seconds, direction)
-            connecting_object_list[addr_index].rcv_length_list.append(length)
+def extract_features_flom_flow(pkt):
+    print("extract feature"+pkt)
+    return [0,1,2,3,4,5]
 
-        #sndのとき
-        #connecting_object_listのaddr_indexにあるsnd_packet_count(受信パケット数)を1増やす
-        #connecting_object_list[addr_index]のメソッドcalculateTimeIntervalにsecondsとdirectionの値を送る
-        #connecting_object_list[addr_index]のsnd_length_listにlengthの値が追加される
-        elif direction == "snd":
-            connecting_object_list[addr_index].snd_packet_count += 1
-            connecting_object_list[addr_index].calculateTimeInterval(seconds, direction)
-            connecting_object_list[addr_index].snd_length_list.append(length)
+class FlowManager:
 
-        #connecting_object_list[addr_index]の属性protocol_listにprotocolの値追加
-        #connecting_object_list[addr_index]の属性port_listにportの値追加
-        connecting_object_list[addr_index].protocol_list.append(protocol)
-        connecting_object_list[addr_index].port_list.append(port)
+    def __init__(self, eal, delete_after_seconds):
+        self.flow_box = np.zeros((0,0,0))
+        self.ex_address_list = eal
+        self.delete_after_seconds = delete_after_seconds
 
-        #connecting_object_list[addr_index]の属性last_secondsにsecondsの値代入
-        connecting_object_list[addr_index].last_seconds = seconds
+    def add_new_flow(self,flow_id):
+        new_flow = np.zeros((0,0))
+        self.flow_box = np.concatenate((self.flow_box[flow_id],new_flow),axis=0) # 新しいフローをキューに追加、番号を記憶
+        threading.Timer(self.delete_after_seconds, self.delete_flow).start()
 
-    #------------------------ timeout check --------------------------------------
-    #タイムアウトになっているか
-    # timeout_check_intervalが条件を満たしたら
-    if timeout_count == timeout_check_interval:
+    def delete_flow(self,flow_id): # flow_boxからフローを削除
+        self.flow_box = np.delete(self.flow_box,flow_id,axis=0)
 
-        output_addr_list = []
+    def add_new_packet(self, flow_id, pkt):
+        # 新しいパケットをフローに追加
+        feature = extract_features_flom_flow(pkt)
+        self.flow_box = np.concatenate((self.flow_box[flow_id],feature),axis=0) # 新しいフローをキューに追加、番号を記憶
 
-        #connecting_address_listの全部に対して繰り返し処理
-        #current_time(sniffメソッドを終了するまでの秒数)より小さい場合にoutput_listにconnecting_object_list[l]追加
-        #また、output_addr_listにconnecting_object_list[l]のaddrを追加
-        for l in range(len(connecting_address_list)):
-            if connecting_object_list[l].last_seconds + timeout < current_time:
-                output_list.append(connecting_object_list[l])
-                output_addr_list.append(connecting_object_list[l].addr)
+    def is_flow_exist(self, pkt):
+        flow_id = 0
+        for flow_id in range(self.flow_box.shape[0]):  # axis 0 = flow_id
+            if self.flow_box[flow_id, :, 0] == pkt[IP].src and \
+                    self.flow_box[flow_id, :, 1] == pkt[IP].dst:
+                return True, flow_id  # if exist return flow_id
+            else:
+                pass
+        return False, flow_id + 1  # not exist
 
-        #output_addr_listの要素に対してconnecting_address_listからout_addrの値を削除
-        for out_addr in output_addr_list:
-            connecting_address_list.remove(out_addr)
-
-            #connecting_object_listのコピーに対しての繰り返し処理(a[:]でリストaのコピーを作成するらしい)
-        #更にoutput_addr_listに対しての繰り返し処理
-        #ob.addrとout_addrが等しいならconnecting_object_listからobの値を削除
-        for ob in connecting_object_list[:]:
-            for out_addr in output_addr_list:
-                if ob.addr == out_addr:
-                    connecting_object_list.remove(ob)
-
-        #timeout_countを0にする
-        timeout_count = 0
-    #-------------------------------------------------------------------------------------
-
-def flow_features_extract(pkt):
-    # フローから各種特徴量を抽出
-    flow_explanatory_variable = []
-    return flow_explanatory_variable
-
-async def flow_controller(flow_box, explanatory_variable_array):
-    # flow_boxのflow_id番目に説明変数配列を追加
-    flow_box = np.concatenate([flow_box, explanatory_variable_array], axis=0)
-    explanatory_variable_matrix = []
-    # timerの計測を開始
-
-    # 一定時間他のパケットのこのフローへの追加を待機
-
-    # 一定時間経過したらパケットの説明変数行列をまとめてフローの説明変数配列を抽出
-    flow_explanatory_variable_array = flow_features_extract(explanatory_variable_matrix)
-    # フローの説明変数配列をラベリング
-    labeled_features = labeling_features(flow_explanatory_variable_array)
-    # ラベリングされた特徴量配列を特徴量行列に追加
-    labeled_features_matrix = [-1,labeled_features]
-
-def callback_closure(pkt, ex_address_list, feature_matrix):
-    async def callback(pkt):
-        flow_box = np.empty((0, 0, 0))  # 空の3次元配列を初期化 [0,flow_id][1,packet_id][2,features]
-
-        # --- IPv4 or not
+    def callback(self,pkt):
         if pkt[Ether].type == 0x0800 and \
-            pkt[IP].src not in ex_address_list and \
-            pkt[IP].dst not in ex_address_list and \
+            pkt[IP].src not in self.ex_address_list and \
+            pkt[IP].dst not in self.ex_address_list and \
             (pkt[IP].proto == 6 or pkt[IP].proto == 17):
 
             # もしパケットが新しいフローであると判断できる場合
@@ -183,33 +70,29 @@ def callback_closure(pkt, ex_address_list, feature_matrix):
             # 追加してから60秒待機 その間他のパケットによる同一フローへの追加を許可する
             # つまりこのコールバック関数を待機状態にしたうえで他のコールバック関数が呼ばれるように処理を一時的に他のプロセスに受け渡す必要がある
             # 待機が終了したらフローから特徴量を抽出する
-            flow_exist,flow_id = is_flow_exist(src=pkt[IP].src,dst=pkt[IP].dst,flow_box=flow_box)
+
+            flow_exist,flow_id = self.is_flow_exist(pkt)
             if not flow_exist:
-                # run_in_executorを使って別スレッドで特徴量抽出
                 print("flow_non-exist")
-                loop = asyncio.get_running_loop()
-                with ThreadPoolExecutor() as executor:
-                    await loop.run_in_executor(executor, flow_controller,[flow_box, flow_id, explanatory_variable])
+                self.add_new_flow(flow_id)
+                self.add_new_packet(flow_id,pkt)
             # もしパケットが以前のフローであると判断できる場合
             else:
                 print("flow_exist")
-                # フローリストの該当フローリストに特徴量配列を追加
-                flow_box[flow_id] = explanatory_variable
-    return callback(pkt)
-
+                self.add_new_packet(flow_id,pkt)
 
 def online():
     print("online mode")
     while 1:
-        sniff(prn=lambda pkt: asyncio.run(callback_closure(pkt,ex_addr_list,feature_matrix)), timeout = captime, store = False)
+        sniff(prn=lambda pkt: flow_box.callback(pkt=pkt), timeout = captime, store = False)
 
-def offline(file_path):
+def offline(file_path,pkt):
     print("offline mode")
     if os.path.getsize(file_path) == 0:
         print(file_path + ":no data")
     else:
         print(file_path + ":sniffing...")
-        sniff(offline = file_path, prn=lambda pkt: asyncio.run(callback_closure(pkt,ex_addr_list,feature_matrix)), store = False)
+        sniff(offline = file_path, prn=lambda pkt: flow_box.callback(), store = False)
         print(file_path + ":finish")
     return feature_matrix_list
 
@@ -242,7 +125,6 @@ def offline(file_path):
 # とてつもない大きさの配列リストを保持し続ける必要があるという懸念 DataFrameで保持する必要はあるのか
 # しかし全ての特徴量が同一csvファイルにあるのは便利，実環境に近い
 
-
 # 与えられたフォルダまたはファイルに含まれるトラヒックデータ（pcapファイル）から特徴量を抽出してcsvファイルに書き込む
 if __name__ == "__main__":
 
@@ -271,6 +153,8 @@ if __name__ == "__main__":
 
     captime = settings["FeatureExtract"]["CAPTURE_TIME"]  # capture time for online mode [seconds]
     pcap_saved_dir_name = settings["FeatureExtract"]["PCAP_FILES_SAVED_DIR_NAME"]
+
+    flow_box = FlowManager
 
     # --- Create output directory for csv
     outputs_dir_path: str = f"src/main/edge/outputs/{init_time}_extracted/features"
@@ -316,13 +200,13 @@ if __name__ == "__main__":
             print("folder")
             for pcap_file in os.listdir(traffic_data_path):
                 pcap_file_path:str=os.path.join(traffic_data_path,pcap_file)
-                feature_matrix_list = offline(pcap_file_path)
+                feature_matrix_list = offline(pcap_file_path,flow_box)
                 feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
                 feature_matrix.to_csv(f"{outputs_dir_path}/results_training.csv",index=False)
             print("all pcap file sniffed")
         elif os.path.isfile(traffic_data_path):
             print("file")
-            feature_matrix_list = offline(traffic_data_path)
+            feature_matrix_list = offline(traffic_data_path,flow_box)
             feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
             feature_matrix.to_csv(f"{outputs_dir_path}/results_training.csv",index=False)
             print("all pcap file sniffed")
