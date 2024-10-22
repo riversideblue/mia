@@ -7,11 +7,12 @@ from scapy.layers.inet import IP, TCP, UDP
 from scapy.layers.l2 import Ether
 from scapy.sendrecv import sniff
 
+
 warnings.simplefilter('ignore')
 
 import numpy as np
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import os
 import ipaddress
 import json
@@ -25,20 +26,113 @@ def labeling_features(feature):
         labeled_feature = np.concatenate((feature, [0]), axis=1)
     return labeled_feature
 
-def extract_features_flom_flow(pkt):
-    print("extract feature"+pkt)
+def extract_features_from_packet(pkt):
+
+    # --- Fields
+    capture_time_jst = datetime.fromtimestamp(pkt.time).astimezone(timezone(timedelta(hours=9)))
+    protocol = ""
+    src = str(pkt[IP].src)
+    dst = str(pkt[IP].dst)
+    label = ""
+    direction = ""
+    port = 0
+    tcp_flag = ""
+    length = int(pkt[IP].len)   # feat: length(int) : 64
+
+    #IPのプロトコル番号が6の時、プロトコルをtcp
+    if pkt[IP].proto == 6:
+        protocol = "tcp"   # feat: protocol(str) : "tcp"
+    #IPのプロトコル番号が17の時、プロトコルをudp
+    elif pkt[IP].proto == 17:
+        protocol = "udp"   # feat: protocol(str) : "udp"
+
+    # src : malicious address
+    #パケットの送信元IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
+    if src in arr_malicious_address_list:
+        direction = "snd"
+        label = "1"         # feat: label(str)   : "1"
+        if protocol == "tcp":
+            port = pkt[TCP].sport   # feat: port(int) : 23
+            tcp_flag = str(pkt[TCP].flags)  # feat: tcpflag(str) : "S"
+        elif protocol == "udp":
+            port = pkt[UDP].sport
+            tcp_flag = "-1"
+
+    # dst : malicious address
+    #パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
+    elif dst in arr_malicious_address_list:
+        direction = "rcv"
+        label = "1"
+        if protocol == "tcp":
+            port = pkt[TCP].dport
+            tcp_flag = str(pkt[TCP].flags)
+        elif protocol == "udp":
+            port = pkt[UDP].dport
+            tcp_flag = "-1"
+
+    # src : benign address
+    #パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
+    elif src in arr_benign_address_list and dst not in arr_benign_address_list:
+        direction = "snd"
+        label = "0"
+        if protocol == "tcp":
+            port = pkt[TCP].sport
+            tcp_flag = str(pkt[TCP].flags)
+        elif protocol == "udp":
+            port = pkt[UDP].sport
+            tcp_flag = "-1"
+
+    # dst : benign address
+    #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、送信元IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
+    elif dst in arr_benign_address_list and src not in arr_benign_address_list:
+        direction = "rcv"
+        label = "0"
+        if protocol == "tcp":
+            port = pkt[TCP].dport
+            tcp_flag = str(pkt[TCP].flags)
+        elif protocol == "udp":
+            port = pkt[UDP].dport
+            tcp_flag = "-1"
+
+            print(capture_time_jst,
+                  src,
+                  dst,
+                  direction,
+                  port,
+                  tcp_flag,
+                  length,
+                  protocol,
+                  label)
+
+    return (capture_time_jst,
+            src,
+            dst,
+            direction,
+            port,
+            tcp_flag,
+            length,
+            protocol,
+            label)
+
+def extract_features_from_flow(pkt):
+    print("extract feature")
+
     return [0,1,2,3,4,5]
 
 class FlowManager:
 
-    def __init__(self, eal, delete_after_seconds):
-        self.flow_box = np.zeros((0,0,0))
+    def __init__(self, eal, das, fml):
         self.ex_address_list = eal
-        self.delete_after_seconds = delete_after_seconds
+        self.delete_after_seconds = das
+        self.flow_box = fml[np.newaxis,np.newaxis,:]
+        a = np.array(object=[],ndmin=3)
+        print(self.flow_box)
+        print(a)
 
-    def add_new_flow(self,flow_id):
-        new_flow = np.zeros((0,0))
-        self.flow_box = np.concatenate((self.flow_box[flow_id],new_flow),axis=0) # 新しいフローをキューに追加、番号を記憶
+
+    def add_new_flow(self):
+        new_flow = np.array(self.flow_box[0,0,:],ndmin=3)
+        self.flow_box = np.concatenate((self.flow_box,new_flow),axis=0) # 新しいフローを配列に追加、番号を記憶
         threading.Timer(self.delete_after_seconds, self.delete_flow).start()
 
     def delete_flow(self,flow_id): # flow_boxからフローを削除
@@ -46,7 +140,7 @@ class FlowManager:
 
     def add_new_packet(self, flow_id, pkt):
         # 新しいパケットをフローに追加
-        feature = extract_features_flom_flow(pkt)
+        feature = extract_features_from_packet(pkt)
         self.flow_box = np.concatenate((self.flow_box[flow_id],feature),axis=0) # 新しいフローをキューに追加、番号を記憶
 
     def is_flow_exist(self, pkt):
@@ -64,6 +158,7 @@ class FlowManager:
             pkt[IP].src not in self.ex_address_list and \
             pkt[IP].dst not in self.ex_address_list and \
             (pkt[IP].proto == 6 or pkt[IP].proto == 17):
+            print("OK")
 
             # もしパケットが新しいフローであると判断できる場合
             # 新しいflow_idにlabeled_featuresを追加
@@ -74,7 +169,7 @@ class FlowManager:
             flow_exist,flow_id = self.is_flow_exist(pkt)
             if not flow_exist:
                 print("flow_non-exist")
-                self.add_new_flow(flow_id)
+                self.add_new_flow()
                 self.add_new_packet(flow_id,pkt)
             # もしパケットが以前のフローであると判断できる場合
             else:
@@ -139,7 +234,7 @@ if __name__ == "__main__":
 
     online_mode = settings["FeatureExtract"]["ONLINE_MODE"]
     traffic_data_path = settings["FeatureExtract"]["TRAFFIC_DATA_PATH"]
-    feature_matrix_column = settings["FeatureExtract"]["EXPLANATORY_VARIABLE_COLUMN"]
+    feature_matrix_column = np.array(settings["FeatureExtract"]["EXPLANATORY_VARIABLE_COLUMN"])
     pcap_fl_id = settings["FeatureExtract"]["PCAP_FILE_IDENTIFIER"]  # pcap file identifier (例: ".pcap")
     subdir_year_month = settings["FeatureExtract"]["SUBDIRECTORY_YEAR_MONTH"]
     subdir_start_d = settings["FeatureExtract"]["SUBDIRECTORY_ELAPSED_DAY"]  # subdir start day
@@ -167,8 +262,6 @@ if __name__ == "__main__":
     pcap_saved_dir_name = settings["FeatureExtract"]["PCAP_FILES_SAVED_DIR_NAME"]
     delete_after_seconds = settings["FeatureExtract"]["DELETE_AFTER_SECONDS"]
 
-    flow_manager = FlowManager(ex_addr_list,delete_after_seconds)
-
     # --- Create output directory for csv
     outputs_dir_path: str = f"src/main/edge/outputs/{init_time}_extracted/features"
     os.makedirs(outputs_dir_path)
@@ -176,6 +269,10 @@ if __name__ == "__main__":
     # --- Set results DataFrame
     feature_matrix = pd.DataFrame(columns=feature_matrix_column)
     feature_matrix_list = feature_matrix.values
+    print("feature_matrix")
+    print(feature_matrix_list)
+
+    flow_manager = FlowManager(ex_addr_list,delete_after_seconds,feature_matrix_column)
 
     # --- Online mode
     if online_mode:
