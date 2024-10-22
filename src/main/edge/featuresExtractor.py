@@ -29,8 +29,8 @@ def labeling_features(feature):
 def extract_features_from_packet(pkt):
 
     # --- Fields
-    src = "src"
-    dst = "dst"
+    external_network_address = "external_network_address"
+    internal_network_address = "internal_network_address"
     direction = "direction"
     capture_time_jst = "capture_time_jst"
     protocol = "protocol"
@@ -39,26 +39,31 @@ def extract_features_from_packet(pkt):
     tcp_flag = "tcp_flag"
     label = "label"
 
-    field = [src,dst,direction,capture_time_jst,protocol,port,length,tcp_flag,label]
+    field = [external_network_address,internal_network_address,direction,capture_time_jst,protocol,port,length,tcp_flag,label]
 
-    if IP in pkt:
-        src = str(pkt[IP].src)
-        dst = str(pkt[IP].dst)
-        length = str(pkt[IP].len)
-        if pkt[IP].proto == 6:
-            protocol = "tcp"
-        elif pkt[IP].proto == 17:
-            protocol = "udp"
+    if Ether in pkt:
+        if IP in pkt:
+            src = str(pkt[IP].src)
+            dst = str(pkt[IP].dst)
+            length = str(pkt[IP].len)
+            if pkt[IP].proto == 6:
+                protocol = "tcp"
+            elif pkt[IP].proto == 17:
+                protocol = "udp"
         else:
             return field
+    else:
+        return None  # Etherレイヤーがないパケットはスキップ
 
     capture_time_jst = datetime.fromtimestamp(float(pkt.time)).astimezone(timezone(timedelta(hours=9))).strftime("%Y%m%d%H%M%S")
 
     # src : malicious address
     #パケットの送信元IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
     if src in arr_malicious_address_list:
-        print("src : malicious")
+        print("--- src : malicious")
         direction = "snd"
+        external_network_address = str(pkt[IP].src)
+        internal_network_address = str(pkt[IP].dst)
         label = "1"         # feat: label(str)   : "1"
         if protocol == "tcp":
             port = str(pkt[TCP].sport)   # feat: port(int) : 23
@@ -70,8 +75,10 @@ def extract_features_from_packet(pkt):
     # dst : malicious address
     #パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
     elif dst in arr_malicious_address_list:
-        print("dst : malicious address")
+        print("--- dst : malicious address")
         direction = "rcv"
+        external_network_address = str(pkt[IP].dst)
+        internal_network_address = str(pkt[IP].src)
         label = "1"
         if protocol == "tcp":
             port = str(pkt[TCP].dport)
@@ -81,10 +88,12 @@ def extract_features_from_packet(pkt):
             tcp_flag = "-1"
 
     # src : benign address
-    #パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
+    # パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif src in arr_benign_address_list and dst not in arr_benign_address_list:
-        print("src : benign address")
+        print("--- src : benign address")
         direction = "snd"
+        external_network_address = str(pkt[IP].src)
+        internal_network_address = str(pkt[IP].dst)
         label = "0"
         if protocol == "tcp":
             port = str(pkt[TCP].sport)
@@ -95,8 +104,10 @@ def extract_features_from_packet(pkt):
     # dst : benign address
     #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、送信元IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif dst in arr_benign_address_list and src not in arr_benign_address_list:
-        print("dst : benign address")
+        print("--- dst : benign address")
         direction = "rcv"
+        external_network_address = str(pkt[IP].dst)
+        internal_network_address = str(pkt[IP].src)
         label = "0"
         if protocol == "tcp":
             port = str(pkt[TCP].dport)
@@ -107,8 +118,8 @@ def extract_features_from_packet(pkt):
 
     print("pkt processing")
     print("ctj :"+str(capture_time_jst))
-    print("src :"+src)
-    print("dst :"+dst)
+    print("external_network_address :"+external_network_address)
+    print("internal_network_address :"+internal_network_address)
     print("direction :"+direction)
     print("port :"+str(port))
     print("tf :"+tcp_flag)
@@ -117,8 +128,8 @@ def extract_features_from_packet(pkt):
     print("label :"+label)
 
     return [str(capture_time_jst),
-            src,
-            dst,
+            external_network_address,
+            internal_network_address,
             direction,
             port,
             tcp_flag,
@@ -142,10 +153,11 @@ class FlowManager:
         self.delete_after_seconds = das
         self.flow_box = packet_field[np.newaxis,np.newaxis,:]
 
-    def add_new_flow(self,flow_id,pkt):
-        # パケットから特長量を抽出
-        new_flow = np.array(self.flow_box[0,0,:],ndmin=3)
-        self.flow_box = np.concatenate((self.flow_box,new_flow),axis=0) # 新しいフローを配列に追加、番号を記憶
+    def add_new_flow(self,pkt):
+        print("calling add_new_flow")
+        feature = np.array(extract_features_from_packet(pkt)) # パケットから特徴量を抽出
+        new_flow = feature[np.newaxis,np.newaxis,:] # 新しいフローを作成
+        self.flow_box = np.vstack([self.flow_box,new_flow]) # flow_boxに新しいフローを追加
         threading.Timer(self.delete_after_seconds, self.delete_flow).start()
 
     def delete_flow(self,flow_id): # flow_boxからフローを削除
@@ -154,9 +166,8 @@ class FlowManager:
 
     def add_new_packet(self, flow_id, pkt):
         # 新しいパケットをフローに追加
+        print("calling add_new_packet")
         feature = np.array(extract_features_from_packet(pkt))
-        print(feature)
-        print(self.flow_box)
         self.flow_box[flow_id] = np.vstack([self.flow_box[flow_id],feature])
 
     def is_flow_exist(self, pkt):
@@ -174,7 +185,6 @@ class FlowManager:
             pkt[IP].src not in self.ex_address_list and \
             pkt[IP].dst not in self.ex_address_list and \
             (pkt[IP].proto == 6 or pkt[IP].proto == 17):
-            print("OK")
 
             # もしパケットが新しいフローであると判断できる場合
             # 新しいflow_idにlabeled_featuresを追加
@@ -185,7 +195,7 @@ class FlowManager:
             flow_exist,flow_id = self.is_flow_exist(pkt)
             if not flow_exist:
                 print("flow_non-exist")
-                self.add_new_flow(flow_id,pkt)
+                self.add_new_flow(pkt)
             # もしパケットが以前のフローであると判断できる場合
             else:
                 print("flow_exist")
