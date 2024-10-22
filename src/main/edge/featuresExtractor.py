@@ -29,82 +29,94 @@ def labeling_features(feature):
 def extract_features_from_packet(pkt):
 
     # --- Fields
-    capture_time_jst = datetime.fromtimestamp(pkt.time).astimezone(timezone(timedelta(hours=9)))
-    protocol = ""
-    src = str(pkt[IP].src)
-    dst = str(pkt[IP].dst)
-    label = ""
-    direction = ""
-    port = 0
-    tcp_flag = ""
-    length = int(pkt[IP].len)   # feat: length(int) : 64
+    src = "src"
+    dst = "dst"
+    direction = "direction"
+    capture_time_jst = "capture_time_jst"
+    protocol = "protocol"
+    port = "port"
+    length = "length"
+    tcp_flag = "tcp_flag"
+    label = "label"
 
-    #IPのプロトコル番号が6の時、プロトコルをtcp
-    if pkt[IP].proto == 6:
-        protocol = "tcp"   # feat: protocol(str) : "tcp"
-    #IPのプロトコル番号が17の時、プロトコルをudp
-    elif pkt[IP].proto == 17:
-        protocol = "udp"   # feat: protocol(str) : "udp"
+    field = [src,dst,direction,capture_time_jst,protocol,port,length,tcp_flag,label]
+
+    if IP in pkt:
+        src = str(pkt[IP].src)
+        dst = str(pkt[IP].dst)
+        length = str(pkt[IP].len)
+        if pkt[IP].proto == 6:
+            protocol = "tcp"
+        elif pkt[IP].proto == 17:
+            protocol = "udp"
+        else:
+            return field
+
+    capture_time_jst = datetime.fromtimestamp(float(pkt.time)).astimezone(timezone(timedelta(hours=9))).strftime("%Y%m%d%H%M%S")
 
     # src : malicious address
     #パケットの送信元IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
     if src in arr_malicious_address_list:
+        print("src : malicious")
         direction = "snd"
         label = "1"         # feat: label(str)   : "1"
         if protocol == "tcp":
-            port = pkt[TCP].sport   # feat: port(int) : 23
+            port = str(pkt[TCP].sport)   # feat: port(int) : 23
             tcp_flag = str(pkt[TCP].flags)  # feat: tcpflag(str) : "S"
         elif protocol == "udp":
-            port = pkt[UDP].sport
+            port = str(pkt[UDP].sport)
             tcp_flag = "-1"
 
     # dst : malicious address
     #パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
     elif dst in arr_malicious_address_list:
+        print("dst : malicious address")
         direction = "rcv"
         label = "1"
         if protocol == "tcp":
-            port = pkt[TCP].dport
+            port = str(pkt[TCP].dport)
             tcp_flag = str(pkt[TCP].flags)
         elif protocol == "udp":
-            port = pkt[UDP].dport
+            port = str(pkt[UDP].dport)
             tcp_flag = "-1"
 
     # src : benign address
     #パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif src in arr_benign_address_list and dst not in arr_benign_address_list:
+        print("src : benign address")
         direction = "snd"
         label = "0"
         if protocol == "tcp":
-            port = pkt[TCP].sport
+            port = str(pkt[TCP].sport)
             tcp_flag = str(pkt[TCP].flags)
         elif protocol == "udp":
-            port = pkt[UDP].sport
+            port = str(pkt[UDP].sport)
             tcp_flag = "-1"
-
     # dst : benign address
     #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、送信元IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif dst in arr_benign_address_list and src not in arr_benign_address_list:
+        print("dst : benign address")
         direction = "rcv"
         label = "0"
         if protocol == "tcp":
-            port = pkt[TCP].dport
+            port = str(pkt[TCP].dport)
             tcp_flag = str(pkt[TCP].flags)
         elif protocol == "udp":
-            port = pkt[UDP].dport
+            port = str(pkt[UDP].dport)
             tcp_flag = "-1"
 
-            print(capture_time_jst,
-                  src,
-                  dst,
-                  direction,
-                  port,
-                  tcp_flag,
-                  length,
-                  protocol,
-                  label)
+    print("pkt processing")
+    print("ctj :"+str(capture_time_jst))
+    print("src :"+src)
+    print("dst :"+dst)
+    print("direction :"+direction)
+    print("port :"+str(port))
+    print("tf :"+tcp_flag)
+    print("len :"+length)
+    print("proto :"+protocol)
+    print("label :"+label)
 
-    return (capture_time_jst,
+    return [str(capture_time_jst),
             src,
             dst,
             direction,
@@ -112,36 +124,40 @@ def extract_features_from_packet(pkt):
             tcp_flag,
             length,
             protocol,
-            label)
+            label]
 
-def extract_features_from_flow(pkt):
+def extract_features_from_flow(flow_box,flow_id):
     print("extract feature")
 
     return [0,1,2,3,4,5]
 
 class FlowManager:
 
-    def __init__(self, eal, das, fml):
+    def __init__(self, eal, das):
+
+        # --- extract_features_from_packetにからのパケットを渡しヘッダを回収する
+        empty_packet = Ether()
+        packet_field = np.array(extract_features_from_packet(empty_packet))
         self.ex_address_list = eal
         self.delete_after_seconds = das
-        self.flow_box = fml[np.newaxis,np.newaxis,:]
-        a = np.array(object=[],ndmin=3)
-        print(self.flow_box)
-        print(a)
+        self.flow_box = packet_field[np.newaxis,np.newaxis,:]
 
-
-    def add_new_flow(self):
+    def add_new_flow(self,flow_id,pkt):
+        # パケットから特長量を抽出
         new_flow = np.array(self.flow_box[0,0,:],ndmin=3)
         self.flow_box = np.concatenate((self.flow_box,new_flow),axis=0) # 新しいフローを配列に追加、番号を記憶
         threading.Timer(self.delete_after_seconds, self.delete_flow).start()
 
     def delete_flow(self,flow_id): # flow_boxからフローを削除
+        extract_features_from_flow(self.flow_box,flow_id)
         self.flow_box = np.delete(self.flow_box,flow_id,axis=0)
 
     def add_new_packet(self, flow_id, pkt):
         # 新しいパケットをフローに追加
-        feature = extract_features_from_packet(pkt)
-        self.flow_box = np.concatenate((self.flow_box[flow_id],feature),axis=0) # 新しいフローをキューに追加、番号を記憶
+        feature = np.array(extract_features_from_packet(pkt))
+        print(feature)
+        print(self.flow_box)
+        self.flow_box[flow_id] = np.vstack([self.flow_box[flow_id],feature])
 
     def is_flow_exist(self, pkt):
         flow_id = 0
@@ -169,8 +185,7 @@ class FlowManager:
             flow_exist,flow_id = self.is_flow_exist(pkt)
             if not flow_exist:
                 print("flow_non-exist")
-                self.add_new_flow()
-                self.add_new_packet(flow_id,pkt)
+                self.add_new_flow(flow_id,pkt)
             # もしパケットが以前のフローであると判断できる場合
             else:
                 print("flow_exist")
@@ -272,7 +287,7 @@ if __name__ == "__main__":
     print("feature_matrix")
     print(feature_matrix_list)
 
-    flow_manager = FlowManager(ex_addr_list,delete_after_seconds,feature_matrix_column)
+    flow_manager = FlowManager(ex_addr_list,delete_after_seconds)
 
     # --- Online mode
     if online_mode:
