@@ -157,37 +157,55 @@ class FlowManager:
         self.delete_after_seconds = das
 
         # --- extract_features_from_packetにからのパケットを渡しヘッダを回収する
-        empty_packet = Ether()
-        packet_field = np.array(extract_features_from_packet(empty_packet,maa,baa))
-
-        self.flow_box = packet_field[np.newaxis,np.newaxis,:]
+        # empty_packet = Ether()
+        # packet_field = np.array(extract_features_from_packet(empty_packet,maa,baa))
+        self.flow_box = [[[]]]
 
     def delete_flow(self,flow_id): # flow_boxからフローを削除
         extract_features_from_flow(self.flow_box,flow_id)
         self.flow_box = np.delete(self.flow_box,flow_id,axis=0)
 
     def add_new_flow(self,pkt):
-        feature = np.array(extract_features_from_packet(pkt,self.malicious_address_array,self.benign_address_array)) # パケットからフィールドを抽出
-        new_flow = feature[np.newaxis,np.newaxis,:] # 新しいフローを作成
-        self.flow_box = np.vstack([self.flow_box,new_flow]) # flow_boxに新しいフローを追加
-        print(self.flow_box)
+        field = extract_features_from_packet(pkt,self.malicious_address_array,self.benign_address_array) # パケットからフィールドを抽出
+        new_flow = [field]
+        self.flow_box.append(new_flow)
         threading.Timer(self.delete_after_seconds, self.delete_flow).start()
         print("a")
 
     def add_new_packet(self, flow_id, pkt):
         # 新しいパケットをフローに追加
-        feature = np.array(extract_features_from_packet(pkt,self.malicious_address_array,self.benign_address_array))
-        self.flow_box[flow_id] = np.vstack([self.flow_box[flow_id],feature])
+        feature = extract_features_from_packet(pkt,self.malicious_address_array,self.benign_address_array)
+        new_packet = [[feature]]
+        self.flow_box[flow_id].append(feature)
 
     def is_flow_exist(self, pkt):
+
+        # flow_boxが空であることを確認する
+        # 空であればFalseと
+        # flow_idごとに0番目のパケットの1番目(外部ネットワークアドレス)と2番目(内部ネットワークアドレス)がパケットと一致するかどうか確認
+        # 一致すればTrueとその時のflow_idを返す
+        # 一致しなければFalseと最後尾のflow_idを返す
         flow_id = 0
-        for flow_id in range(self.flow_box.shape[0]):  # axis 0 = flow_id
-            if self.flow_box[flow_id, :, 0] == pkt[IP].src and \
-                    self.flow_box[flow_id, :, 1] == pkt[IP].dst:
-                return True, flow_id  # if exist return flow_id
-            else:
-                pass
-        return False, flow_id + 1  # not exist
+
+        print("call isflowexist")
+        print(f"Flow box length: {len(self.flow_box)}")
+        if len(self.flow_box) == 1:
+            return False,flow_id
+        else:
+            for flow_id in range(len(self.flow_box)):  # axis 0 = flow_id
+                print(f"Checking flow_id: {flow_id}")
+                if self.flow_box[flow_id][0][1] == pkt[IP].src and \
+                        self.flow_box[flow_id][0][2] == pkt[IP].dst:
+                    print("Flow found (src -> dst)")
+                    return True,flow_id  # if exist return flow_id
+                elif self.flow_box[flow_id][0][1] == pkt[IP].dst and \
+                        self.flow_box[flow_id][0][2] == pkt[IP].src:
+                    print("Flow found (dst -> src)")
+                    return True,flow_id  # if exist return flow_id
+                else:
+                    pass
+            print("flow not found")
+            return False,flow_id+1
 
     def callback(self,pkt):
         print("----- callback")
