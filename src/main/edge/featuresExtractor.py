@@ -26,18 +26,18 @@ def labeling_features(feature):
         labeled_feature = np.concatenate((feature, [0]), axis=1)
     return labeled_feature
 
-def extract_features_from_packet(pkt):
+def extract_features_from_packet(pkt,malicious_address_array,benign_address_array):
 
     # --- Fields
-    external_network_address = "external_network_address"
-    internal_network_address = "internal_network_address"
-    direction = "direction"
-    capture_time_jst = "capture_time_jst"
-    protocol = "protocol"
-    port = "port"
-    length = "length"
-    tcp_flag = "tcp_flag"
-    label = "label"
+    external_network_address = "external_network_address" # 外部ネットワークのアドレス
+    internal_network_address = "internal_network_address" # 内部ネットワークのアドレス
+    direction = "direction" # 通信の方向が外部 => 内部なら「snd」，内部 => 外部なら「rcv」 ? ここは疑問が残る
+    capture_time_jst = "capture_time_jst" # パケットがキャプチャされた日本標準時間
+    protocol = "protocol" # IPレイヤーのアプリケーションプロトコル
+    port = "port" # IPレイヤーの使用されているポート
+    length = "length" # IPレイヤーのパケット長 ここはEthernetレイヤーじゃなくていいのか？
+    tcp_flag = "tcp_flag" #
+    label = "label" # 悪性なら1、良性なら0
 
     field = [external_network_address,internal_network_address,direction,capture_time_jst,protocol,port,length,tcp_flag,label]
 
@@ -51,32 +51,33 @@ def extract_features_from_packet(pkt):
             elif pkt[IP].proto == 17:
                 protocol = "udp"
         else:
+            print("empty packet detected")
             return field
     else:
         return None  # Etherレイヤーがないパケットはスキップ
 
-    capture_time_jst = datetime.fromtimestamp(float(pkt.time)).astimezone(timezone(timedelta(hours=9))).strftime("%Y%m%d%H%M%S")
-
+    capture_time_jst = datetime.fromtimestamp(float(pkt.time)).astimezone(timezone(timedelta(hours=9))).strftime("%Y%m%d%H%M%S%f")
+    print(pkt.time)
     # src : malicious address
     #パケットの送信元IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
-    if src in arr_malicious_address_list:
+    if src in malicious_address_array:
         print("--- src : malicious")
-        direction = "snd"
+        direction = "rcv"
         external_network_address = str(pkt[IP].src)
         internal_network_address = str(pkt[IP].dst)
-        label = "1"         # feat: label(str)   : "1"
+        label = "1"
         if protocol == "tcp":
-            port = str(pkt[TCP].sport)   # feat: port(int) : 23
-            tcp_flag = str(pkt[TCP].flags)  # feat: tcpflag(str) : "S"
+            port = str(pkt[TCP].sport)
+            tcp_flag = str(pkt[TCP].flags)
         elif protocol == "udp":
             port = str(pkt[UDP].sport)
             tcp_flag = "-1"
 
     # dst : malicious address
-    #パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
-    elif dst in arr_malicious_address_list:
+    # パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
+    elif dst in malicious_address_array:
         print("--- dst : malicious address")
-        direction = "rcv"
+        direction = "snd"
         external_network_address = str(pkt[IP].dst)
         internal_network_address = str(pkt[IP].src)
         label = "1"
@@ -89,9 +90,9 @@ def extract_features_from_packet(pkt):
 
     # src : benign address
     # パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
-    elif src in arr_benign_address_list and dst not in arr_benign_address_list:
+    elif src in benign_address_array and dst not in benign_address_array:
         print("--- src : benign address")
-        direction = "snd"
+        direction = "rcv"
         external_network_address = str(pkt[IP].src)
         internal_network_address = str(pkt[IP].dst)
         label = "0"
@@ -103,9 +104,9 @@ def extract_features_from_packet(pkt):
             tcp_flag = "-1"
     # dst : benign address
     #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、送信元IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
-    elif dst in arr_benign_address_list and src not in arr_benign_address_list:
+    elif dst in benign_address_array and src not in benign_address_array:
         print("--- dst : benign address")
-        direction = "rcv"
+        direction = "snd"
         external_network_address = str(pkt[IP].dst)
         internal_network_address = str(pkt[IP].src)
         label = "0"
@@ -116,7 +117,11 @@ def extract_features_from_packet(pkt):
             port = str(pkt[UDP].dport)
             tcp_flag = "-1"
 
-    print("pkt processing")
+    # それ以外のパケットは関係のないものとして破棄
+    else:
+        print("unrelated packet detected : ignore")
+        return None
+
     print("ctj :"+str(capture_time_jst))
     print("external_network_address :"+external_network_address)
     print("internal_network_address :"+internal_network_address)
@@ -144,30 +149,34 @@ def extract_features_from_flow(flow_box,flow_id):
 
 class FlowManager:
 
-    def __init__(self, eal, das):
+    def __init__(self, eal, maa, baa, das):
+
+        self.ex_address_list = eal
+        self.malicious_address_array = maa
+        self.benign_address_array = baa
+        self.delete_after_seconds = das
 
         # --- extract_features_from_packetにからのパケットを渡しヘッダを回収する
         empty_packet = Ether()
-        packet_field = np.array(extract_features_from_packet(empty_packet))
-        self.ex_address_list = eal
-        self.delete_after_seconds = das
-        self.flow_box = packet_field[np.newaxis,np.newaxis,:]
+        packet_field = np.array(extract_features_from_packet(empty_packet,maa,baa))
 
-    def add_new_flow(self,pkt):
-        print("calling add_new_flow")
-        feature = np.array(extract_features_from_packet(pkt)) # パケットから特徴量を抽出
-        new_flow = feature[np.newaxis,np.newaxis,:] # 新しいフローを作成
-        self.flow_box = np.vstack([self.flow_box,new_flow]) # flow_boxに新しいフローを追加
-        threading.Timer(self.delete_after_seconds, self.delete_flow).start()
+        self.flow_box = packet_field[np.newaxis,np.newaxis,:]
 
     def delete_flow(self,flow_id): # flow_boxからフローを削除
         extract_features_from_flow(self.flow_box,flow_id)
         self.flow_box = np.delete(self.flow_box,flow_id,axis=0)
 
+    def add_new_flow(self,pkt):
+        feature = np.array(extract_features_from_packet(pkt,self.malicious_address_array,self.benign_address_array)) # パケットからフィールドを抽出
+        new_flow = feature[np.newaxis,np.newaxis,:] # 新しいフローを作成
+        self.flow_box = np.vstack([self.flow_box,new_flow]) # flow_boxに新しいフローを追加
+        print(self.flow_box)
+        threading.Timer(self.delete_after_seconds, self.delete_flow).start()
+        print("a")
+
     def add_new_packet(self, flow_id, pkt):
         # 新しいパケットをフローに追加
-        print("calling add_new_packet")
-        feature = np.array(extract_features_from_packet(pkt))
+        feature = np.array(extract_features_from_packet(pkt,self.malicious_address_array,self.benign_address_array))
         self.flow_box[flow_id] = np.vstack([self.flow_box[flow_id],feature])
 
     def is_flow_exist(self, pkt):
@@ -181,39 +190,48 @@ class FlowManager:
         return False, flow_id + 1  # not exist
 
     def callback(self,pkt):
-        if pkt[Ether].type == 0x0800 and \
-            pkt[IP].src not in self.ex_address_list and \
-            pkt[IP].dst not in self.ex_address_list and \
-            (pkt[IP].proto == 6 or pkt[IP].proto == 17):
+        print("----- callback")
+        try:
+            if Ether in pkt:
+                if IP in pkt:
+                    if pkt[Ether].type == 0x0800 and \
+                        pkt[IP].src not in self.ex_address_list and \
+                        pkt[IP].dst not in self.ex_address_list and \
+                        (pkt[IP].proto == 6 or pkt[IP].proto == 17):
 
-            # もしパケットが新しいフローであると判断できる場合
-            # 新しいflow_idにlabeled_featuresを追加
-            # 追加してから60秒待機 その間他のパケットによる同一フローへの追加を許可する
-            # つまりこのコールバック関数を待機状態にしたうえで他のコールバック関数が呼ばれるように処理を一時的に他のプロセスに受け渡す必要がある
-            # 待機が終了したらフローから特徴量を抽出する
+                        # もしパケットが新しいフローであると判断できる場合
+                        # 新しいflow_idにlabeled_featuresを追加
+                        # 追加してから60秒待機 その間他のパケットによる同一フローへの追加を許可する
+                        # つまりこのコールバック関数を待機状態にしたうえで他のコールバック関数が呼ばれるように処理を一時的に他のプロセスに受け渡す必要がある
+                        # 待機が終了したらフローから特徴量を抽出する
 
-            flow_exist,flow_id = self.is_flow_exist(pkt)
-            if not flow_exist:
-                print("flow_non-exist")
-                self.add_new_flow(pkt)
-            # もしパケットが以前のフローであると判断できる場合
+                        flow_exist,flow_id = self.is_flow_exist(pkt)
+                        if not flow_exist:
+                            print("flow not found")
+                            self.add_new_flow(pkt)
+                        # もしパケットが以前のフローであると判断できる場合
+                        else:
+                            print("flow found")
+                            self.add_new_packet(flow_id,pkt)
+                else:
+                    pass
             else:
-                print("flow_exist")
-                self.add_new_packet(flow_id,pkt)
+                pass
+        except IndexError:
+            pass
 
 def online(flow_manager):
-    print("online mode")
+    print("- online mode")
     while 1:
         sniff(prn=flow_manager.callback, timeout = captime, store = False)
 
 def offline(file_path,flow_manager):
-    print("offline mode")
+    print("- offline mode")
     if os.path.getsize(file_path) == 0:
-        print(file_path + ":no data")
+        print(os.path.basename(file_path) + ":no data")
     else:
-        print(file_path + ":sniffing...")
         sniff(offline = file_path, prn=flow_manager.callback, store = False)
-        print(file_path + ":finish")
+        print(os.path.basename(file_path) + ":finish")
     return feature_matrix_list
 
 # パターン1
@@ -272,14 +290,14 @@ if __name__ == "__main__":
     for net in malicious_network_address_list:
         for malicious in ipaddress.ip_network(net):
             malicious_address_list.append(str(malicious))
-    arr_malicious_address_list = np.array(malicious_address_list)  # list to ndarray
+    malicious_address_array = np.array(malicious_address_list)  # list to ndarray
 
     benign_network_address_list = settings["FeatureExtract"]["NetworkAddress"]["BENIGN"]
     benign_address_list = []
     for net in benign_network_address_list:
         for benign in ipaddress.ip_network(net):
             benign_address_list.append(str(benign))
-    arr_benign_address_list = np.array(benign_address_list)
+    benign_address_array = np.array(benign_address_list)
 
     ex_addr_list = settings["FeatureExtract"]["NetworkAddress"]["EXCEPTION"]
 
@@ -294,10 +312,8 @@ if __name__ == "__main__":
     # --- Set results DataFrame
     feature_matrix = pd.DataFrame(columns=feature_matrix_column)
     feature_matrix_list = feature_matrix.values
-    print("feature_matrix")
-    print(feature_matrix_list)
 
-    flow_manager = FlowManager(ex_addr_list,delete_after_seconds)
+    flow_manager = FlowManager(ex_addr_list,malicious_address_array,benign_address_array,delete_after_seconds)
 
     # --- Online mode
     if online_mode:
@@ -309,13 +325,14 @@ if __name__ == "__main__":
         if os.path.isdir(traffic_data_path):
             print("folder")
             for pcap_file in os.listdir(traffic_data_path):
+                print("-----" + pcap_file + " found")
                 pcap_file_path:str=os.path.join(traffic_data_path,pcap_file)
                 feature_matrix_list = offline(pcap_file_path,flow_manager)
                 feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
                 feature_matrix.to_csv(f"{outputs_dir_path}/{pcap_file}.csv",index=False)
             print("all pcap file sniffed")
         elif os.path.isfile(traffic_data_path):
-            print("file")
+            print("-----" + os.path.basename(traffic_data_path) + " found")
             feature_matrix_list = offline(traffic_data_path,flow_manager)
             feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
             feature_matrix.to_csv(f"{outputs_dir_path}/{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
