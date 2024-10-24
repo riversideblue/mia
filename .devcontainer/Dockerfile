@@ -13,6 +13,7 @@ FROM python:${PYTHON_VERSION}-slim AS base
 RUN apt-get update && apt-get install -y \
     git \
     dos2unix \
+    libpcap-dev \
     && rm -rf /var/lib/apt/lists/* ?
 
 # config(git)ファイルの設定

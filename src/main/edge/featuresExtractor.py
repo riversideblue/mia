@@ -1,5 +1,6 @@
 import sys
 import threading
+import time
 import warnings
 
 import pandas as pd
@@ -183,22 +184,22 @@ class FlowManager:
         # flow_idごとに0番目のパケットの1番目(外部ネットワークアドレス)と2番目(内部ネットワークアドレス)がパケットと一致するかどうか確認
         # 一致すればTrueとその時のflow_idを返す
         # 一致しなければFalseと最後尾のflow_idを返す
-        print(f"is_flow_exist : 保存されているフローの数: {len(self.flow_box)}")
-        print(f"is_flow_exist : 0番目のフローに含まれているパケット数: {len(self.flow_box[0])}")
-        print(f"is_flow_exist : 0番目のフローに含まれている0番目のパケットに含まれているフィールドの数: {len(self.flow_box[0][0])}")
+        # print(f"is_flow_exist : 保存されているフローの数: {len(self.flow_box)}")
+        # print(f"is_flow_exist : 0番目のフローに含まれているパケット数: {len(self.flow_box[0])}")
+        # print(f"is_flow_exist : 0番目のフローに含まれている0番目のパケットに含まれているフィールドの数: {len(self.flow_box[0][0])}")
         if not self.flow_box[0][0]:
             print("is_flow_exist : flow_box empty")
             return False,0
         else:
             print("is_flow_exist : flow_box not empty")
             for flow_id in range(len(self.flow_box)):  # axis 0 = flow_id
-                print(f"is_flow_exist : Checking flow_id {flow_id}")
-                print(f"Ex_addr in box : {self.flow_box[flow_id][0][1]}")
-                print(f"pkt_src : {pkt[IP].src}")
-                print(f"pkt_dst : {pkt[IP].dst}")
-                print(f"In_addr in box : {self.flow_box[flow_id][0][2]}")
-                print(f"pkt_src : {pkt[IP].src}")
-                print(f"pkt_dst : {pkt[IP].dst}")
+                # print(f"is_flow_exist : Checking flow_id {flow_id}")
+                # print(f"Ex_addr in box : {self.flow_box[flow_id][0][1]}")
+                # print(f"pkt_src : {pkt[IP].src}")
+                # print(f"pkt_dst : {pkt[IP].dst}")
+                # print(f"In_addr in box : {self.flow_box[flow_id][0][2]}")
+                # print(f"pkt_src : {pkt[IP].src}")
+                # print(f"pkt_dst : {pkt[IP].dst}")
                 if self.flow_box[flow_id][0][1] == pkt[IP].src and \
                         self.flow_box[flow_id][0][2] == pkt[IP].dst:
                     print("is_flow_exist : Flow found (src -> dst)")
@@ -225,9 +226,9 @@ class FlowManager:
                         # 追加してから60秒待機 その間他のパケットによる同一フローへの追加を許可する
                         # つまりこのコールバック関数を待機状態にしたうえで他のコールバック関数が呼ばれるように処理を一時的に他のプロセスに受け渡す必要がある
                         # 待機が終了したらフローから特徴量を抽出する
-                        print("- is_flow_exist")
+                        # print("- is_flow_exist")
                         flow_exist,flow_id = self.is_flow_exist(pkt)
-                        print("- extract_features_from_packet")
+                        # print("- extract_features_from_packet")
                         field = extract_features_from_packet(pkt, self.malicious_address_array,
                                                              self.benign_address_array)  # パケットからフィールドを抽出
                         # フローボックスが空の場合 flow_id = 0
@@ -235,13 +236,11 @@ class FlowManager:
                         # フローが存在しなかった場合 flow_id 新しいフローの番号
                         if field is not None:
                             if not flow_exist:
-                                print("flow not exist")
-                                print("- add_new_flow")
+                                # print("- add_new_flow")
                                 self.add_new_flow(field)
                             # もしパケットが以前のフローであると判断できる場合
                             else:
-                                print("flow exist")
-                                print("- add_new_packet")
+                                # print("- add_new_packet")
                                 self.add_new_packet(flow_id,field)
                 else:
                     pass
@@ -255,14 +254,14 @@ class FlowManager:
 def online(manager):
     print("- online mode")
     while 1:
-        sniff(prn=manager.callback, timeout = captime, store = False)
+        sniff(prn=manager.callback, timeout = captime, store = False, filter="ip and (tcp or udp)")
 
 def offline(file_path, manager):
     print("- offline mode")
     if os.path.getsize(file_path) == 0:
         print(os.path.basename(file_path) + ":no data")
     else:
-        sniff(offline = file_path, prn=manager.callback, store = False) # storeとは？
+        sniff(offline = file_path, prn=manager.callback, store = False, filter="ip and (tcp or udp)") # storeとは？
         print(os.path.basename(file_path) + ":finish")
 
 # パターン1
@@ -296,6 +295,8 @@ def offline(file_path, manager):
 
 # 与えられたフォルダまたはファイルに含まれるトラヒックデータ（pcapファイル）から特徴量を抽出してcsvファイルに書き込む
 if __name__ == "__main__":
+
+    start_time = time.time()  # 処理開始時刻
 
     # --- Load settings
     settings = json.load(open('src/main/edge/settings.json', 'r'))
@@ -367,9 +368,15 @@ if __name__ == "__main__":
         elif os.path.isfile(traffic_data_path):
             print("-----" + os.path.basename(traffic_data_path) + " found")
             offline(traffic_data_path,flow_manager)
-            feature_matrix_list = flow_manager.flow_box
-            feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
-            feature_matrix.to_csv(f"{outputs_dir_path}/{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
+            for i in range(10):
+                print(flow_manager.flow_box[i])
+
+            # feature_matrix_list = flow_manager.flow_box
+            # feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
+            # feature_matrix.to_csv(f"{outputs_dir_path}/{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
             print("all pcap file sniffed")
         else:
             print(f"traffic data path : {traffic_data_path} not found")
+    end_time = time.time()  # 処理終了時刻
+    elapsed_time = end_time - start_time
+    print(f"処理時間: {elapsed_time}秒")
