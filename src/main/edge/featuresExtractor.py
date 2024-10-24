@@ -167,16 +167,21 @@ class FlowManager:
 
     def add_new_flow(self,pkt):
         field = extract_features_from_packet(pkt,self.malicious_address_array,self.benign_address_array) # パケットからフィールドを抽出
-        new_flow = [field]
-        self.flow_box.append(new_flow)
-        threading.Timer(self.delete_after_seconds, self.delete_flow).start()
-        print("a")
+        if field is not None:
+            new_flow = [field]
+            self.flow_box.append(new_flow)
+            print("- add new flow")
+            print(f"- 保存されているフローの数: {len(self.flow_box)}")
+            threading.Timer(self.delete_after_seconds, self.delete_flow).start()
 
     def add_new_packet(self, flow_id, pkt):
         # 新しいパケットをフローに追加
         feature = extract_features_from_packet(pkt,self.malicious_address_array,self.benign_address_array)
         new_packet = [[feature]]
         self.flow_box[flow_id].append(feature)
+        print("- add new packet")
+        print(f"- 保存されているフローの数: {len(self.flow_box)}")
+
 
     def is_flow_exist(self, pkt):
 
@@ -187,11 +192,16 @@ class FlowManager:
         # 一致しなければFalseと最後尾のflow_idを返す
         flow_id = 0
 
-        print("call isflowexist")
-        print(f"Flow box length: {len(self.flow_box)}")
-        if len(self.flow_box) == 1:
+        print("calling is_flow_exist")
+        print(f"保存されているフローの数: {len(self.flow_box)}")
+        print(f"0番目のフローに含まれているパケット数: {len(self.flow_box[0])}")
+        print(f"0番目のフローに含まれている0番目のパケットに含まれているフィールドの数: {len(self.flow_box[0][0])}")
+
+        if not self.flow_box[0][0]:
+            print("flow_box empty")
             return False,flow_id
         else:
+            print("flow_box not empty")
             for flow_id in range(len(self.flow_box)):  # axis 0 = flow_id
                 print(f"Checking flow_id: {flow_id}")
                 if self.flow_box[flow_id][0][1] == pkt[IP].src and \
@@ -202,8 +212,6 @@ class FlowManager:
                         self.flow_box[flow_id][0][2] == pkt[IP].src:
                     print("Flow found (dst -> src)")
                     return True,flow_id  # if exist return flow_id
-                else:
-                    pass
             print("flow not found")
             return False,flow_id+1
 
@@ -222,15 +230,18 @@ class FlowManager:
                         # 追加してから60秒待機 その間他のパケットによる同一フローへの追加を許可する
                         # つまりこのコールバック関数を待機状態にしたうえで他のコールバック関数が呼ばれるように処理を一時的に他のプロセスに受け渡す必要がある
                         # 待機が終了したらフローから特徴量を抽出する
-
+                        print("- pass callback filter")
                         flow_exist,flow_id = self.is_flow_exist(pkt)
+                        print(f"保存されているフローの数: {len(self.flow_box)}")
+                        print("- pass is_flow_exist")
                         if not flow_exist:
-                            print("flow not found")
                             self.add_new_flow(pkt)
+                            print("- pass add_new_flow")
+                            print(f"保存されているフローの数: {len(self.flow_box)}")
                         # もしパケットが以前のフローであると判断できる場合
                         else:
-                            print("flow found")
                             self.add_new_packet(flow_id,pkt)
+                            print("- pass add_new_packet")
                 else:
                     pass
             else:
@@ -238,17 +249,17 @@ class FlowManager:
         except IndexError:
             pass
 
-def online(flow_manager):
+def online(manager):
     print("- online mode")
     while 1:
-        sniff(prn=flow_manager.callback, timeout = captime, store = False)
+        sniff(prn=manager.callback, timeout = captime, store = False)
 
-def offline(file_path,flow_manager):
+def offline(file_path, manager):
     print("- offline mode")
     if os.path.getsize(file_path) == 0:
         print(os.path.basename(file_path) + ":no data")
     else:
-        sniff(offline = file_path, prn=flow_manager.callback, store = False)
+        sniff(offline = file_path, prn=manager.callback, store = False) # storeとは？
         print(os.path.basename(file_path) + ":finish")
     return feature_matrix_list
 
@@ -331,6 +342,7 @@ if __name__ == "__main__":
     feature_matrix = pd.DataFrame(columns=feature_matrix_column)
     feature_matrix_list = feature_matrix.values
 
+    # --- build constractor
     flow_manager = FlowManager(ex_addr_list,malicious_address_array,benign_address_array,delete_after_seconds)
 
     # --- Online mode
@@ -344,7 +356,7 @@ if __name__ == "__main__":
             print("folder")
             for pcap_file in os.listdir(traffic_data_path):
                 print("-----" + pcap_file + " found")
-                pcap_file_path:str=os.path.join(traffic_data_path,pcap_file)
+                pcap_file_path:str = os.path.join(traffic_data_path,pcap_file)
                 feature_matrix_list = offline(pcap_file_path,flow_manager)
                 feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
                 feature_matrix.to_csv(f"{outputs_dir_path}/{pcap_file}.csv",index=False)
