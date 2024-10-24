@@ -3,11 +3,11 @@ ARG PYTHON_VERSION=3.11.9
 FROM python:${PYTHON_VERSION}-slim AS base
 
 # Dockerfile内のコマンドを実行するコンテナ内のディレクトリ=WORKDIRの設定
-ARG WORKDIR=/home
-WORKDIR ${WORKDIR}
-
-# ホストのディレクトリをコンテナ内にCOPY
-COPY .. .
+#ARG WORKDIR=/home
+#WORKDIR ${WORKDIR}
+#
+## ホストのディレクトリをコンテナ内にCOPY
+#COPY .. .
 
 # 必要なパッケージをインストール
 RUN apt-get update && apt-get install -y \

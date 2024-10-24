@@ -164,19 +164,14 @@ class FlowManager:
             # flow_boxが初期状態の場合
             print("add_new_flow : flow_box empty")
             self.flow_box[0] = new_flow
-            print(self.flow_box)
         else:
             print("add_new_flow : there is some flow")
-            print(field)
-            print(self.flow_box)
             self.flow_box.append(new_flow)
-            print(self.flow_box)
-            print(f"add_new_flow : 保存されているフローの数: {len(self.flow_box)}")
             threading.Timer(self.delete_after_seconds, self.delete_flow).start()
 
     def add_new_packet(self, flow_id, field):
         # 新しいパケットをフローに追加
-        new_packet = [[field]]
+        new_packet = field
         self.flow_box[flow_id].append(new_packet)
         print(f"add_new_flow : 保存されているフローの数: {len(self.flow_box)}")
 
@@ -200,10 +195,10 @@ class FlowManager:
                 print(f"is_flow_exist : Checking flow_id {flow_id}")
                 print(f"Ex_addr in box : {self.flow_box[flow_id][0][1]}")
                 print(f"pkt_src : {pkt[IP].src}")
-                print(pkt[IP].dst)
-                print(f"In_addr in box{self.flow_box[flow_id][0][2]}")
-                print(pkt[IP].src)
-                print(pkt[IP].dst)
+                print(f"pkt_dst : {pkt[IP].dst}")
+                print(f"In_addr in box : {self.flow_box[flow_id][0][2]}")
+                print(f"pkt_src : {pkt[IP].src}")
+                print(f"pkt_dst : {pkt[IP].dst}")
                 if self.flow_box[flow_id][0][1] == pkt[IP].src and \
                         self.flow_box[flow_id][0][2] == pkt[IP].dst:
                     print("is_flow_exist : Flow found (src -> dst)")
@@ -238,7 +233,6 @@ class FlowManager:
                         # フローボックスが空の場合 flow_id = 0
                         # フローが存在する場合 flow_id = フローが存在するところ
                         # フローが存在しなかった場合 flow_id 新しいフローの番号
-                        print(f"保存されているフローの数: {len(self.flow_box)}")
                         if field is not None:
                             if not flow_exist:
                                 print("flow not exist")
@@ -255,8 +249,8 @@ class FlowManager:
                 pass
         except IndexError:
             pass
-        print("callback process end")
-        print(self.flow_box)
+        # print("callback process end : flow_box ↓")
+        # print(self.flow_box)
 
 def online(manager):
     print("- online mode")
@@ -270,7 +264,6 @@ def offline(file_path, manager):
     else:
         sniff(offline = file_path, prn=manager.callback, store = False) # storeとは？
         print(os.path.basename(file_path) + ":finish")
-    return feature_matrix_list
 
 # パターン1
 # settings.jsonを読み込む done
@@ -366,13 +359,15 @@ if __name__ == "__main__":
             for pcap_file in os.listdir(traffic_data_path):
                 print("-----" + pcap_file + " found")
                 pcap_file_path:str = os.path.join(traffic_data_path,pcap_file)
-                feature_matrix_list = offline(pcap_file_path,flow_manager)
+                offline(pcap_file_path,flow_manager)
+                feature_matrix_list = flow_manager.flow_box
                 feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
                 feature_matrix.to_csv(f"{outputs_dir_path}/{pcap_file}.csv",index=False)
             print("all pcap file sniffed")
         elif os.path.isfile(traffic_data_path):
             print("-----" + os.path.basename(traffic_data_path) + " found")
-            feature_matrix_list = offline(traffic_data_path,flow_manager)
+            offline(traffic_data_path,flow_manager)
+            feature_matrix_list = flow_manager.flow_box
             feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
             feature_matrix.to_csv(f"{outputs_dir_path}/{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
             print("all pcap file sniffed")
