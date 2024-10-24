@@ -54,7 +54,7 @@ def extract_features_from_packet(pkt,malicious_address_array,benign_address_arra
     # src : malicious address
     #パケットの送信元IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
     if src in malicious_address_array:
-        print("--- src : malicious")
+        print("- src : malicious")
         direction = "rcv"
         external_network_address = str(pkt[IP].src)
         internal_network_address = str(pkt[IP].dst)
@@ -69,7 +69,7 @@ def extract_features_from_packet(pkt,malicious_address_array,benign_address_arra
     # dst : malicious address
     # パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
     elif dst in malicious_address_array:
-        print("--- dst : malicious address")
+        print("- dst : malicious address")
         direction = "snd"
         external_network_address = str(pkt[IP].dst)
         internal_network_address = str(pkt[IP].src)
@@ -84,7 +84,7 @@ def extract_features_from_packet(pkt,malicious_address_array,benign_address_arra
     # src : benign address
     # パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif src in benign_address_array and dst not in benign_address_array:
-        print("--- src : benign address")
+        print("- src : benign address")
         direction = "rcv"
         external_network_address = str(pkt[IP].src)
         internal_network_address = str(pkt[IP].dst)
@@ -98,7 +98,7 @@ def extract_features_from_packet(pkt,malicious_address_array,benign_address_arra
     # dst : benign address
     #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、送信元IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif dst in benign_address_array and src not in benign_address_array:
-        print("--- dst : benign address")
+        print("- dst : benign address")
         direction = "snd"
         external_network_address = str(pkt[IP].dst)
         internal_network_address = str(pkt[IP].src)
@@ -160,8 +160,8 @@ class FlowManager:
 
     def add_new_flow(self,field):
         new_flow = [field]
-        print(self.flow_box[0][0])
         if not self.flow_box[0][0]:
+            # flow_boxが初期状態の場合
             print("add_new_flow : flow_box empty")
             self.flow_box[0] = new_flow
             print(self.flow_box)
@@ -171,15 +171,14 @@ class FlowManager:
             print(self.flow_box)
             self.flow_box.append(new_flow)
             print(self.flow_box)
-            print(f"- 保存されているフローの数: {len(self.flow_box)}")
+            print(f"add_new_flow : 保存されているフローの数: {len(self.flow_box)}")
             threading.Timer(self.delete_after_seconds, self.delete_flow).start()
-            sys.exit(1)
 
     def add_new_packet(self, flow_id, field):
         # 新しいパケットをフローに追加
         new_packet = [[field]]
         self.flow_box[flow_id].append(new_packet)
-        print(f"- 保存されているフローの数: {len(self.flow_box)}")
+        print(f"add_new_flow : 保存されているフローの数: {len(self.flow_box)}")
 
 
     def is_flow_exist(self, pkt):
@@ -192,17 +191,18 @@ class FlowManager:
         print(f"is_flow_exist : 保存されているフローの数: {len(self.flow_box)}")
         print(f"is_flow_exist : 0番目のフローに含まれているパケット数: {len(self.flow_box[0])}")
         print(f"is_flow_exist : 0番目のフローに含まれている0番目のパケットに含まれているフィールドの数: {len(self.flow_box[0][0])}")
-        print(self.flow_box[0][0])
         if not self.flow_box[0][0]:
             print("is_flow_exist : flow_box empty")
             return False,0
         else:
             print("is_flow_exist : flow_box not empty")
             for flow_id in range(len(self.flow_box)):  # axis 0 = flow_id
-                print(f"Checking flow_id: {flow_id}")
-                print(self.flow_box[flow_id][0][1])
+                print(f"is_flow_exist : Checking flow_id {flow_id}")
+                print(f"Ex_addr in box : {self.flow_box[flow_id][0][1]}")
+                print(f"pkt_src : {pkt[IP].src}")
+                print(pkt[IP].dst)
+                print(f"In_addr in box{self.flow_box[flow_id][0][2]}")
                 print(pkt[IP].src)
-                print(self.flow_box[flow_id][0][2])
                 print(pkt[IP].dst)
                 if self.flow_box[flow_id][0][1] == pkt[IP].src and \
                         self.flow_box[flow_id][0][2] == pkt[IP].dst:
@@ -244,21 +244,19 @@ class FlowManager:
                                 print("flow not exist")
                                 print("- add_new_flow")
                                 self.add_new_flow(field)
-                                print("- callback process end")
-                                print(f"保存されているフローの数: {len(self.flow_box)}")
                             # もしパケットが以前のフローであると判断できる場合
                             else:
                                 print("flow exist")
                                 print("- add_new_packet")
                                 self.add_new_packet(flow_id,field)
-                                print("- callback process end")
-                                print(f"保存されているフローの数: {len(self.flow_box)}")
                 else:
                     pass
             else:
                 pass
         except IndexError:
             pass
+        print("callback process end")
+        print(self.flow_box)
 
 def online(manager):
     print("- online mode")
