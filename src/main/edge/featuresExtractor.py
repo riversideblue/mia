@@ -1,4 +1,3 @@
-import sys
 import threading
 import time
 import warnings
@@ -368,8 +367,6 @@ if __name__ == "__main__":
         elif os.path.isfile(traffic_data_path):
             print("-----" + os.path.basename(traffic_data_path) + " found")
             offline(traffic_data_path,flow_manager)
-            for i in range(10):
-                print(flow_manager.flow_box[i])
 
             # feature_matrix_list = flow_manager.flow_box
             # feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
@@ -379,4 +376,6 @@ if __name__ == "__main__":
             print(f"traffic data path : {traffic_data_path} not found")
     end_time = time.time()  # 処理終了時刻
     elapsed_time = end_time - start_time
+    with open("output.txt", "w") as f:
+        print(flow_manager.flow_box, file=f)
     print(f"処理時間: {elapsed_time}秒")

@@ -16,7 +16,7 @@
     "RetrainingCycle": {
       "ONLINE_MODE": 0,
       "DYNAMIC_MODE": 0,
-      "STATIC_INTERVAL": 3600
+      "STATIC_INTERVAL": 60
     }
   },
   "OS": {
