@@ -1,13 +1,13 @@
 import threading
 import time
 import warnings
+from collections import Counter
 
 import pandas as pd
 import pytz
 from scapy.layers.inet import IP, TCP, UDP
 from scapy.layers.l2 import Ether
 from scapy.sendrecv import sniff
-
 
 warnings.simplefilter('ignore')
 
@@ -27,7 +27,7 @@ def labeling_features(feature):
         labeled_feature = np.concatenate((feature, [0]), axis=1)
     return labeled_feature
 
-def extract_features_from_packet(pkt,malicious_address_array,benign_address_array):
+def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
 
     # --- Fields
     external_network_address = "external_network_address" # 外部ネットワークのアドレス
@@ -48,12 +48,11 @@ def extract_features_from_packet(pkt,malicious_address_array,benign_address_arra
     elif pkt[IP].proto == 17:
         protocol = "udp"
 
-    capture_time_jst = datetime.fromtimestamp(float(pkt.time)).astimezone(timezone(timedelta(hours=9))).strftime("%Y%m%d%H%M%S%f")
-    print("pkt.time")
-    print(pkt.time)
+    capture_time_jst = datetime.fromtimestamp(float(pkt.time)).astimezone(timezone(timedelta(hours=9)))
+
     # src : malicious address
     #パケットの送信元IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
-    if src in malicious_address_array:
+    if src in malicious_addresses:
         print("- src : malicious")
         direction = "rcv"
         external_network_address = str(pkt[IP].src)
@@ -68,7 +67,7 @@ def extract_features_from_packet(pkt,malicious_address_array,benign_address_arra
 
     # dst : malicious address
     # パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
-    elif dst in malicious_address_array:
+    elif dst in malicious_addresses:
         print("- dst : malicious address")
         direction = "snd"
         external_network_address = str(pkt[IP].dst)
@@ -83,7 +82,7 @@ def extract_features_from_packet(pkt,malicious_address_array,benign_address_arra
 
     # src : benign address
     # パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
-    elif src in benign_address_array and dst not in benign_address_array:
+    elif src in benign_addresses and dst not in benign_addresses:
         print("- src : benign address")
         direction = "rcv"
         external_network_address = str(pkt[IP].src)
@@ -97,7 +96,7 @@ def extract_features_from_packet(pkt,malicious_address_array,benign_address_arra
             tcp_flag = "-1"
     # dst : benign address
     #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、送信元IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
-    elif dst in benign_address_array and src not in benign_address_array:
+    elif dst in benign_addresses and src not in benign_addresses:
         print("- dst : benign address")
         direction = "snd"
         external_network_address = str(pkt[IP].dst)
@@ -115,30 +114,78 @@ def extract_features_from_packet(pkt,malicious_address_array,benign_address_arra
         print("unrelated packet detected : ignore")
         return None
 
-    print("ctj :"+str(capture_time_jst))
-    print("external_network_address :"+external_network_address)
-    print("internal_network_address :"+internal_network_address)
-    print("direction :"+direction)
-    print("port :"+str(port))
-    print("tf :"+tcp_flag)
-    print("len :"+length)
-    print("proto :"+protocol)
-    print("label :"+label)
-
-    return [str(capture_time_jst),
+    return [capture_time_jst,
             external_network_address,
             internal_network_address,
             direction,
+            protocol,
             port,
             tcp_flag,
             length,
-            protocol,
             label]
 
-def extract_features_from_flow(flow_box,flow_id):
+def extract_features_from_flow(packets_in_flow):
+
     print("extract feature")
 
-    return [0,1,2,3,4,5]
+    # --- rcv/snd count
+    rcv_snd_counter = Counter([row[3] for row in packets_in_flow])
+    rcv_packet_count = rcv_snd_counter["rcv"]
+    snd_packet_count = rcv_snd_counter["snd"]
+
+    # --- tcp/udp count
+    tcp_udp_counter = Counter([row[4] for row in packets_in_flow])
+    tcp_count = tcp_udp_counter["tcp"]
+    udp_count = tcp_udp_counter["udp"]
+
+    # --- most port/count
+    port_counter = Counter([row[5] for row in packets_in_flow])
+    port_counter_tuple = port_counter.most_common(1)
+    most_port = port_counter_tuple[0]
+    port_count = port_counter_tuple[1]
+
+    # --- rcv max/min interval
+    rcv_time_list = [row[0] for row in packets_in_flow if row[3] == "rcv"]
+    rcv_interval = [j - i for i, j in zip(rcv_time_list, rcv_time_list[1:])]
+    rcv_max_interval = max(rcv_interval)
+    rcv_min_interval = min(rcv_interval)
+
+    # --- rcv max/min length
+    rcv_length_list = [row[7] for row in packets_in_flow if row[3] == "rcv"]
+    rcv_max_length = max(rcv_length_list)
+    rcv_min_length = min(rcv_length_list)
+
+    # --- snd max/min interval
+    snd_time_list = [row[0] for row in packets_in_flow if row[3] == "snd"]
+    snd_interval = [j - i for i, j in zip(snd_time_list, snd_time_list[1:])]
+    snd_max_interval = max(snd_interval)
+    snd_min_interval = min(snd_interval)
+
+    # --- snd max/min length
+    snd_length_list = [row[7] for row in packets_in_flow if row[3] == "rcv"]
+    snd_max_length = max(snd_length_list)
+    snd_min_length = min(snd_length_list)
+
+    # --- label
+    label = packets_in_flow[0][8]
+
+    return [
+        rcv_packet_count,
+        snd_packet_count,
+        tcp_count,
+        udp_count,
+        most_port,
+        port_count,
+        rcv_max_interval,
+        rcv_min_interval,
+        rcv_max_length,
+        rcv_min_length,
+        snd_max_interval,
+        snd_min_interval,
+        snd_max_length,
+        snd_min_length,
+        label
+    ]
 
 class FlowManager:
 
@@ -149,56 +196,60 @@ class FlowManager:
         self.benign_address_array = baa
         self.delete_after_seconds = das
 
-        # --- extract_features_from_packetにからのパケットを渡しヘッダを回収する
-        # empty_packet = Ether()
-        # packet_field = np.array(extract_features_from_packet(empty_packet,maa,baa))
+        # flow_box = [
+        #  [
+        #   [capture_time_jst,external_network_address,internal_network_address,direction,protocol,port,tcp_flag,length,label],
+        #   [capture_time_jst,external_network_address,internal_network_address,direction,protocol,port,tcp_flag,length,label],
+        #   [capture_time_jst,external_network_address,internal_network_address,direction,protocol,port,tcp_flag,length,label]
+        #  ]
+        # ]
         self.flow_box = [[[]]]
 
-    def delete_flow(self,flow_id): # flow_boxからフローを削除
-        extract_features_from_flow(self.flow_box,flow_id)
-        self.flow_box = np.delete(self.flow_box,flow_id,axis=0)
+        self.feature_matrix = [[]]
 
-    def add_new_flow(self,field):
+        # time_manager = {
+        # flow_id : pkt_captured_time
+        # }
+        self.time_manager = {}
+
+    def delete_flow(self,flow_id): # flow_boxからフローを削除
+
+        print(extract_features_from_flow(self.flow_box.pop(flow_id)))
+        if not self.feature_matrix[0]:
+            self.feature_matrix = extract_features_from_flow(self.flow_box.pop(flow_id))
+        else:
+            self.feature_matrix.append(extract_features_from_flow(self.flow_box.pop(flow_id)))
+
+    def add_to_new_flow(self, flow_id, field):
         new_flow = [field]
+        self.time_manager[flow_id] = field[0]
         if not self.flow_box[0][0]:
-            # flow_boxが初期状態の場合
-            print("add_new_flow : flow_box empty")
             self.flow_box[0] = new_flow
         else:
-            print("add_new_flow : there is some flow")
             self.flow_box.append(new_flow)
-            threading.Timer(self.delete_after_seconds, self.delete_flow).start()
 
-    def add_new_packet(self, flow_id, field):
+    def add_to_existing_flow(self, flow_id, field):
         # 新しいパケットをフローに追加
         new_packet = field
         self.flow_box[flow_id].append(new_packet)
-        print(f"add_new_flow : 保存されているフローの数: {len(self.flow_box)}")
-
 
     def is_flow_exist(self, pkt):
 
-        # flow_boxが空であることを確認する
-        # 空であればFalseと
-        # flow_idごとに0番目のパケットの1番目(外部ネットワークアドレス)と2番目(内部ネットワークアドレス)がパケットと一致するかどうか確認
-        # 一致すればTrueとその時のflow_idを返す
-        # 一致しなければFalseと最後尾のflow_idを返す
-        # print(f"is_flow_exist : 保存されているフローの数: {len(self.flow_box)}")
-        # print(f"is_flow_exist : 0番目のフローに含まれているパケット数: {len(self.flow_box[0])}")
-        # print(f"is_flow_exist : 0番目のフローに含まれている0番目のパケットに含まれているフィールドの数: {len(self.flow_box[0][0])}")
         if not self.flow_box[0][0]:
             print("is_flow_exist : flow_box empty")
             return False,0
         else:
             print("is_flow_exist : flow_box not empty")
-            for flow_id in range(len(self.flow_box)):  # axis 0 = flow_id
-                # print(f"is_flow_exist : Checking flow_id {flow_id}")
-                # print(f"Ex_addr in box : {self.flow_box[flow_id][0][1]}")
-                # print(f"pkt_src : {pkt[IP].src}")
-                # print(f"pkt_dst : {pkt[IP].dst}")
-                # print(f"In_addr in box : {self.flow_box[flow_id][0][2]}")
-                # print(f"pkt_src : {pkt[IP].src}")
-                # print(f"pkt_dst : {pkt[IP].dst}")
+
+            # --- is all flow timeout ?
+            pkt_captured_time = datetime.fromtimestamp(float(pkt.time)).astimezone(timezone(timedelta(hours=9)))
+            for i in range(len(self.time_manager)):
+                delta = self.time_manager[i] - pkt_captured_time
+                if delta.total_seconds() > float(self.delete_after_seconds):
+                    del self.flow_box[i]
+
+            # --- is flow pkt specified existing ?
+            for flow_id in range(len(self.flow_box)):
                 if self.flow_box[flow_id][0][1] == pkt[IP].src and \
                         self.flow_box[flow_id][0][2] == pkt[IP].dst:
                     print("is_flow_exist : Flow found (src -> dst)")
@@ -220,35 +271,22 @@ class FlowManager:
                         pkt[IP].dst not in self.ex_address_list and \
                         (pkt[IP].proto == 6 or pkt[IP].proto == 17):
 
-                        # もしパケットが新しいフローであると判断できる場合
-                        # 新しいflow_idにlabeled_featuresを追加
-                        # 追加してから60秒待機 その間他のパケットによる同一フローへの追加を許可する
-                        # つまりこのコールバック関数を待機状態にしたうえで他のコールバック関数が呼ばれるように処理を一時的に他のプロセスに受け渡す必要がある
-                        # 待機が終了したらフローから特徴量を抽出する
-                        # print("- is_flow_exist")
                         flow_exist,flow_id = self.is_flow_exist(pkt)
-                        # print("- extract_features_from_packet")
                         field = extract_features_from_packet(pkt, self.malicious_address_array,
-                                                             self.benign_address_array)  # パケットからフィールドを抽出
-                        # フローボックスが空の場合 flow_id = 0
-                        # フローが存在する場合 flow_id = フローが存在するところ
-                        # フローが存在しなかった場合 flow_id 新しいフローの番号
+                                                             self.benign_address_array)
+
                         if field is not None:
                             if not flow_exist:
-                                # print("- add_new_flow")
-                                self.add_new_flow(field)
-                            # もしパケットが以前のフローであると判断できる場合
+                                self.add_to_new_flow(flow_id, field)
+                                threading.Timer(60, self.delete_flow, args=(flow_id,)).start()
                             else:
-                                # print("- add_new_packet")
-                                self.add_new_packet(flow_id,field)
+                                self.add_to_existing_flow(flow_id, field)
                 else:
                     pass
             else:
                 pass
         except IndexError:
             pass
-        # print("callback process end : flow_box ↓")
-        # print(self.flow_box)
 
 def online(manager):
     print("- online mode")
@@ -263,34 +301,6 @@ def offline(file_path, manager):
         sniff(offline = file_path, prn=manager.callback, store = False, filter="ip and (tcp or udp)") # storeとは？
         print(os.path.basename(file_path) + ":finish")
 
-# パターン1
-# settings.jsonを読み込む done
-# featuresExtractor一回の実行処理に対してひとつのfeature_matrix=pd.DataFrameを定義 done
-# 処理高速化のためDataFrameからvalueを抽出feature_matrix_list:np.arrayを定義 done
-# ディレクトリかファイルかを判断，ディレクトリならディレクトリ内に含まれるすべてのpcapファイルを読み込む done
-# 読み込んだpcapファイルについて，すべての（フローごと？）のパケットのデータを読み込む
-# それぞれパケットデータに対して必要な特徴量を抽出し，一時的に配列に登録する(explanatory_variable_array)
-# それぞれのパケットデータに対してラベル付けを行う(target_variable)
-# explanatory_variable_arrayとtarget_variableを合わせてfeature_matrix_arrayに登録
-# 読み込んだpcapファイルについて特徴量の抽出が完了したら，feature_matrix_listをまとめてfeature_matrixに登録
-# feature_matrixをもとにcsvファイルを出力
-# すべてのpcapファイルの読み込みが終わるまで継続
-
-# パターン2 とりあえずこっち　上手くいかなかったらパターン1に変更
-# settings.jsonを読み込む done
-# featuresExtractor一回の実行処理に対してひとつのfeature_matrix=pd.DataFrameを定義 done
-# 処理高速化のためDataFrameからvalueを抽出feature_matrix_list:np.arrayを定義 done
-# ディレクトリかファイルかを判断，ディレクトリならディレクトリ内に含まれるすべてのpcapファイルを読み込む done
-# 読み込んだpcapファイルについてパケットをひとつづつ読み込む done
-# 読み込んだパケットをフローごとにまとめる done
-# フローごとのパケットデータに対して必要な特徴量を抽出し，一時的に配列に登録する(explanatory_variable_array)　done
-# それぞれのパケットデータに対してラベル付けを行う(target_variable) done
-# explanatory_variable_arrayとtarget_variableを合わせてfeature_matrix_arrayに登録
-# すべてのpcapファイルの読み込みが終わるまで継続
-# すべてのpcapファイルについて特徴量の抽出が完了したら，feature_matrix_listをまとめてfeature_matrixに登録
-# feature_matrixをもとにcsvファイルを出力
-# とてつもない大きさの配列リストを保持し続ける必要があるという懸念 DataFrameで保持する必要はあるのか
-# しかし全ての特徴量が同一csvファイルにあるのは便利，実環境に近い
 
 # 与えられたフォルダまたはファイルに含まれるトラヒックデータ（pcapファイル）から特徴量を抽出してcsvファイルに書き込む
 if __name__ == "__main__":
@@ -377,5 +387,5 @@ if __name__ == "__main__":
     end_time = time.time()  # 処理終了時刻
     elapsed_time = end_time - start_time
     with open("output.txt", "w") as f:
-        print(flow_manager.flow_box, file=f)
+        print(flow_manager.feature_matrix, file=f)
     print(f"処理時間: {elapsed_time}秒")
