@@ -1,5 +1,4 @@
 import multiprocessing
-import sys
 import threading
 import time
 import warnings
@@ -143,10 +142,16 @@ def extract_features_from_flow(packets_in_flow):
     port_count = port_counter_tuple[0][1]
 
     # --- rcv max/min interval
-    rcv_time_list = [key for key,value in packets_in_flow.items() if value[0] == "rcv"]
-    rcv_interval = [j - i for i, j in zip(rcv_time_list, rcv_time_list[1:])]
-    rcv_max_interval = max(rcv_interval)
-    rcv_min_interval = min(rcv_interval)
+    rcv_time_list = [key for key, value in packets_in_flow.items() if value[0] == "rcv"]
+    if len(rcv_time_list) > 1:
+        print(rcv_time_list)
+        rcv_interval = [j - i for i, j in zip(rcv_time_list, rcv_time_list[1:])]
+        print(rcv_interval)
+        rcv_max_interval = max(rcv_interval)
+        rcv_min_interval = min(rcv_interval)
+    else:
+        print("element only 1")
+        rcv_max_interval = rcv_min_interval = 60  # デフォルト値
 
     # --- rcv max/min length
     rcv_length_list = [row[4] for row in field if row[3] == "rcv"]
@@ -154,10 +159,13 @@ def extract_features_from_flow(packets_in_flow):
     rcv_min_length = min(rcv_length_list)
 
     # --- snd max/min interval
-    snd_time_list = [key for key,value in packets_in_flow.items() if value[0] == "snd"]
-    snd_interval = [j - i for i, j in zip(snd_time_list, snd_time_list[1:])]
-    snd_max_interval = max(snd_interval)
-    snd_min_interval = min(snd_interval)
+    snd_time_list = [key for key, value in packets_in_flow.items() if value[0] == "snd"]
+    if len(snd_time_list) > 1:
+        snd_interval = [j - i for i, j in zip(snd_time_list, snd_time_list[1:])]
+        snd_max_interval = max(snd_interval)
+        snd_min_interval = min(snd_interval)
+    else:
+        snd_max_interval = snd_min_interval = 60  # デフォルト値
 
     # --- snd max/min length
     snd_length_list = [row[4] for row in field if row[3] == "rcv"]
@@ -199,21 +207,24 @@ class FlowManager:
 
     def delete_flow(self,key): # flow_boxからフローを削除
         flow = self.flow_manager.pop(key)
+        print("flow")
+        print(flow)
+        print(type(flow))
         self.featured_flow_matrix[key[0]] = extract_features_from_flow(flow)
 
     def is_flow_exist(self, captured_time, src, dst):
 
         if not self.flow_manager:
-            print("is_flow_exist : flow_box empty")
             return None
         else:
-            print("is_flow_exist : flow_box not empty")
             # --- is all flow timeout ?
             delete_key_list = []
             for key in self.flow_manager:
                 if key[0] - captured_time > float(self.delete_after_seconds):
+                    print("key delete")
                     delete_key_list.append(key)
                 else:
+                    print("break")
                     break
             for key in delete_key_list:
                 del self.flow_manager[key]
@@ -241,29 +252,22 @@ class FlowManager:
                         pkt[IP].dst not in self.ex_address_list and \
                         (pkt[IP].proto == 6 or pkt[IP].proto == 17):
 
-                        print("A")
-                        print(float(pkt.time))
-                        print(str(pkt[IP].src))
-                        print(self.is_flow_exist(float(pkt.time), str(pkt[IP].src), str(pkt[IP].dst)))
-
                         key = self.is_flow_exist(float(pkt.time), str(pkt[IP].src), str(pkt[IP].dst))
-                        (ex_addr,in_addr),field = extract_features_from_packet(pkt, self.malicious_address_array,
+                        addr,field = extract_features_from_packet(pkt, self.malicious_address_array,
                                                              self.benign_address_array)
                         if field is not None:
                             if key is None:
-                                new_flow_key = (float(pkt.time),str(ex_addr),str(in_addr))
-                                self.flow_manager[new_flow_key][new_flow_key[0]] = field
+                                new_flow_key = (float(pkt.time),str(addr[0]),str(addr[1]))
+                                self.flow_manager[new_flow_key]={ new_flow_key[0] : field }
+                                print(self.flow_manager)
                                 threading.Timer(60,lambda: self.delete_flow(new_flow_key)).start()
-                                print("A")
                             else:
-                                print("X")
                                 self.flow_manager[key][float(pkt.time)] = field
-                                print("B")
+                                print(self.flow_manager)
                 else:
                     pass
             else:
                 pass
-            print("DD")
         except IndexError:
             pass
 
