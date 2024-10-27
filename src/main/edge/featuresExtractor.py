@@ -1,3 +1,5 @@
+import multiprocessing
+import sys
 import threading
 import time
 import warnings
@@ -18,27 +20,7 @@ import os
 import ipaddress
 import json
 
-def labeling_features(feature):
-    # --- if feature seems to be malicious
-    if feature == 1:
-        labeled_feature = np.concatenate((feature, [1]), axis=1)
-    else:
-    # --- if feature seems to be benign
-        labeled_feature = np.concatenate((feature, [0]), axis=1)
-    return labeled_feature
-
 def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
-
-    # --- Fields
-    external_network_address = "external_network_address" # 外部ネットワークのアドレス
-    internal_network_address = "internal_network_address" # 内部ネットワークのアドレス
-    direction = "direction" # 通信の方向が外部 => 内部なら「snd」，内部 => 外部なら「rcv」 ? ここは疑問が残る
-    capture_time_jst = "capture_time_jst" # パケットがキャプチャされた日本標準時間
-    protocol = "protocol" # IPレイヤーのアプリケーションプロトコル
-    port = "port" # IPレイヤーの使用されているポート
-    length = "length" # IPレイヤーのパケット長 ここはEthernetレイヤーじゃなくていいのか？
-    tcp_flag = "tcp_flag" #
-    label = "label" # 悪性なら1、良性なら0
 
     src = str(pkt[IP].src)
     dst = str(pkt[IP].dst)
@@ -47,8 +29,8 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
         protocol = "tcp"
     elif pkt[IP].proto == 17:
         protocol = "udp"
-
-    capture_time_jst = datetime.fromtimestamp(float(pkt.time)).astimezone(timezone(timedelta(hours=9)))
+    else:
+        protocol = None
 
     # src : malicious address
     #パケットの送信元IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
@@ -64,6 +46,9 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
         elif protocol == "udp":
             port = str(pkt[UDP].sport)
             tcp_flag = "-1"
+        else:
+            port = None
+            tcp_flag = None
 
     # dst : malicious address
     # パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
@@ -79,6 +64,9 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
         elif protocol == "udp":
             port = str(pkt[UDP].dport)
             tcp_flag = "-1"
+        else:
+            port = None
+            tcp_flag = None
 
     # src : benign address
     # パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
@@ -94,6 +82,10 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
         elif protocol == "udp":
             port = str(pkt[UDP].sport)
             tcp_flag = "-1"
+        else:
+            port = None
+            tcp_flag = None
+
     # dst : benign address
     #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、送信元IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif dst in benign_addresses and src not in benign_addresses:
@@ -108,66 +100,72 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
         elif protocol == "udp":
             port = str(pkt[UDP].dport)
             tcp_flag = "-1"
+        else:
+            port = None
+            tcp_flag = None
 
     # それ以外のパケットは関係のないものとして破棄
     else:
         print("unrelated packet detected : ignore")
-        return None
+        return (None,None),None
 
-    return [capture_time_jst,
-            external_network_address,
-            internal_network_address,
-            direction,
-            protocol,
-            port,
-            tcp_flag,
-            length,
-            label]
+    return (
+        external_network_address, # 外部ネットワークのアドレス
+        internal_network_address # 内部ネットワークのアドレス
+    ),[
+        direction, # 通信の方向が外部 => 内部なら「snd」，内部 => 外部なら「rcv」 ? ここは疑問が残る
+        protocol, # IPレイヤーのアプリケーションプロトコル
+        port, # IPレイヤーの使用されているポート
+        tcp_flag,
+        length, # IPレイヤーのパケット長 ここはEthernetレイヤーじゃなくていいのか？
+        label # 悪性なら1、良性なら0
+    ]
 
 def extract_features_from_flow(packets_in_flow):
 
-    print("extract feature")
+    print("extract feature from flow")
+    field = packets_in_flow.values()
 
     # --- rcv/snd count
-    rcv_snd_counter = Counter([row[3] for row in packets_in_flow])
+    rcv_snd_counter = Counter([row[0] for row in field])
     rcv_packet_count = rcv_snd_counter["rcv"]
     snd_packet_count = rcv_snd_counter["snd"]
 
     # --- tcp/udp count
-    tcp_udp_counter = Counter([row[4] for row in packets_in_flow])
+    tcp_udp_counter = Counter([row[1] for row in field])
     tcp_count = tcp_udp_counter["tcp"]
     udp_count = tcp_udp_counter["udp"]
 
     # --- most port/count
-    port_counter = Counter([row[5] for row in packets_in_flow])
+    port_counter = Counter([row[2] for row in field])
     port_counter_tuple = port_counter.most_common(1)
-    most_port = port_counter_tuple[0]
-    port_count = port_counter_tuple[1]
+    most_port = port_counter_tuple[0][0]
+    port_count = port_counter_tuple[0][1]
 
     # --- rcv max/min interval
-    rcv_time_list = [row[0] for row in packets_in_flow if row[3] == "rcv"]
+    rcv_time_list = [key for key,value in packets_in_flow.items() if value[0] == "rcv"]
     rcv_interval = [j - i for i, j in zip(rcv_time_list, rcv_time_list[1:])]
     rcv_max_interval = max(rcv_interval)
     rcv_min_interval = min(rcv_interval)
 
     # --- rcv max/min length
-    rcv_length_list = [row[7] for row in packets_in_flow if row[3] == "rcv"]
+    rcv_length_list = [row[4] for row in field if row[3] == "rcv"]
     rcv_max_length = max(rcv_length_list)
     rcv_min_length = min(rcv_length_list)
 
     # --- snd max/min interval
-    snd_time_list = [row[0] for row in packets_in_flow if row[3] == "snd"]
+    snd_time_list = [key for key,value in packets_in_flow.items() if value[0] == "snd"]
     snd_interval = [j - i for i, j in zip(snd_time_list, snd_time_list[1:])]
     snd_max_interval = max(snd_interval)
     snd_min_interval = min(snd_interval)
 
     # --- snd max/min length
-    snd_length_list = [row[7] for row in packets_in_flow if row[3] == "rcv"]
+    snd_length_list = [row[4] for row in field if row[3] == "rcv"]
     snd_max_length = max(snd_length_list)
     snd_min_length = min(snd_length_list)
 
     # --- label
-    label = packets_in_flow[0][8]
+    label = field[0][5]
 
     return [
         rcv_packet_count,
@@ -195,71 +193,43 @@ class FlowManager:
         self.malicious_address_array = maa
         self.benign_address_array = baa
         self.delete_after_seconds = das
+        manager = multiprocessing.Manager()
+        self.flow_manager = manager.dict()
+        self.featured_flow_matrix = manager.dict()
 
-        # flow_box = [
-        #  [
-        #   [capture_time_jst,external_network_address,internal_network_address,direction,protocol,port,tcp_flag,length,label],
-        #   [capture_time_jst,external_network_address,internal_network_address,direction,protocol,port,tcp_flag,length,label],
-        #   [capture_time_jst,external_network_address,internal_network_address,direction,protocol,port,tcp_flag,length,label]
-        #  ]
-        # ]
-        self.flow_box = [[[]]]
+    def delete_flow(self,key): # flow_boxからフローを削除
+        flow = self.flow_manager.pop(key)
+        self.featured_flow_matrix[key[0]] = extract_features_from_flow(flow)
 
-        self.feature_matrix = [[]]
+    def is_flow_exist(self, captured_time, src, dst):
 
-        # time_manager = {
-        # flow_id : pkt_captured_time
-        # }
-        self.time_manager = {}
-
-    def delete_flow(self,flow_id): # flow_boxからフローを削除
-
-        print(extract_features_from_flow(self.flow_box.pop(flow_id)))
-        if not self.feature_matrix[0]:
-            self.feature_matrix = extract_features_from_flow(self.flow_box.pop(flow_id))
-        else:
-            self.feature_matrix.append(extract_features_from_flow(self.flow_box.pop(flow_id)))
-
-    def add_to_new_flow(self, flow_id, field):
-        new_flow = [field]
-        self.time_manager[flow_id] = field[0]
-        if not self.flow_box[0][0]:
-            self.flow_box[0] = new_flow
-        else:
-            self.flow_box.append(new_flow)
-
-    def add_to_existing_flow(self, flow_id, field):
-        # 新しいパケットをフローに追加
-        new_packet = field
-        self.flow_box[flow_id].append(new_packet)
-
-    def is_flow_exist(self, pkt):
-
-        if not self.flow_box[0][0]:
+        if not self.flow_manager:
             print("is_flow_exist : flow_box empty")
-            return False,0
+            return None
         else:
             print("is_flow_exist : flow_box not empty")
-
             # --- is all flow timeout ?
-            pkt_captured_time = datetime.fromtimestamp(float(pkt.time)).astimezone(timezone(timedelta(hours=9)))
-            for i in range(len(self.time_manager)):
-                delta = self.time_manager[i] - pkt_captured_time
-                if delta.total_seconds() > float(self.delete_after_seconds):
-                    del self.flow_box[i]
+            delete_key_list = []
+            for key in self.flow_manager:
+                if key[0] - captured_time > float(self.delete_after_seconds):
+                    delete_key_list.append(key)
+                else:
+                    break
+            for key in delete_key_list:
+                del self.flow_manager[key]
 
             # --- is flow pkt specified existing ?
-            for flow_id in range(len(self.flow_box)):
-                if self.flow_box[flow_id][0][1] == pkt[IP].src and \
-                        self.flow_box[flow_id][0][2] == pkt[IP].dst:
+            for key in self.flow_manager:
+                if key[1] == src and \
+                    key[2] == dst:
                     print("is_flow_exist : Flow found (src -> dst)")
-                    return True,flow_id  # if exist return flow_id
-                elif self.flow_box[flow_id][0][1] == pkt[IP].dst and \
-                        self.flow_box[flow_id][0][2] == pkt[IP].src:
-                    print("is_flow_exist : Flow found (dst -> src)")
-                    return True,flow_id  # if exist return flow_id
+                    return key  # if exist return key
+                elif key[1] == dst and \
+                        key[2] == src:
+                    print("is_flow_exist : Flow found (src -> dst)")
+                    return key  # if exist return key
             print("is_flow_exist : flow not found")
-            return False,len(self.flow_box)
+            return None
 
     def callback(self,pkt):
         print("----- callback")
@@ -271,20 +241,29 @@ class FlowManager:
                         pkt[IP].dst not in self.ex_address_list and \
                         (pkt[IP].proto == 6 or pkt[IP].proto == 17):
 
-                        flow_exist,flow_id = self.is_flow_exist(pkt)
-                        field = extract_features_from_packet(pkt, self.malicious_address_array,
-                                                             self.benign_address_array)
+                        print("A")
+                        print(float(pkt.time))
+                        print(str(pkt[IP].src))
+                        print(self.is_flow_exist(float(pkt.time), str(pkt[IP].src), str(pkt[IP].dst)))
 
+                        key = self.is_flow_exist(float(pkt.time), str(pkt[IP].src), str(pkt[IP].dst))
+                        (ex_addr,in_addr),field = extract_features_from_packet(pkt, self.malicious_address_array,
+                                                             self.benign_address_array)
                         if field is not None:
-                            if not flow_exist:
-                                self.add_to_new_flow(flow_id, field)
-                                threading.Timer(60, self.delete_flow, args=(flow_id,)).start()
+                            if key is None:
+                                new_flow_key = (float(pkt.time),str(ex_addr),str(in_addr))
+                                self.flow_manager[new_flow_key][new_flow_key[0]] = field
+                                threading.Timer(60,lambda: self.delete_flow(new_flow_key)).start()
+                                print("A")
                             else:
-                                self.add_to_existing_flow(flow_id, field)
+                                print("X")
+                                self.flow_manager[key][float(pkt.time)] = field
+                                print("B")
                 else:
                     pass
             else:
                 pass
+            print("DD")
         except IndexError:
             pass
 
@@ -298,7 +277,10 @@ def offline(file_path, manager):
     if os.path.getsize(file_path) == 0:
         print(os.path.basename(file_path) + ":no data")
     else:
-        sniff(offline = file_path, prn=manager.callback, store = False, filter="ip and (tcp or udp)") # storeとは？
+        try:
+            sniff(offline=file_path, prn=manager.callback, store=False, filter="ip and (tcp or udp)")
+        except Exception as e:
+            print(f"Error reading packet: {e}")
         print(os.path.basename(file_path) + ":finish")
 
 
@@ -370,7 +352,7 @@ if __name__ == "__main__":
                 print("-----" + pcap_file + " found")
                 pcap_file_path:str = os.path.join(traffic_data_path,pcap_file)
                 offline(pcap_file_path,flow_manager)
-                feature_matrix_list = flow_manager.flow_box
+                feature_matrix_list = flow_manager.featured_flow_matrix
                 feature_matrix = pd.DataFrame(feature_matrix_list, columns=feature_matrix.columns)
                 feature_matrix.to_csv(f"{outputs_dir_path}/{pcap_file}.csv",index=False)
             print("all pcap file sniffed")
@@ -387,5 +369,5 @@ if __name__ == "__main__":
     end_time = time.time()  # 処理終了時刻
     elapsed_time = end_time - start_time
     with open("output.txt", "w") as f:
-        print(flow_manager.feature_matrix, file=f)
+        print(flow_manager.featured_flow_matrix, file=f)
     print(f"処理時間: {elapsed_time}秒")
