@@ -155,8 +155,8 @@ def extract_features_from_flow(packets_in_flow):
 
     # --- rcv max/min length
     rcv_length_list = [row[4] for row in field if row[3] == "rcv"]
-    rcv_max_length = max(rcv_length_list)
-    rcv_min_length = min(rcv_length_list)
+    rcv_max_length = max(rcv_length_list) if rcv_length_list else 0
+    rcv_min_length = min(rcv_length_list) if rcv_length_list else 0
 
     # --- snd max/min interval
     snd_time_list = [key for key, value in packets_in_flow.items() if value[0] == "snd"]
@@ -169,8 +169,8 @@ def extract_features_from_flow(packets_in_flow):
 
     # --- snd max/min length
     snd_length_list = [row[4] for row in field if row[3] == "rcv"]
-    snd_max_length = max(snd_length_list)
-    snd_min_length = min(snd_length_list)
+    snd_max_length = max(snd_length_list) if snd_length_list else 0
+    snd_min_length = min(snd_length_list) if snd_length_list else 0
 
     # --- label
     label = field[0][5]
@@ -204,43 +204,56 @@ class FlowManager:
         manager = multiprocessing.Manager()
         self.flow_manager = manager.dict()
         self.featured_flow_matrix = manager.dict()
+        self.lock = threading.Lock()
+
+    def add_new_flow(self,key,captured_time,field):
+        with self.lock:
+            self.flow_manager[key] = {
+                captured_time: field
+            }
+
+    def add_new_packet(self,key,captured_time,field):
+        with self.lock:
+            self.flow_manager[key][captured_time] = field
 
     def delete_flow(self,key): # flow_boxからフローを削除
-        flow = self.flow_manager.pop(key)
-        print("flow")
-        print(flow)
-        print(type(flow))
+        with self.lock:
+            flow = self.flow_manager.pop(key)
+            print("flow")
+            print(flow)
+            print(type(flow))
+
         self.featured_flow_matrix[key[0]] = extract_features_from_flow(flow)
 
     def is_flow_exist(self, captured_time, src, dst):
+        with self.lock:
+            if not self.flow_manager:
+                return None
+            else:
+                # --- is all flow timeout ?
+                delete_key_list = []
+                for key in self.flow_manager:
+                    if key[0] - captured_time > float(self.delete_after_seconds):
+                        print("key delete")
+                        delete_key_list.append(key)
+                    else:
+                        print("break")
+                        break
+                for key in delete_key_list:
+                    del self.flow_manager[key]
 
-        if not self.flow_manager:
-            return None
-        else:
-            # --- is all flow timeout ?
-            delete_key_list = []
-            for key in self.flow_manager:
-                if key[0] - captured_time > float(self.delete_after_seconds):
-                    print("key delete")
-                    delete_key_list.append(key)
-                else:
-                    print("break")
-                    break
-            for key in delete_key_list:
-                del self.flow_manager[key]
-
-            # --- is flow pkt specified existing ?
-            for key in self.flow_manager:
-                if key[1] == src and \
-                    key[2] == dst:
-                    print("is_flow_exist : Flow found (src -> dst)")
-                    return key  # if exist return key
-                elif key[1] == dst and \
-                        key[2] == src:
-                    print("is_flow_exist : Flow found (src -> dst)")
-                    return key  # if exist return key
-            print("is_flow_exist : flow not found")
-            return None
+                # --- is flow pkt specified existing ?
+                for key in self.flow_manager:
+                    if key[1] == src and \
+                        key[2] == dst:
+                        print("is_flow_exist : Flow found (src -> dst)")
+                        return key  # if exist return key
+                    elif key[1] == dst and \
+                            key[2] == src:
+                        print("is_flow_exist : Flow found (src -> dst)")
+                        return key  # if exist return key
+                print("is_flow_exist : flow not found")
+                return None
 
     def callback(self,pkt):
         print("----- callback")
@@ -252,18 +265,24 @@ class FlowManager:
                         pkt[IP].dst not in self.ex_address_list and \
                         (pkt[IP].proto == 6 or pkt[IP].proto == 17):
 
-                        key = self.is_flow_exist(float(pkt.time), str(pkt[IP].src), str(pkt[IP].dst))
+                        captured_time = float(pkt.time)
+                        src = str(pkt[IP].src)
+                        dst = str(pkt[IP].dst)
+
+                        key = self.is_flow_exist(captured_time, src, dst)
                         addr,field = extract_features_from_packet(pkt, self.malicious_address_array,
                                                              self.benign_address_array)
+                        # add_new_flow でスレッドを立てる
+                        # add_new_packet　
+                        # delete_flow
                         if field is not None:
                             if key is None:
-                                new_flow_key = (float(pkt.time),str(addr[0]),str(addr[1]))
-                                self.flow_manager[new_flow_key]={ new_flow_key[0] : field }
-                                print(self.flow_manager)
+                                new_flow_key = (captured_time,addr[0],addr[1])
+                                threading.Thread(target=self.add_new_flow, args=(new_flow_key, captured_time, field)).start()
                                 threading.Timer(60,lambda: self.delete_flow(new_flow_key)).start()
                             else:
-                                self.flow_manager[key][float(pkt.time)] = field
-                                print(self.flow_manager)
+                                threading.Thread(target=self.add_new_packet, args=(key, captured_time, field)).start()
+                                self.flow_manager[key][captured_time] = field
                 else:
                     pass
             else:
