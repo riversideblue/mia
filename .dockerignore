@@ -33,4 +33,4 @@
 LICENSE
 README.md
 src/main/edge/pcap/
-src/main/edge/outputs/
+src/main/outputs/

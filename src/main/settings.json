@@ -1,0 +1,67 @@
+{
+  "OS": {
+    "TF_CPP_MIN_LOG_LEVEL": "3",
+    "TF_FORCE_GPU_ALLOW_GROWTH": "true",
+    "CUDA_VISIBLE_DEVICES": "-1"
+  },
+  "Training": {
+    "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/20241029153931",
+    "BEGINNING_DAYTIME": "2022-08-03 16:51:07",
+    "TargetRange": {
+      "DAYS": 5,
+      "HOURS": 1,
+      "MINUTES": 0,
+      "SECONDS": 0
+    },
+    "LearningDefine": {
+      "EPOCHS": 30,
+      "BATCH_SIZE": 10,
+      "REPEAT_COUNT": 1
+    },
+    "RetrainingCycle": {
+      "ONLINE_MODE": 0,
+      "DYNAMIC_MODE": 0,
+      "STATIC_INTERVAL": 60
+    }
+  },
+  "FeatureExtract": {
+    "ONLINE_MODE": 0,
+    "TRAFFIC_DATA_PATH": "src/main/2022080409-2022081617-pcap/20220803165007.pcap",
+    "FLOW_TIMEOUT": 60,
+    "CAPTURE_TIMEOUT" : 900,
+    "NetworkAddress": {
+      "BENIGN": [
+        "172.29.148.0/24",
+        "172.21.41.0/24",
+        "192.168.11.0/24",
+        "192.168.1.0/24"
+      ],
+      "MALICIOUS": [
+        "192.168.10.5/32"
+      ],
+      "EXCEPTION": [
+        "0.0.0.0",
+        "255.255.255.255",
+        "239.255.255.250",
+        "239.255.255.251",
+        "168.63.129.16",
+        "8.8.8.8",
+        "8.8.4.4",
+        "224.0.0.250"
+      ]
+    }
+  },
+  "Evaluate": {
+    "ONLINE_MODE": 1,
+    "MODEL_PATH": "src/main/outputs/training/20241029154035/model_weights",
+    "TRAINING_OUTPUT_PATH": "src/main/outputs/training/20241029154035",
+    "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/20241029153931",
+    "BEGINNING_DAYTIME": "2022-08-03 23:51:25",
+    "TargetRange": {
+      "DAYS": 100,
+      "HOURS": 0,
+      "MINUTES": 0,
+      "SECONDS": 0
+    }
+  }
+}
