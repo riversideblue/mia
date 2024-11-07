@@ -92,8 +92,9 @@ def main():
     # --- Field
     settings["Log"]["Evaluate"] = {}
     online_mode: bool = settings["Evaluate"]["ONLINE_MODE"]
-    model_path = settings["Evaluate"]["MODEL_PATH"]
-    training_output_path: str = settings["Evaluate"]["TRAINING_OUTPUT_PATH"]
+    target_path: str = settings["Evaluate"]["TARGET_PATH"]
+    model_path_online:str = f"{target_path}/model_weights"
+    model_path_offline:str = sorted(os.listdir(model_path_online))[-1]
     datasets_folder_path: str = settings["Evaluate"]["DATASETS_FOLDER_PATH"]
     beginning_daytime = datetime.strptime(settings["Evaluate"]["BEGINNING_DAYTIME"], "%Y-%m-%d %H:%M:%S")
     settings["Log"]["Evaluate"]["BEGINNING_DAYTIME"] = beginning_daytime.isoformat()
@@ -110,14 +111,14 @@ def main():
     settings["Log"]["Evaluate"]["END_DAYTIME"] = end_daytime.isoformat()
     scaler = StandardScaler()
     scaled_flag = False
-    is_pass_exist(training_output_path)
+    is_pass_exist(target_path)
     is_pass_exist(datasets_folder_path)
     results_matrix = [[0, 0], [0, 0]]
 
     if online_mode:
 
         file_name_queue = Queue()
-        for file_name in os.listdir(model_path):
+        for file_name in os.listdir(model_path_online):
             file_name_queue.put(file_name)
 
         while not file_name_queue.empty():
@@ -125,7 +126,7 @@ def main():
             file_name = file_name_queue.get()
             date_str = file_name.split('-weights')[0]
             retraining_time = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-            pickle_path = f"{model_path}/{file_name}"
+            pickle_path = f"{model_path_online}/{file_name}"
 
             model = modelCreator.main()
             with open(pickle_path, "rb") as f:
@@ -151,7 +152,7 @@ def main():
     else:
         # --- Load model weight from model path
         model = modelCreator.main()
-        with open(model_path, "rb") as f:
+        with open(model_path_offline, "rb") as f:
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
 
@@ -166,7 +167,7 @@ def main():
     save_results(
         results_list=results_list,
         results=results,
-        output_dir=training_output_path
+        output_dir=target_path
     )
     framed_matrix = pd.DataFrame(
         data=results_matrix,
@@ -176,7 +177,7 @@ def main():
     print(framed_matrix)
 
     # --- Save settings_log and results
-    save_settings_log(settings, training_output_path)
+    save_settings_log(settings, target_path)
 
 
 if __name__ == "__main__":

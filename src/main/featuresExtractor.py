@@ -1,4 +1,3 @@
-import multiprocessing
 import time
 import warnings
 from collections import Counter
@@ -6,7 +5,6 @@ from collections import Counter
 import pandas as pd
 import pytz
 from scapy.layers.inet import IP, TCP, UDP
-from scapy.layers.l2 import Ether
 from scapy.sendrecv import sniff
 
 warnings.simplefilter('ignore')
@@ -33,7 +31,6 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     # src : malicious address
     #パケットの送信元IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
     if src in malicious_addresses:
-        print("- src : malicious")
         direction = "rcv"
         external_network_address = str(pkt[IP].src)
         internal_network_address = str(pkt[IP].dst)
@@ -48,7 +45,6 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     # dst : malicious address
     # パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
     elif dst in malicious_addresses:
-        print("- dst : malicious address")
         direction = "snd"
         external_network_address = str(pkt[IP].dst)
         internal_network_address = str(pkt[IP].src)
@@ -63,7 +59,6 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     # src : benign address
     # パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif src in benign_addresses and dst not in benign_addresses:
-        print("- src : benign address")
         direction = "rcv"
         external_network_address = str(pkt[IP].src)
         internal_network_address = str(pkt[IP].dst)
@@ -78,7 +73,6 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     # dst : benign address
     #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、送信元IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif dst in benign_addresses and src not in benign_addresses:
-        print("- dst : benign address")
         direction = "snd"
         external_network_address = str(pkt[IP].dst)
         internal_network_address = str(pkt[IP].src)
@@ -92,7 +86,6 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
 
     # それ以外のパケットは関係のないものとして破棄
     else:
-        print("unrelated packet detected : ignore")
         return (None,None),None
 
     return (
@@ -102,14 +95,12 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
         direction, # 通信の方向が外部 => 内部なら「snd」，内部 => 外部なら「rcv」 ? ここは疑問が残る
         protocol, # IPレイヤーのアプリケーションプロトコル
         port, # IPレイヤーの使用されているポート
-        tcp_flag,
+        tcp_flag, # TCPフラグ
         length, # IPレイヤーのパケット長 ここはEthernetレイヤーじゃなくていいのか？
         label # 悪性なら1、良性なら0
     ]
 
 def extract_features_from_flow(packets_in_flow):
-
-    print("extract feature from flow")
 
     fields = list(packets_in_flow.values())
     rcv_packet_count = 0
@@ -200,8 +191,22 @@ class FlowManager:
         self.malicious_address_set = mas
         self.benign_address_set = bas
         self.flow_timeout = ft
+        # flow_manager = {
+        #     (Flow registered time(unix epoc time), "External_Address", "Internal_Address"): {
+        #         1st Packet registered time(unix epoc time): [direction, protocol, port, tcp_flag, length, label],
+        #         2nd Packet registered time(unix epoc time): [direction, protocol, port, tcp_flag, length, label],
+        #         3rd Packet registered time(unix epoc time): [direction, protocol, port, tcp_flag, length, label],
+        #         >>>
+        #         Nth Packet registered time(unix epoc time): [direction, protocol, port, tcp_flag, length, label]
+        #     },
+        #     (1659513007.736493, '192.168.10.5', '187.35.147.87'): {
+        #         1659513007.736493: ['rcv', 'tcp', '22', 'PA', '136', '1'],
+        #     }
+        # }
         self.flow_manager = dict()
         self.featured_flow_matrix = [[
+            "destination",
+            "source",
             "timestamp",
             "rcv_packet_count",
             "snd_packet_count",
@@ -222,8 +227,7 @@ class FlowManager:
 
     def delete_flow(self,key): # flow_boxからフローを削除
         flow = self.flow_manager.pop(key)
-        print("delete flow")
-        featured_list = [(datetime.fromtimestamp(key[0], tz=timezone.utc).
+        featured_list = [key[2],key[1],(datetime.fromtimestamp(key[0], tz=timezone.utc).
                           astimezone(timezone(timedelta(hours=9)))
                           + timedelta(seconds=self.flow_timeout))
                          .strftime('%Y-%m-%d %H:%M:%S')]
@@ -238,7 +242,6 @@ class FlowManager:
             keys = list(self.flow_manager.keys())  # 明示的にキーリストを作成
             for key in keys:
                 if captured_time - key[0] > float(self.flow_timeout):
-                    print("Deleting expired flow")
                     self.delete_flow(key)
                 else:
                     break  # 最新のフローがタイムアウトしていなければ終了
@@ -247,56 +250,42 @@ class FlowManager:
             keys = list(self.flow_manager.keys())
             for key in keys:
                 if (key[1] == src and key[2] == dst) or (key[1] == dst and key[2] == src):
-                    print("is_flow_exist : Flow found")
                     return key  # if exist return key
-            print("is_flow_exist : flow not found")
             return None
 
     def callback(self,pkt):
-        print("----- callback")
-        try:
-            if Ether in pkt:
-                if IP in pkt:
-                    if pkt[Ether].type == 0x0800 and \
-                        pkt[IP].src not in self.ex_address_list and \
-                        pkt[IP].dst not in self.ex_address_list and \
-                        (pkt[IP].proto == 6 or pkt[IP].proto == 17):
+        captured_time = float(pkt.time)
+        src = str(pkt[IP].src)
+        dst = str(pkt[IP].dst)
 
-                        captured_time = float(pkt.time)
-                        src = str(pkt[IP].src)
-                        dst = str(pkt[IP].dst)
+        key = self.is_flow_exist(captured_time, src, dst)
+        addr,field = extract_features_from_packet(pkt, self.malicious_address_set,
+                                             self.benign_address_set)
 
-                        key = self.is_flow_exist(captured_time, src, dst)
-                        addr,field = extract_features_from_packet(pkt, self.malicious_address_set,
-                                                             self.benign_address_set)
-
-                        if field is not None:
-                            if key is None:
-                                new_flow_key = (captured_time,addr[0],addr[1])
-                                self.flow_manager[new_flow_key] = {captured_time:field}
-                            else:
-                                self.flow_manager[key][captured_time] = field
-                else:
-                    pass
+        if field is not None:
+            if key is None:
+                new_flow_key = (captured_time,addr[0],addr[1])
+                self.flow_manager[new_flow_key] = {captured_time:field}
+                print("--- newflow")
+                print(new_flow_key)
             else:
-                pass
-        except IndexError:
-            pass
+                self.flow_manager[key][captured_time] = field
+                print(f"--- exist: [[[{captured_time},{addr[0]},{addr[1]}]]]")
+                print(key)
+            print(field)
+            time.sleep(0.5)
 
-def online(manager):
-    print("- online mode")
+def online(manager, filter_condition):
+    print("online mode")
     while 1:
-        sniff(prn=manager.callback, timeout = capture_timeout, store = False, filter="ip and (tcp or udp)")
+        sniff(prn=manager.callback, timeout = capture_timeout, store = False, filter=filter_condition)
 
-def offline(file_path, manager):
-    print("- offline mode")
+def offline(file_path, manager, filter_condition):
+    print("offline mode sniffing ...")
     if os.path.getsize(file_path) == 0:
         print(os.path.basename(file_path) + ":no data")
     else:
-        try:
-            sniff(offline=file_path, prn=manager.callback, store=False, filter="ip and (tcp or udp)")
-        except Exception as e:
-            print(f"Error reading packet: {e}")
+        sniff(offline=file_path, prn=manager.callback, store=False, filter=filter_condition)
         print(os.path.basename(file_path) + ":finish")
 
 
@@ -334,17 +323,19 @@ if __name__ == "__main__":
             benign_address_set.add(str(benign))
 
     ex_addr_list = settings["FeatureExtract"]["NetworkAddress"]["EXCEPTION"]
+    ex_addr_filter = " and ".join([f"not (ip src {ip} or ip dst {ip})" for ip in ex_addr_list])
+    filter_condition = f"ether proto 0x0800 and ({ex_addr_filter}) and (tcp or udp)"
 
     # --- Create output directory for csv
     outputs_dir_path: str = f"src/main/outputs/extracted/{init_time}"
     os.makedirs(outputs_dir_path)
 
-    # --- build constractor
+    # --- build constructor
     flow_manager = FlowManager(ex_addr_list,malicious_address_set,benign_address_set,flow_timeout)
 
     # --- Online mode
     if online_mode:
-        online(flow_manager)
+        online(flow_manager,filter_condition)
 
     # --- Offline mode
     # --- データセット内のpcapファイルごとに特徴量抽出を行う
@@ -352,13 +343,13 @@ if __name__ == "__main__":
         if os.path.isdir(traffic_data_path):
             print("folder")
             for pcap_file in os.listdir(traffic_data_path):
-                print("-----" + pcap_file + " found")
+                print("- " + pcap_file + " found")
                 pcap_file_path:str = os.path.join(traffic_data_path,pcap_file)
-                offline(pcap_file_path,flow_manager)
+                offline(pcap_file_path,flow_manager,filter_condition)
             print("all pcap file sniffed")
         elif os.path.isfile(traffic_data_path):
-            print("-----" + os.path.basename(traffic_data_path) + " found")
-            offline(traffic_data_path,flow_manager)
+            print("- " + os.path.basename(traffic_data_path) + " found")
+            offline(traffic_data_path,flow_manager,filter_condition)
             print("all pcap file sniffed")
         else:
             print(f"traffic data path : {traffic_data_path} not found")
@@ -370,3 +361,4 @@ if __name__ == "__main__":
     feature_matrix = pd.DataFrame(feature_matrix_row,columns=feature_matrix_column)
     feature_matrix.to_csv(f"{outputs_dir_path}/{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
     print(f"処理時間: {elapsed_time}秒")
+    print(list(flow_manager.flow_manager.items())[:50])

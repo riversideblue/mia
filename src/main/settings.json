@@ -26,7 +26,7 @@
   },
   "FeatureExtract": {
     "ONLINE_MODE": 0,
-    "TRAFFIC_DATA_PATH": "src/main/2022080409-2022081617-pcap/20220803165007.pcap",
+    "TRAFFIC_DATA_PATH": "src/main/pcap/2022_wtnb",
     "FLOW_TIMEOUT": 60,
     "CAPTURE_TIMEOUT" : 900,
     "NetworkAddress": {
@@ -53,8 +53,7 @@
   },
   "Evaluate": {
     "ONLINE_MODE": 1,
-    "MODEL_PATH": "src/main/outputs/training/20241029154035/model_weights",
-    "TRAINING_OUTPUT_PATH": "src/main/outputs/training/20241029154035",
+    "TARGET_PATH": "src/main/outputs/training/20241029154035",
     "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/20241029153931",
     "BEGINNING_DAYTIME": "2022-08-03 23:51:25",
     "TargetRange": {
