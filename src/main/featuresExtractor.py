@@ -29,11 +29,11 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     tcp_flag = None
 
     # src : malicious address
-    #パケットの送信元IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
+    # パケットの送信元IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
     if src in malicious_addresses:
         direction = "rcv"
-        external_network_address = str(pkt[IP].src)
-        internal_network_address = str(pkt[IP].dst)
+        external_network_address = src
+        internal_network_address = dst
         label = "1"
         if protocol == "tcp":
             port = str(pkt[TCP].sport)
@@ -46,8 +46,8 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     # パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
     elif dst in malicious_addresses:
         direction = "snd"
-        external_network_address = str(pkt[IP].dst)
-        internal_network_address = str(pkt[IP].src)
+        external_network_address = dst
+        internal_network_address = src
         label = "1"
         if protocol == "tcp":
             port = str(pkt[TCP].dport)
@@ -60,8 +60,8 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     # パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif src in benign_addresses and dst not in benign_addresses:
         direction = "rcv"
-        external_network_address = str(pkt[IP].src)
-        internal_network_address = str(pkt[IP].dst)
+        external_network_address = src
+        internal_network_address = dst
         label = "0"
         if protocol == "tcp":
             port = str(pkt[TCP].sport)
@@ -74,8 +74,8 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、送信元IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif dst in benign_addresses and src not in benign_addresses:
         direction = "snd"
-        external_network_address = str(pkt[IP].dst)
-        internal_network_address = str(pkt[IP].src)
+        external_network_address = dst
+        internal_network_address = src
         label = "0"
         if protocol == "tcp":
             port = str(pkt[TCP].dport)
@@ -266,26 +266,25 @@ class FlowManager:
             if key is None:
                 new_flow_key = (captured_time,addr[0],addr[1])
                 self.flow_manager[new_flow_key] = {captured_time:field}
-                print("--- newflow")
-                print(new_flow_key)
+                # print("--- newflow")
+                # print(new_flow_key)
             else:
                 self.flow_manager[key][captured_time] = field
-                print(f"--- exist: [[[{captured_time},{addr[0]},{addr[1]}]]]")
-                print(key)
-            print(field)
-            time.sleep(0.5)
+            #     print(f"--- exist: [[[{captured_time},{addr[0]},{addr[1]}]]]")
+            #     print(key)
+            # print(field)
 
-def online(manager, filter_condition):
+def online(manager, filter_online):
     print("online mode")
     while 1:
-        sniff(prn=manager.callback, timeout = capture_timeout, store = False, filter=filter_condition)
+        sniff(prn=manager.callback, timeout = capture_timeout, store = False, filter=filter_online)
 
-def offline(file_path, manager, filter_condition):
+def offline(file_path, manager, filter_offline):
     print("offline mode sniffing ...")
     if os.path.getsize(file_path) == 0:
         print(os.path.basename(file_path) + ":no data")
     else:
-        sniff(offline=file_path, prn=manager.callback, store=False, filter=filter_condition)
+        sniff(offline=file_path, prn=manager.callback, store=False, filter=filter_offline)
         print(os.path.basename(file_path) + ":finish")
 
 
