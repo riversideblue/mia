@@ -102,19 +102,64 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
 
 def extract_features_from_flow(packets_in_flow):
 
-    fields = list(packets_in_flow.values())
     rcv_packet_count = 0
     snd_packet_count = 0
     tcp_count = 0
     udp_count = 0
+    most_port = None
+    port_count = 0
+    rcv_max_interval = rcv_min_interval = None
+    rcv_max_length = rcv_min_length = None
+    snd_max_interval = snd_min_interval = None
+    snd_max_length = snd_min_length = None
+    label = None
 
-    for field in fields:
+    port_freq = {}
+    last_rcv_time = last_snd_time = None
 
-        # --- rcv/snd count
+    for key, field in packets_in_flow.items():
+
         if field[0] == "rcv":
+
+            # --- rcv_count
             rcv_packet_count += 1
+
+            # --- rcv_max/min_interval
+            if last_rcv_time is not None:
+                rcv_interval = key - last_rcv_time
+                if rcv_max_interval is None or rcv_max_interval < rcv_interval:
+                    rcv_max_interval = rcv_interval
+                if rcv_min_interval is None or rcv_max_interval > rcv_interval:
+                    rcv_min_interval = rcv_interval
+            last_rcv_time = key
+
+            # --- rcv_max/min_length
+            rcv_length = int(field[4])
+            if rcv_max_length is None or rcv_length > rcv_max_length:
+                rcv_max_length = rcv_length
+            if rcv_min_length is None or rcv_length < rcv_min_length:
+                rcv_min_length = rcv_length
+
         elif field[0] == "snd":
+
+            # --- snd_count
             snd_packet_count += 1
+
+            # --- snd_max/min_interval
+            if last_snd_time is not None:
+                snd_interval = key - last_snd_time
+                if snd_max_interval is None or snd_interval > snd_max_interval:
+                    snd_max_interval = snd_interval
+                if snd_min_interval is None or snd_interval < snd_min_interval:
+                    snd_min_interval = snd_interval
+            last_snd_time = key
+
+            # --- rcv_max/min_length
+            snd_length = int(field[4])
+            if snd_max_length is None or snd_length > snd_max_length:
+                snd_max_length = snd_length
+            if snd_min_length is None or snd_length < snd_min_length:
+                snd_min_length = snd_length
 
         # --- tcp/udp count
         if field[1] == "tcp":
@@ -122,48 +167,19 @@ def extract_features_from_flow(packets_in_flow):
         elif field[1] == "udp":
             udp_count += 1
 
-    # --- most port/count
-    port_counter = Counter([row[2] for row in fields])
-    port_counter_tuple = port_counter.most_common(1)
-    most_port = port_counter_tuple[0][0]
-    port_count = port_counter_tuple[0][1]
+        # --- most port / port count
+        port = field[2]
+        if port in port_freq:
+            port_freq[port] += 1
+        else:
+            port_freq[port] = 1
+        if port_freq[port] > port_count:
+            most_port = port
+            port_count = port_freq[port]
 
-    # --- rcv max/min interval
-    rcv_time_list = [key for key, value in packets_in_flow.items() if value[0] == "rcv"]
-    if len(rcv_time_list) > 1:
-        rcv_interval = [j - i for i, j in zip(rcv_time_list, rcv_time_list[1:])]
-        rcv_max_interval = max(rcv_interval)
-        rcv_min_interval = min(rcv_interval)
-    else:
-        rcv_max_interval = rcv_min_interval = 60  # デフォルト値
-
-    # --- rcv max/min length
-    rcv_length_list = [row[4] for row in fields if row[0] == "rcv"]
-    if len(rcv_length_list) == 0:
-        rcv_max_length = rcv_min_length = None
-    else:
-        rcv_max_length = max(rcv_length_list)
-        rcv_min_length = min(rcv_length_list)
-
-    # --- snd max/min interval
-    snd_time_list = [key for key, value in packets_in_flow.items() if value[0] == "snd"]
-    if len(snd_time_list) > 1:
-        snd_interval = [j - i for i, j in zip(snd_time_list, snd_time_list[1:])]
-        snd_max_interval = max(snd_interval)
-        snd_min_interval = min(snd_interval)
-    else:
-        snd_max_interval = snd_min_interval = 60  # デフォルト値
-
-    # --- snd max/min length
-    snd_length_list = [row[4] for row in fields if row[0] == "snd"]
-    if len(snd_length_list) == 0:
-        snd_max_length = snd_min_length = None
-    else:
-        snd_max_length = max(snd_length_list) if snd_length_list else 0
-        snd_min_length = min(snd_length_list) if snd_length_list else 0
-
-    # --- label
-    label = fields[0][5]
+        # --- label
+        if label is None:
+            label = field[5]
 
     return [
         rcv_packet_count,
@@ -205,8 +221,8 @@ class FlowManager:
         # }
         self.flow_manager = dict()
         self.featured_flow_matrix = [[
-            "destination",
-            "source",
+            "ex_address",
+            "in_address",
             "timestamp",
             "rcv_packet_count",
             "snd_packet_count",
@@ -339,25 +355,32 @@ if __name__ == "__main__":
     # --- Offline mode
     # --- データセット内のpcapファイルごとに特徴量抽出を行う
     else:
-        if os.path.isdir(traffic_data_path):
+        if os.path.isdir(traffic_data_path): # データセット複数
             print("folder")
+            count = 0
             for pcap_file in os.listdir(traffic_data_path):
                 print("- " + pcap_file + " found")
                 pcap_file_path:str = os.path.join(traffic_data_path,pcap_file)
                 offline(pcap_file_path,flow_manager,filter_condition)
+                feature_matrix_column = flow_manager.featured_flow_matrix[0]
+                feature_matrix_row = flow_manager.featured_flow_matrix[1:]
+                feature_matrix = pd.DataFrame(feature_matrix_row,columns=feature_matrix_column)
+                feature_matrix.to_csv(f"{outputs_dir_path}/{count}_{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
+                flow_manager.featured_flow_matrix = [feature_matrix_column] # featured_flow_matrixの初期化
+                count += 1
             print("all pcap file sniffed")
-        elif os.path.isfile(traffic_data_path):
+        elif os.path.isfile(traffic_data_path): # データセット単一
             print("- " + os.path.basename(traffic_data_path) + " found")
             offline(traffic_data_path,flow_manager,filter_condition)
+            feature_matrix_column = flow_manager.featured_flow_matrix[0]
+            feature_matrix_row = flow_manager.featured_flow_matrix[1:]
+            feature_matrix = pd.DataFrame(feature_matrix_row,columns=feature_matrix_column)
+            feature_matrix.to_csv(f"{outputs_dir_path}/{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
             print("all pcap file sniffed")
         else:
             print(f"traffic data path : {traffic_data_path} not found")
 
     end_time = time.time()  # 処理終了時刻
     elapsed_time = end_time - start_time
-    feature_matrix_column = flow_manager.featured_flow_matrix[0]
-    feature_matrix_row = flow_manager.featured_flow_matrix[1:]
-    feature_matrix = pd.DataFrame(feature_matrix_row,columns=feature_matrix_column)
-    feature_matrix.to_csv(f"{outputs_dir_path}/{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
+
     print(f"処理時間: {elapsed_time}秒")
-    print(list(flow_manager.flow_manager.items())[:50])
