@@ -31,7 +31,9 @@ def is_dataset_out_of_range(dataset_file_name, beginning_daytime, end_daytime):
     return within_range_flag
 
 
-def save_results(results_list, results, output_dir):
+def save_results(output_dir):
+    results = pd.DataFrame(columns=["flow_featured_time","accuracy", "f1_score", "precision", "recall"])
+    results_list = results.values
     evaluate = pd.concat([results, pd.DataFrame(results_list, columns=results.columns)])
     evaluate.to_csv(os.path.join(output_dir, "results_evaluate.csv"), index=False)
 
@@ -179,6 +181,32 @@ def main():
     # --- Save settings_log and results
     save_settings_log(settings, target_path)
 
+def main2(model, df, scaler, scaled_flag):
+
+    if not len(df) == 0:
+        evaluate_daytime = df.iloc[0,0]
+        features = df.iloc[:,3:-1]
+        targets = df.iloc[:,-1].astype(int)
+        if not scaled_flag:
+            print("feature matrix scaling first time")
+            scaled_feature_matrix = scaler.fit_transform(features)
+            scaled_flag = True
+        else:
+            scaled_feature_matrix = scaler.transform(features)
+
+        # --- Prediction
+        prediction_values = model.predict(scaled_feature_matrix)
+        prediction_binary_values = (prediction_values >= 0.5).astype(int)
+
+        # --- Evaluate
+        accuracy = accuracy_score(targets, prediction_binary_values)
+        precision = precision_score(targets, prediction_binary_values)
+        recall = recall_score(targets, prediction_binary_values)
+        f1 = f1_score(targets, prediction_binary_values)
+
+        return [evaluate_daytime, accuracy, precision, recall, f1], scaled_flag
+
 
 if __name__ == "__main__":
     main()
+

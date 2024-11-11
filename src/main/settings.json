@@ -5,7 +5,7 @@
     "CUDA_VISIBLE_DEVICES": "-1"
   },
   "Training": {
-    "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/20241029153931",
+    "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/20241111053600",
     "BEGINNING_DAYTIME": "2022-08-03 16:51:07",
     "TargetRange": {
       "DAYS": 5,
@@ -14,19 +14,19 @@
       "SECONDS": 0
     },
     "LearningDefine": {
-      "EPOCHS": 30,
+      "EPOCHS": 10,
       "BATCH_SIZE": 10,
       "REPEAT_COUNT": 1
     },
     "RetrainingCycle": {
       "ONLINE_MODE": 0,
       "DYNAMIC_MODE": 0,
-      "STATIC_INTERVAL": 60
+      "STATIC_INTERVAL": 3600
     }
   },
   "FeatureExtract": {
     "ONLINE_MODE": 0,
-    "TRAFFIC_DATA_PATH": "src/main/traffic_data/2022_wtnb",
+    "TRAFFIC_DATA_PATH": "src/main/traffic_data/2022_wtnb_sample",
     "FLOW_TIMEOUT": 60,
     "CAPTURE_TIMEOUT" : 900,
     "NetworkAddress": {
@@ -56,6 +56,7 @@
     "TARGET_PATH": "src/main/outputs/training/20241029154035",
     "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/20241029153931",
     "BEGINNING_DAYTIME": "2022-08-03 23:51:25",
+    "UNIT_TIME" : 10,
     "TargetRange": {
       "DAYS": 100,
       "HOURS": 0,

@@ -109,9 +109,9 @@ def extract_features_from_flow(packets_in_flow):
     most_port = None
     port_count = 0
     rcv_max_interval = rcv_min_interval = None
-    rcv_max_length = rcv_min_length = None
+    rcv_max_length = rcv_min_length = 0
     snd_max_interval = snd_min_interval = None
-    snd_max_length = snd_min_length = None
+    snd_max_length = snd_min_length = 0
     label = None
 
     port_freq = {}
@@ -156,9 +156,9 @@ def extract_features_from_flow(packets_in_flow):
 
             # --- rcv_max/min_length
             snd_length = int(field[4])
-            if snd_max_length is None or snd_length > snd_max_length:
+            if snd_length > snd_max_length:
                 snd_max_length = snd_length
-            if snd_min_length is None or snd_length < snd_min_length:
+            if snd_length < snd_min_length:
                 snd_min_length = snd_length
 
         # --- tcp/udp count
@@ -180,6 +180,11 @@ def extract_features_from_flow(packets_in_flow):
         # --- label
         if label is None:
             label = field[5]
+
+    rcv_max_interval = rcv_max_interval if rcv_max_interval is not None else 60
+    rcv_min_interval = rcv_min_interval if rcv_min_interval is not None else 60
+    snd_max_interval = snd_max_interval if snd_max_interval is not None else 60
+    snd_min_interval = snd_min_interval if snd_min_interval is not None else 60
 
     return [
         rcv_packet_count,
