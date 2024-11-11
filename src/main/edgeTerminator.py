@@ -51,7 +51,7 @@ async def main():
         minutes=minutes,
         seconds=seconds
     )
-    end_daytime: datetime = beginning_daytime + target_range
+    end_daytime:datetime = beginning_daytime + target_range
     settings["Log"]["Training"]["END_DAYTIME"] = end_daytime.isoformat()
     epochs: int = settings["Training"]["LearningDefine"]["EPOCHS"]
     batch_size: int = settings["Training"]["LearningDefine"]["BATCH_SIZE"]
@@ -94,43 +94,45 @@ async def main():
             print("- dynamic mode activated")
             for dataset_file in os.listdir(datasets_folder_path):
                 dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
-                print("x")
         else:
             print("- static mode activated")
             for dataset_file in os.listdir(datasets_folder_path):
                 dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
-                print("change")
+                print("file change")
                 with open(dataset_file_path, mode='r') as file:
-                    reader = csv.DictReader(file)
+                    reader = csv.reader(file)
+                    headers = next(reader)  # 最初の行をヘッダーとして読み込む
+                    timestamp_index = headers.index("timestamp")  # "timestamp" カラムのインデックスを取得
+
                     for row in reader:
-                        timestamp = datetime.strptime(row["timestamp"], "%Y-%m-%d %H:%M:%S")
+                        timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
                         # 行のタイムスタンプが開始時刻より前だった場合は無視
-                        if not timestamp < beginning_daytime:
+                        if timestamp >= beginning_daytime:
                             # 行のタイムスタンプが終了時刻を超過していた場合処理中止
-                            if timestamp >= end_daytime:
+                            if timestamp > end_daytime:
                                 break
                             else:
+                                # --- Evaluate
                                 if timestamp >= evaluate_epoc_end_daytime:
                                     if not evaluate_first_reading_flag:
-                                        df_evaluate = pd.DataFrame(evaluate_epoch_feature_matrix)
-                                        evaluate_results_array, scaled_flag = modelEvaluator.main2(
+                                        evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
+                                        evaluate_results_array, scaled_flag = modelEvaluator.main(
                                             model=model,
-                                            df=df_evaluate,
+                                            evaluate_dataframe=evaluate_df,
                                             scaler=scalar,
-                                            scaled_flag=scaled_flag
+                                            scaled_flag=scaled_flag,
+                                            epoch_end_time=evaluate_epoc_end_daytime-timedelta(seconds=evaluate_unit_time/2)
                                         )
                                         evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
-
                                     evaluate_epoch_feature_matrix = [row]
                                     evaluate_epoc_end_daytime += timedelta(seconds=evaluate_unit_time)
                                     evaluate_first_reading_flag = False
                                 else:
                                     evaluate_epoch_feature_matrix.append(row)
-
-                                if timestamp <= training_epoch_end_daytime:
+                                # --- Training
+                                if timestamp >= training_epoch_end_daytime:
                                     if not training_first_reading_flag:
                                         df_training = pd.DataFrame(training_epoch_feature_matrix)
-                                        # Training
                                         model, training_results_array = modelTrainer.main(
                                             model=model,
                                             df=df_training,
@@ -142,13 +144,13 @@ async def main():
                                             epoch_end_daytime=training_epoch_end_daytime
                                         )
                                         training_results_list = np.vstack([training_results_list, training_results_array])
-
-                                    training_epoch_feature_matrix = [row]  # 現在の行を新たなエポックに設定
+                                    training_epoch_feature_matrix = [row]
                                     training_epoch_end_daytime += timedelta(seconds=static_interval)
                                     training_first_reading_flag = False
-                                # 行のタイムスタンプがエポック内だった場合
                                 else:
                                     training_epoch_feature_matrix.append(row)
+                        else:
+                            pass
 
     else:
         print("\n- online mode activated")
