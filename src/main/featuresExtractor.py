@@ -1,6 +1,5 @@
 import time
 import warnings
-from collections import Counter
 
 import pandas as pd
 import pytz
@@ -264,8 +263,6 @@ class FlowManager:
             for key in keys:
                 if captured_time - key[0] > float(self.flow_timeout):
                     self.delete_flow(key)
-                else:
-                    break  # 最新のフローがタイムアウトしていなければ終了
 
             # --- is flow pkt specified existing ?
             keys = list(self.flow_manager.keys())
@@ -279,9 +276,10 @@ class FlowManager:
         src = str(pkt[IP].src)
         dst = str(pkt[IP].dst)
 
-        key = self.is_flow_exist(captured_time, src, dst)
         addr,field = extract_features_from_packet(pkt, self.malicious_address_set,
-                                             self.benign_address_set)
+                                                  self.benign_address_set)
+        key = self.is_flow_exist(captured_time, src, dst)
+
 
         if field is not None:
             if key is None:
@@ -360,8 +358,7 @@ if __name__ == "__main__":
     # --- Offline mode
     # --- データセット内のpcapファイルごとに特徴量抽出を行う
     else:
-        if os.path.isdir(traffic_data_path): # データセット複数
-            print("folder")
+        if os.path.isdir(traffic_data_path):
             count = 0
             for pcap_file in os.listdir(traffic_data_path):
                 print("- " + pcap_file + " found")
@@ -374,7 +371,7 @@ if __name__ == "__main__":
                 flow_manager.featured_flow_matrix = [feature_matrix_column] # featured_flow_matrixの初期化
                 count += 1
             print("all pcap file sniffed")
-        elif os.path.isfile(traffic_data_path): # データセット単一
+        elif os.path.isfile(traffic_data_path):
             print("- " + os.path.basename(traffic_data_path) + " found")
             offline(traffic_data_path,flow_manager,filter_condition)
             feature_matrix_column = flow_manager.featured_flow_matrix[0]
@@ -384,8 +381,3 @@ if __name__ == "__main__":
             print("all pcap file sniffed")
         else:
             print(f"traffic data path : {traffic_data_path} not found")
-
-    end_time = time.time()  # 処理終了時刻
-    elapsed_time = end_time - start_time
-
-    print(f"処理時間: {elapsed_time}秒")

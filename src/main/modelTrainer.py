@@ -10,7 +10,7 @@ def is_previous_model_exist(dir_name, file_format):
         previous_weight_file = file_list[-1]
     return previous_weight_file
 
-def main(model, df, output_dir_path, scalar, epochs, batch_size, repeat_count, epoch_end_daytime):
+def main(model, df, output_dir_path, scalar, epochs, batch_size, repeat_count, retraining_daytime):
 
     previous_weights_file = is_previous_model_exist(f"{output_dir_path}/model_weights",
                                                    "*-weights.pickle")
@@ -31,7 +31,7 @@ def main(model, df, output_dir_path, scalar, epochs, batch_size, repeat_count, e
         print("initialize model weights ... ")
 
     # --- execute model training
-    print(f"----- execute model_training ----- ")
+    print(f"execute model_training ...")
     training_time_list = []
     for i in range(repeat_count):
         train_start_time = time.time()
@@ -40,7 +40,7 @@ def main(model, df, output_dir_path, scalar, epochs, batch_size, repeat_count, e
         training_time_list.append(train_end_time - train_start_time)
     training_time = sum(training_time_list) / len(training_time_list)
 
-    with open(f"{output_dir_path}/model_weights/{epoch_end_daytime}-weights.pickle", 'wb') as f:
+    with open(f"{output_dir_path}/model_weights/{retraining_daytime}-weights.pickle", 'wb') as f:
         pickle.dump(model.get_weights(), f) # type: ignore
 
     # --- count benign and malicious
@@ -52,4 +52,4 @@ def main(model, df, output_dir_path, scalar, epochs, batch_size, repeat_count, e
         elif int(target) == 1:
             malicious_count += 1
 
-    return model,[epoch_end_daytime, training_time, benign_count, malicious_count]
+    return model,[retraining_daytime, training_time, benign_count, malicious_count]

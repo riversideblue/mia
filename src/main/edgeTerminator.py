@@ -37,38 +37,37 @@ async def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = settings["OS"]["CUDA_VISIBLE_DEVICES"]  # cpu : -1
 
     # --- Field
-    settings["Log"]["Training"] = {}
-    datasets_folder_path: str = settings["Training"]["DATASETS_FOLDER_PATH"]
-    beginning_daytime = datetime.strptime(settings["Training"]["BEGINNING_DAYTIME"], "%Y-%m-%d %H:%M:%S")
-    settings["Log"]["Training"]["BEGINNING_DAYTIME"] = beginning_daytime.isoformat()
-    days: int = settings["Training"]["TargetRange"]["DAYS"]
-    hours: int = settings["Training"]["TargetRange"]["HOURS"]
-    minutes: int = settings["Training"]["TargetRange"]["MINUTES"]
-    seconds: int = settings["Training"]["TargetRange"]["SECONDS"]
+    datasets_folder_path: str = settings["DATASETS_FOLDER_PATH"]
+    beginning_daytime = datetime.strptime(settings["BEGINNING_DAYTIME"], "%Y-%m-%d %H:%M:%S")
+    settings["Log"]["BEGINNING_DAYTIME"] = beginning_daytime.isoformat()
+    days: int = settings["TargetRange"]["DAYS"]
+    hours: int = settings["TargetRange"]["HOURS"]
+    minutes: int = settings["TargetRange"]["MINUTES"]
+    seconds: int = settings["TargetRange"]["SECONDS"]
     target_range = timedelta(
         days=days,
         hours=hours,
         minutes=minutes,
         seconds=seconds
     )
-    end_daytime:datetime = beginning_daytime + target_range
-    settings["Log"]["Training"]["END_DAYTIME"] = end_daytime.isoformat()
-    epochs: int = settings["Training"]["LearningDefine"]["EPOCHS"]
-    batch_size: int = settings["Training"]["LearningDefine"]["BATCH_SIZE"]
-    repeat_count: int = settings["Training"]["LearningDefine"]["REPEAT_COUNT"]
+    end_daytime: datetime = beginning_daytime + target_range
+    settings["Log"]["END_DAYTIME"] = end_daytime.isoformat()
+    epochs: int = settings["TrainingDefine"]["EPOCHS"]
+    batch_size: int = settings["TrainingDefine"]["BATCH_SIZE"]
+    repeat_count: int = settings["TrainingDefine"]["REPEAT_COUNT"]
 
-    online_mode: bool = settings["Training"]["RetrainingCycle"]["ONLINE_MODE"]
-    dynamic_mode: bool = settings["Training"]["RetrainingCycle"]["DYNAMIC_MODE"]
-    static_interval: int = settings["Training"]["RetrainingCycle"]["STATIC_INTERVAL"]
-
-    evaluate_unit_time:int = settings["Evaluate"]["UNIT_TIME"]
+    online_mode: bool = bool(settings["ONLINE_MODE"])
+    dynamic_mode: bool = bool(settings["RetrainingCycle"]["DYNAMIC_MODE"])
+    static_interval: int = settings["RetrainingCycle"]["STATIC_INTERVAL"]
+    evaluate_unit_interval: int = settings["EVALUATE_UNIT_INTERVAL"]
 
     scalar = StandardScaler()
     is_pass_exist(datasets_folder_path)
     end_daytime = beginning_daytime + target_range
 
-    training_epoch_end_daytime = evaluate_epoc_end_daytime = beginning_daytime
-    training_epoch_feature_matrix = evaluate_epoch_feature_matrix = []
+
+    retraining_daytime = evaluate_unit_end_daytime = beginning_daytime
+    retraining_feature_matrix = evaluate_epoch_feature_matrix = []
     training_first_reading_flag = evaluate_first_reading_flag = True
     scaled_flag = False
 
@@ -98,7 +97,7 @@ async def main():
             print("- static mode activated")
             for dataset_file in os.listdir(datasets_folder_path):
                 dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
-                print("file change")
+                print("- file change")
                 with open(dataset_file_path, mode='r') as file:
                     reader = csv.reader(file)
                     headers = next(reader)  # 最初の行をヘッダーとして読み込む
@@ -112,27 +111,11 @@ async def main():
                             if timestamp > end_daytime:
                                 break
                             else:
-                                # --- Evaluate
-                                if timestamp >= evaluate_epoc_end_daytime:
-                                    if not evaluate_first_reading_flag:
-                                        evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
-                                        evaluate_results_array, scaled_flag = modelEvaluator.main(
-                                            model=model,
-                                            evaluate_dataframe=evaluate_df,
-                                            scaler=scalar,
-                                            scaled_flag=scaled_flag,
-                                            epoch_end_time=evaluate_epoc_end_daytime-timedelta(seconds=evaluate_unit_time/2)
-                                        )
-                                        evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
-                                    evaluate_epoch_feature_matrix = [row]
-                                    evaluate_epoc_end_daytime += timedelta(seconds=evaluate_unit_time)
-                                    evaluate_first_reading_flag = False
-                                else:
-                                    evaluate_epoch_feature_matrix.append(row)
                                 # --- Training
-                                if timestamp >= training_epoch_end_daytime:
+                                if timestamp > retraining_daytime:
                                     if not training_first_reading_flag:
-                                        df_training = pd.DataFrame(training_epoch_feature_matrix)
+                                        print("\n--- retraining model")
+                                        df_training = pd.DataFrame(retraining_feature_matrix)
                                         model, training_results_array = modelTrainer.main(
                                             model=model,
                                             df=df_training,
@@ -141,14 +124,32 @@ async def main():
                                             epochs=epochs,
                                             batch_size=batch_size,
                                             repeat_count=repeat_count,
-                                            epoch_end_daytime=training_epoch_end_daytime
+                                            retraining_daytime=retraining_daytime
                                         )
                                         training_results_list = np.vstack([training_results_list, training_results_array])
-                                    training_epoch_feature_matrix = [row]
-                                    training_epoch_end_daytime += timedelta(seconds=static_interval)
+                                    retraining_feature_matrix = [row]
+                                    retraining_daytime += timedelta(seconds=static_interval)
                                     training_first_reading_flag = False
                                 else:
-                                    training_epoch_feature_matrix.append(row)
+                                    retraining_feature_matrix.append(row)
+                                # --- Evaluate
+                                if timestamp > evaluate_unit_end_daytime:
+                                    if not evaluate_first_reading_flag:
+                                        print("evaluate model ... ")
+                                        evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
+                                        evaluate_results_array, scaled_flag = modelEvaluator.main(
+                                            model=model,
+                                            evaluate_dataframe=evaluate_df,
+                                            scaler=scalar,
+                                            scaled_flag=scaled_flag,
+                                            evaluate_daytime=evaluate_unit_end_daytime - timedelta(seconds=evaluate_unit_interval / 2)
+                                        )
+                                        evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
+                                    evaluate_epoch_feature_matrix = [row]
+                                    evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
+                                    evaluate_first_reading_flag = False
+                                else:
+                                    evaluate_epoch_feature_matrix.append(row)
                         else:
                             pass
 

@@ -1,6 +1,6 @@
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
-def main(model, evaluate_dataframe, scaler, scaled_flag, epoch_end_time):
+def main(model, evaluate_dataframe, scaler, scaled_flag, evaluate_daytime):
 
     if not len(evaluate_dataframe) == 0:
         features = evaluate_dataframe.iloc[:, 3:-1]
@@ -22,4 +22,4 @@ def main(model, evaluate_dataframe, scaler, scaled_flag, epoch_end_time):
         recall = recall_score(targets, prediction_binary_values)
         f1 = f1_score(targets, prediction_binary_values)
 
-        return [epoch_end_time, accuracy, precision, recall, f1], scaled_flag
+        return [evaluate_daytime, accuracy, precision, recall, f1], scaled_flag

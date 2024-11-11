@@ -4,25 +4,24 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "Training": {
-    "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/2022wtnb_sample",
-    "BEGINNING_DAYTIME": "2022-08-03 16:51:00",
-    "TargetRange": {
-      "DAYS": 5,
-      "HOURS": 1,
-      "MINUTES": 0,
-      "SECONDS": 0
-    },
-    "LearningDefine": {
-      "EPOCHS": 1,
-      "BATCH_SIZE": 1,
-      "REPEAT_COUNT": 1
-    },
-    "RetrainingCycle": {
-      "ONLINE_MODE": 0,
-      "DYNAMIC_MODE": 0,
-      "STATIC_INTERVAL": 1800
-    }
+  "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/sample",
+  "BEGINNING_DAYTIME": "2022-08-03 17:00:00",
+  "ONLINE_MODE": 0,
+  "EVALUATE_UNIT_INTERVAL" : 1,
+  "TargetRange": {
+    "DAYS": 10,
+    "HOURS": 0,
+    "MINUTES": 0,
+    "SECONDS": 0
+  },
+  "TrainingDefine": {
+    "EPOCHS": 1,
+    "BATCH_SIZE": 1000,
+    "REPEAT_COUNT": 1
+  },
+  "RetrainingCycle": {
+    "DYNAMIC_MODE": 0,
+    "STATIC_INTERVAL": 3600
   },
   "FeatureExtract": {
     "ONLINE_MODE": 0,
@@ -49,19 +48,6 @@
         "8.8.4.4",
         "224.0.0.250"
       ]
-    }
-  },
-  "Evaluate": {
-    "ONLINE_MODE": 1,
-    "TARGET_PATH": "src/main/outputs/training/20241029154035",
-    "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/20241029153931",
-    "BEGINNING_DAYTIME": "2022-08-03 23:51:25",
-    "UNIT_TIME" : 60,
-    "TargetRange": {
-      "DAYS": 100,
-      "HOURS": 0,
-      "MINUTES": 0,
-      "SECONDS": 0
     }
   }
 }
