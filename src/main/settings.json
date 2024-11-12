@@ -4,12 +4,12 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/sample",
+  "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/2022wtnb",
   "BEGINNING_DAYTIME": "2022-08-03 17:00:00",
   "ONLINE_MODE": 0,
-  "EVALUATE_UNIT_INTERVAL" : 1,
+  "EVALUATE_UNIT_INTERVAL" : 3600,
   "TargetRange": {
-    "DAYS": 10,
+    "DAYS": 5,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0

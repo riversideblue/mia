@@ -77,7 +77,7 @@ async def main():
     os.makedirs(f"{output_dir_path}/model_weights")
 
     # --- Set results
-    training_results = pd.DataFrame(columns=["daytime", "training_time", "benign_count", "malicious_count"])
+    training_results = pd.DataFrame(columns=["daytime", "training_data_number", "training_time", "benign_count", "malicious_count"])
     training_results_list = training_results.values
     evaluate_results = pd.DataFrame(columns=["daytime","accuracy", "f1_score", "precision", "recall"])
     evaluate_results_list = evaluate_results.values
@@ -112,6 +112,10 @@ async def main():
                                 break
                             else:
                                 # --- Training
+                                print("timestamp")
+                                print(timestamp)
+                                print("retraining_daytime")
+                                print(retraining_daytime)
                                 if timestamp > retraining_daytime:
                                     if not training_first_reading_flag:
                                         print("\n--- retraining model")
@@ -151,7 +155,9 @@ async def main():
                                 else:
                                     evaluate_epoch_feature_matrix.append(row)
                         else:
-                            pass
+                            beginning_daytime += timedelta(seconds=static_interval)
+                            retraining_daytime += timedelta(seconds=static_interval)
+                            evaluate_unit_end_daytime += timedelta(seconds=static_interval)
 
     else:
         print("\n- online mode activated")
