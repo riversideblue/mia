@@ -7,10 +7,10 @@
   "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/2022wtnb",
   "BEGINNING_DAYTIME": "2022-08-04 13:00:00",
   "ONLINE_MODE": 0,
-  "EVALUATE_UNIT_INTERVAL" : 600,
+  "EVALUATE_UNIT_INTERVAL" : 3600,
   "TargetRange": {
-    "DAYS": 1,
-    "HOURS": 3,
+    "DAYS": 5,
+    "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },

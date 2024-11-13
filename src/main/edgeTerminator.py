@@ -97,7 +97,7 @@ async def main():
                 dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
         else:
             print("- static mode activated")
-            count = 0
+            flow_count = 0
             for dataset_file in os.listdir(datasets_folder_path):
 
                 if end_flag: break
@@ -110,8 +110,8 @@ async def main():
                     timestamp_index = headers.index("timestamp")  # "timestamp" カラムのインデックスを取得
 
                     for row in reader:
-                        print(f"- {count} column now")
-                        count += 1
+                        print(f"- {flow_count} column now")
+                        flow_count += 1
                         timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
 
                         # beginning timeの設定
@@ -128,9 +128,9 @@ async def main():
                         # 行のタイムスタンプが開始時刻より前だった場合は無視
                         if timestamp >= beginning_daytime:
                             # --- Training
-                            print(f"flow timestamp - {timestamp}")
-                            print(f"retraining_daytime - {retraining_daytime}")
-                            print(f"eval_unit_end_daytime - {evaluate_unit_end_daytime}")
+                            # print(f"flow timestamp - {timestamp}")
+                            # print(f"retraining_daytime - {retraining_daytime}")
+                            # print(f"eval_unit_end_daytime - {evaluate_unit_end_daytime}")
                             if timestamp > retraining_daytime:
                                 if not training_first_reading_flag:
                                     print("\n--- retraining model")
@@ -192,6 +192,8 @@ async def main():
                                 break
                         else:
                             pass
+            settings["Log"]["TOTAL_FLOW_NUMBER"] = flow_count
+
     else:
         print("\n- online mode activated")
 
