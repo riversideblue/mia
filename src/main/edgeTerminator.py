@@ -70,9 +70,9 @@ async def main():
     retraining_daytime = evaluate_unit_end_daytime = beginning_daytime
     retraining_feature_matrix = evaluate_epoch_feature_matrix = []
     first_reading_flag = training_first_reading_flag = evaluate_first_reading_flag = True
-    retraining_no_data_flag = evaluate_no_data_flag = True
     scaled_flag = False
     end_flag = False
+    flow_count = 0
 
     # --- Create output directory
     output_dir_path: str = f"src/main/outputs/training/{init_time}"
@@ -92,7 +92,7 @@ async def main():
         print("- start with new model ...")
     elif os.path.exists(foundation_model_path):
         with open(foundation_model_path, 'rb') as f:
-            print(f"- start with exist model [{foundation_model_path}] ...")
+            print(f"- start with exist model {foundation_model_path} ...")
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
     else:
@@ -105,14 +105,121 @@ async def main():
         print("- offline mode activated")
         if dynamic_mode:
             print("- dynamic mode activated")
+
             for dataset_file in os.listdir(datasets_folder_path):
-                dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
+                if end_flag: break
+                dataset_file_path: str = f"{datasets_folder_path}/{dataset_file}"
+                print(f"- {dataset_file} set now")
+
+                with open(dataset_file_path, mode='r') as file:
+                    reader = csv.reader(file)
+                    headers = next(reader)  # 最初の行をヘッダーとして読み込む
+
+                    ex_addr_index = headers.index("timestamp")
+                    in_addr_index = headers.index("timestamp")
+                    timestamp_index = headers.index("timestamp")
+                    rcv_packet_count = headers.index("rcv_packet_count")
+                    snd_packet_count = headers.index("snd_packet_count")
+                    tcp_count = headers.index("tcp_count")
+                    udp_count = headers.index("udp_count")
+                    most_port = headers.index("most_port")
+                    port_count = headers.index("port_count")
+                    rcv_max_interval = headers.index("rcv_max_interval")
+                    rcv_min_interval = headers.index("rcv_min_interval")
+                    rcv_max_length = headers.index("rcv_max_length")
+                    rcv_min_length = headers.index("rcv_min_length")
+                    snd_max_interval = headers.index("snd_max_interval")
+                    snd_min_interval = headers.index("snd_min_interval")
+                    snd_max_length = headers.index("snd_max_length")
+                    snd_min_length = headers.index("snd_min_length")
+
+                    for row in reader:
+                        print(f"- {flow_count} column now")
+                        flow_count += 1
+                        timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
+
+                        # beginning timeの設定
+                        if first_reading_flag and timestamp > beginning_daytime:
+                            while timestamp > beginning_daytime:
+                                beginning_daytime += timedelta(hours=1)
+                            retraining_daytime = beginning_daytime
+                            evaluate_unit_end_daytime = beginning_daytime
+                            first_reading_flag = False
+                            print(f"beginning time reset ---{beginning_daytime}")
+                        else:
+                            first_reading_flag = False
+
+                        if timestamp >= beginning_daytime:
+                            # Drift Detection
+                            drift_flag = True
+
+                            # Training
+                            if drift_flag:
+                                df_training = pd.DataFrame(retraining_feature_matrix)
+                                retraining_daytime = df_training[2,-1] # データセット内の最後のフローがキャプチャされた時間
+                                model, training_results_array = modelTrainer.main(
+                                    model=model,
+                                    df=df_training,
+                                    output_dir_path=output_dir_path,
+                                    scalar=scalar,
+                                    epochs=epochs,
+                                    batch_size=batch_size,
+                                    repeat_count=repeat_count,
+                                    retraining_daytime=retraining_daytime
+                                )
+                                training_results_list = np.vstack(
+                                    [training_results_list, training_results_array])
+                                retraining_feature_matrix = [row]
+                            else:
+                                retraining_feature_matrix.append(row)
+                                print("... retraining matrix append")
+
+                            # Evaluate
+                            if timestamp > evaluate_unit_end_daytime:
+                                if not evaluate_first_reading_flag:
+                                    print("\n--- evaluate model")
+                                    evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
+                                    evaluate_results_array, scaled_flag = modelEvaluator.main(
+                                        model=model,
+                                        df=evaluate_df,
+                                        scaler=scalar,
+                                        scaled_flag=scaled_flag,
+                                        evaluate_daytime=evaluate_unit_end_daytime - timedelta(
+                                            seconds=evaluate_unit_interval / 2)
+                                    )
+                                    evaluate_results_list = np.vstack(
+                                        [evaluate_results_list, evaluate_results_array])
+                                evaluate_epoch_feature_matrix = [row]
+                                evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
+                                
+                                # dataが存在しない区間は直前の結果を流用
+                                while timestamp > evaluate_unit_end_daytime:
+                                    print("- no data detected")
+                                    evaluate_results_array = evaluate_results_list[-1]
+                                    evaluate_results_array[0] = evaluate_unit_end_daytime - timedelta(
+                                                seconds=evaluate_unit_interval / 2)
+                                    evaluate_results_array[1] = 0  # flow_num = 0
+                                    print(evaluate_results_array)
+                                    evaluate_results_list = np.vstack(
+                                        [evaluate_results_list, evaluate_results_array])
+                                    evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
+                                evaluate_first_reading_flag = False
+                            else:
+                                evaluate_epoch_feature_matrix.append(row)
+                                print("... evaluate matrix append")
+
+                            # 終了時刻の制御
+                            if timestamp > end_daytime:
+                                print("detected end_daytime")
+                                end_flag = True
+                                break
+                        else:
+                            pass
+
         else:
             print("- static mode activated")
-            flow_count = 0
             for dataset_file in os.listdir(datasets_folder_path):
 
-                if end_flag: break
                 dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
                 print(f"- {dataset_file} set now")
 
@@ -204,6 +311,8 @@ async def main():
                                 break
                         else:
                             pass
+                    if end_flag: break
+
             settings["Log"]["TOTAL_FLOW_NUMBER"] = flow_count
 
     else:
