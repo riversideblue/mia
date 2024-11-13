@@ -68,7 +68,7 @@ async def main():
 
     retraining_daytime = evaluate_unit_end_daytime = beginning_daytime
     retraining_feature_matrix = evaluate_epoch_feature_matrix = []
-    training_first_reading_flag = evaluate_first_reading_flag = True
+    first_reading_flag = training_first_reading_flag = evaluate_first_reading_flag = True
     scaled_flag = False
 
     # --- Create output directory
@@ -87,6 +87,9 @@ async def main():
 
     # --- Online mode or not
 
+    lst = sorted(os.listdir(datasets_folder_path))
+    print(lst)
+
     if not online_mode:
         print("\n- offline mode activated")
         if dynamic_mode:
@@ -95,16 +98,30 @@ async def main():
                 dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
         else:
             print("- static mode activated")
-            for dataset_file in os.listdir(datasets_folder_path):
+            count = 0
+            for dataset_file in sorted(os.listdir(datasets_folder_path)):
                 dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
-                print("- file change")
+                print(f"- {dataset_file} set now")
                 with open(dataset_file_path, mode='r') as file:
                     reader = csv.reader(file)
                     headers = next(reader)  # 最初の行をヘッダーとして読み込む
                     timestamp_index = headers.index("timestamp")  # "timestamp" カラムのインデックスを取得
 
                     for row in reader:
+                        print(f"- {count} column now")
+                        count += 1
                         timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
+
+                        # beginning timeの設定
+                        if first_reading_flag and timestamp > beginning_daytime:
+                            while timestamp > beginning_daytime:
+                                beginning_daytime += timedelta(seconds=static_interval)
+                            retraining_daytime = beginning_daytime
+                            evaluate_unit_end_daytime = beginning_daytime
+                            print(f"beginning time reset ---{beginning_daytime}")
+                        else:
+                            first_reading_flag = False
+
                         # 行のタイムスタンプが開始時刻より前だった場合は無視
                         if timestamp >= beginning_daytime:
                             # 行のタイムスタンプが終了時刻を超過していた場合処理中止
@@ -112,7 +129,7 @@ async def main():
                                 break
                             else:
                                 # --- Training
-                                print("timestamp")
+                                print("flow timestamp")
                                 print(timestamp)
                                 print("retraining_daytime")
                                 print(retraining_daytime)
@@ -134,8 +151,10 @@ async def main():
                                     retraining_feature_matrix = [row]
                                     retraining_daytime += timedelta(seconds=static_interval)
                                     training_first_reading_flag = False
+                                    print("nnn")
                                 else:
                                     retraining_feature_matrix.append(row)
+                                    print("...append")
                                 # --- Evaluate
                                 if timestamp > evaluate_unit_end_daytime:
                                     if not evaluate_first_reading_flag:
@@ -155,9 +174,7 @@ async def main():
                                 else:
                                     evaluate_epoch_feature_matrix.append(row)
                         else:
-                            beginning_daytime += timedelta(seconds=static_interval)
-                            retraining_daytime += timedelta(seconds=static_interval)
-                            evaluate_unit_end_daytime += timedelta(seconds=static_interval)
+                            pass
 
     else:
         print("\n- online mode activated")

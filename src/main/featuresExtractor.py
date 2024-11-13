@@ -367,7 +367,7 @@ if __name__ == "__main__":
                 feature_matrix_column = flow_manager.featured_flow_matrix[0]
                 feature_matrix_row = flow_manager.featured_flow_matrix[1:]
                 feature_matrix = pd.DataFrame(feature_matrix_row,columns=feature_matrix_column)
-                feature_matrix.to_csv(f"{outputs_dir_path}/{count}_{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
+                feature_matrix.to_csv(f"{outputs_dir_path}/{count:05d}_{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
                 flow_manager.featured_flow_matrix = [feature_matrix_column] # featured_flow_matrixの初期化
                 count += 1
             print("all pcap file sniffed")

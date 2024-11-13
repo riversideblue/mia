@@ -5,11 +5,11 @@
     "CUDA_VISIBLE_DEVICES": "-1"
   },
   "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/2022wtnb",
-  "BEGINNING_DAYTIME": "2022-08-03 17:00:00",
+  "BEGINNING_DAYTIME": "2022-08-03 16:00:00",
   "ONLINE_MODE": 0,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TargetRange": {
-    "DAYS": 5,
+    "DAYS": 1,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
@@ -25,7 +25,7 @@
   },
   "FeatureExtract": {
     "ONLINE_MODE": 0,
-    "TRAFFIC_DATA_PATH": "src/main/traffic_data/2022_wtnb",
+    "TRAFFIC_DATA_PATH": "src/main/traffic_data/2022wtnb_pcap",
     "FLOW_TIMEOUT": 60,
     "CAPTURE_TIMEOUT" : 900,
     "NetworkAddress": {

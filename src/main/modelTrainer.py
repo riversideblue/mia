@@ -49,12 +49,9 @@ def main(model, df, output_dir_path, scalar, epochs, batch_size, repeat_count, r
     benign_count = 0
     malicious_count = 0
     for target in targets:
-        print(target)
         if int(target) == 0:
-            print("benign")
             benign_count += 1
         elif int(target) == 1:
-            print("malicious")
             malicious_count += 1
 
     # count training data number
