@@ -69,6 +69,7 @@ async def main():
     retraining_daytime = evaluate_unit_end_daytime = beginning_daytime
     retraining_feature_matrix = evaluate_epoch_feature_matrix = []
     first_reading_flag = training_first_reading_flag = evaluate_first_reading_flag = True
+    retraining_no_data_flag = evaluate_no_data_flag = True
     scaled_flag = False
     end_flag = False
 
@@ -119,6 +120,7 @@ async def main():
                                 beginning_daytime += timedelta(seconds=static_interval)
                             retraining_daytime = beginning_daytime
                             evaluate_unit_end_daytime = beginning_daytime
+                            first_reading_flag = False
                             print(f"beginning time reset ---{beginning_daytime}")
                         else:
                             first_reading_flag = False
@@ -168,6 +170,17 @@ async def main():
                                         [evaluate_results_list, evaluate_results_array])
                                 evaluate_epoch_feature_matrix = [row]
                                 evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
+                                # dataが存在しない区間は直前の結果を流用
+                                while timestamp > evaluate_unit_end_daytime:
+                                    print("- no data detected")
+                                    evaluate_results_array = evaluate_results_list[-1]
+                                    evaluate_results_array[0] = evaluate_unit_end_daytime - timedelta(
+                                                seconds=evaluate_unit_interval / 2)
+                                    evaluate_results_array[1] = 0  # flow_num = 0
+                                    print(evaluate_results_array)
+                                    evaluate_results_list = np.vstack(
+                                        [evaluate_results_list, evaluate_results_array])
+                                    evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
                                 evaluate_first_reading_flag = False
                             else:
                                 evaluate_epoch_feature_matrix.append(row)
