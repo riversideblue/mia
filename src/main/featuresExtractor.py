@@ -1,5 +1,6 @@
 import time
 import warnings
+from concurrent.futures import ProcessPoolExecutor
 
 import pandas as pd
 import pytz
@@ -299,13 +300,29 @@ def online(manager, filter_online):
         sniff(prn=manager.callback, timeout = capture_timeout, store = False, filter=filter_online)
 
 def offline(file_path, manager, filter_offline):
-    print("offline mode sniffing ...")
     if os.path.getsize(file_path) == 0:
         print(os.path.basename(file_path) + ":no data")
     else:
         sniff(offline=file_path, prn=manager.callback, store=False, filter=filter_offline)
         print(os.path.basename(file_path) + ":finish")
 
+
+def process_pcap_file(pcap_file_path, outputs_dir_path, external_addr_list, malicious_addresses, benign_addresses,
+                      timeout, c_filter, count):
+
+    # 各タスクごとに新しいFlowManagerインスタンスを生成
+    manager = FlowManager(external_addr_list, malicious_addresses, benign_addresses, timeout)
+
+    # ファイルのオフライン解析を実行
+    offline(pcap_file_path, manager, c_filter)
+
+    # 結果の書き出し
+    feature_matrix_column = manager.featured_flow_matrix[0]
+    feature_matrix_row = manager.featured_flow_matrix[1:]
+    feature_matrix = pd.DataFrame(feature_matrix_row, columns=feature_matrix_column)
+    feature_matrix.to_csv(f"{outputs_dir_path}/{count:05d}_{os.path.splitext(os.path.basename(pcap_file_path))[0]}.csv",
+                          index=False)
+    return count  # 処理が完了したカウント番号を返す
 
 # 与えられたフォルダまたはファイルに含まれるトラヒックデータ（pcapファイル）から特徴量を抽出してcsvファイルに書き込む
 if __name__ == "__main__":
@@ -345,8 +362,8 @@ if __name__ == "__main__":
     filter_condition = f"ether proto 0x0800 and ({ex_addr_filter}) and (tcp or udp)"
 
     # --- Create output directory for csv
-    outputs_dir_path: str = f"src/main/outputs/extracted/{init_time}"
-    os.makedirs(outputs_dir_path)
+    outputs_path: str = f"src/main/outputs/extracted/{init_time}"
+    os.makedirs(outputs_path)
 
     # --- build constructor
     flow_manager = FlowManager(ex_addr_list,malicious_address_set,benign_address_set,flow_timeout)
@@ -357,27 +374,21 @@ if __name__ == "__main__":
 
     # --- Offline mode
     # --- データセット内のpcapファイルごとに特徴量抽出を行う
-    else:
-        if os.path.isdir(traffic_data_path):
-            count = 0
-            for pcap_file in os.listdir(traffic_data_path):
-                print("- " + pcap_file + " found")
-                pcap_file_path:str = os.path.join(traffic_data_path,pcap_file)
-                offline(pcap_file_path,flow_manager,filter_condition)
-                feature_matrix_column = flow_manager.featured_flow_matrix[0]
-                feature_matrix_row = flow_manager.featured_flow_matrix[1:]
-                feature_matrix = pd.DataFrame(feature_matrix_row,columns=feature_matrix_column)
-                feature_matrix.to_csv(f"{outputs_dir_path}/{count:05d}_{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
-                flow_manager.featured_flow_matrix = [feature_matrix_column] # featured_flow_matrixの初期化
-                count += 1
-            print("all pcap file sniffed")
-        elif os.path.isfile(traffic_data_path):
-            print("- " + os.path.basename(traffic_data_path) + " found")
-            offline(traffic_data_path,flow_manager,filter_condition)
-            feature_matrix_column = flow_manager.featured_flow_matrix[0]
-            feature_matrix_row = flow_manager.featured_flow_matrix[1:]
-            feature_matrix = pd.DataFrame(feature_matrix_row,columns=feature_matrix_column)
-            feature_matrix.to_csv(f"{outputs_dir_path}/{os.path.splitext(os.path.basename(traffic_data_path))[0]}.csv",index=False)
-            print("all pcap file sniffed")
-        else:
-            print(f"traffic data path : {traffic_data_path} not found")
+    elif os.path.isdir(traffic_data_path):
+        print("offline mode sniffing ...")
+        pcap_files = os.listdir(traffic_data_path)
+        with ProcessPoolExecutor() as executor:
+            futures = [
+                executor.submit(process_pcap_file,
+                                os.path.join(traffic_data_path, pcap_file),
+                                outputs_path,
+                                ex_addr_list,
+                                malicious_address_set,
+                                benign_address_set,
+                                flow_timeout,
+                                filter_condition,
+                                count)
+                for count, pcap_file in enumerate(pcap_files)
+            ]
+            for future in futures:
+                print(f"Completed processing file {future.result()}")

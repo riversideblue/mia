@@ -15,8 +15,6 @@ def main(model, df, output_dir_path, scalar, epochs, batch_size, repeat_count, r
     previous_weights_file = is_previous_model_exist(f"{output_dir_path}/model_weights",
                                                    "*-weights.pickle")
 
-    print(df)
-
     features = df.iloc[:,3:-1].astype(float)
     targets = df.iloc[:,-1].astype(float)
 
@@ -56,6 +54,6 @@ def main(model, df, output_dir_path, scalar, epochs, batch_size, repeat_count, r
 
     # count training data number
 
-    training_data_num = df.shape[1]
+    flow_num = df.shape[0]
 
-    return model,[retraining_daytime, training_data_num, training_time, benign_count, malicious_count]
+    return model,[retraining_daytime, flow_num, training_time, benign_count, malicious_count]

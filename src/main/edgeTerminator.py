@@ -70,6 +70,7 @@ async def main():
     retraining_feature_matrix = evaluate_epoch_feature_matrix = []
     first_reading_flag = training_first_reading_flag = evaluate_first_reading_flag = True
     scaled_flag = False
+    end_flag = False
 
     # --- Create output directory
     output_dir_path: str = f"src/main/outputs/training/{init_time}"
@@ -77,18 +78,15 @@ async def main():
     os.makedirs(f"{output_dir_path}/model_weights")
 
     # --- Set results
-    training_results = pd.DataFrame(columns=["daytime", "training_data_number", "training_time", "benign_count", "malicious_count"])
+    training_results = pd.DataFrame(columns=["daytime", "flow_num", "training_time", "benign_count", "malicious_count"])
     training_results_list = training_results.values
-    evaluate_results = pd.DataFrame(columns=["daytime","accuracy", "f1_score", "precision", "recall"])
+    evaluate_results = pd.DataFrame(columns=["daytime", "flow_num", "accuracy", "f1_score", "precision", "recall"])
     evaluate_results_list = evaluate_results.values
 
     # --- Create foundation model
     model = modelCreator.main()
 
     # --- Online mode or not
-
-    lst = sorted(os.listdir(datasets_folder_path))
-    print(lst)
 
     if not online_mode:
         print("\n- offline mode activated")
@@ -99,9 +97,12 @@ async def main():
         else:
             print("- static mode activated")
             count = 0
-            for dataset_file in sorted(os.listdir(datasets_folder_path)):
+            for dataset_file in os.listdir(datasets_folder_path):
+
+                if end_flag: break
                 dataset_file_path:str = f"{datasets_folder_path}/{dataset_file}"
                 print(f"- {dataset_file} set now")
+
                 with open(dataset_file_path, mode='r') as file:
                     reader = csv.reader(file)
                     headers = next(reader)  # 最初の行をヘッダーとして読み込む
@@ -124,58 +125,60 @@ async def main():
 
                         # 行のタイムスタンプが開始時刻より前だった場合は無視
                         if timestamp >= beginning_daytime:
-                            # 行のタイムスタンプが終了時刻を超過していた場合処理中止
-                            if timestamp > end_daytime:
-                                break
+                            # --- Training
+                            print(f"flow timestamp - {timestamp}")
+                            print(f"retraining_daytime - {retraining_daytime}")
+                            print(f"eval_unit_end_daytime - {evaluate_unit_end_daytime}")
+                            if timestamp > retraining_daytime:
+                                if not training_first_reading_flag:
+                                    print("\n--- retraining model")
+                                    df_training = pd.DataFrame(retraining_feature_matrix)
+                                    model, training_results_array = modelTrainer.main(
+                                        model=model,
+                                        df=df_training,
+                                        output_dir_path=output_dir_path,
+                                        scalar=scalar,
+                                        epochs=epochs,
+                                        batch_size=batch_size,
+                                        repeat_count=repeat_count,
+                                        retraining_daytime=retraining_daytime
+                                    )
+                                    training_results_list = np.vstack(
+                                        [training_results_list, training_results_array])
+                                retraining_feature_matrix = [row]
+                                retraining_daytime += timedelta(seconds=static_interval)
+                                training_first_reading_flag = False
                             else:
-                                # --- Training
-                                print("flow timestamp")
-                                print(timestamp)
-                                print("retraining_daytime")
-                                print(retraining_daytime)
-                                if timestamp > retraining_daytime:
-                                    if not training_first_reading_flag:
-                                        print("\n--- retraining model")
-                                        df_training = pd.DataFrame(retraining_feature_matrix)
-                                        model, training_results_array = modelTrainer.main(
-                                            model=model,
-                                            df=df_training,
-                                            output_dir_path=output_dir_path,
-                                            scalar=scalar,
-                                            epochs=epochs,
-                                            batch_size=batch_size,
-                                            repeat_count=repeat_count,
-                                            retraining_daytime=retraining_daytime
-                                        )
-                                        training_results_list = np.vstack([training_results_list, training_results_array])
-                                    retraining_feature_matrix = [row]
-                                    retraining_daytime += timedelta(seconds=static_interval)
-                                    training_first_reading_flag = False
-                                    print("nnn")
-                                else:
-                                    retraining_feature_matrix.append(row)
-                                    print("...append")
-                                # --- Evaluate
-                                if timestamp > evaluate_unit_end_daytime:
-                                    if not evaluate_first_reading_flag:
-                                        print("evaluate model ... ")
-                                        evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
-                                        evaluate_results_array, scaled_flag = modelEvaluator.main(
-                                            model=model,
-                                            evaluate_dataframe=evaluate_df,
-                                            scaler=scalar,
-                                            scaled_flag=scaled_flag,
-                                            evaluate_daytime=evaluate_unit_end_daytime - timedelta(seconds=evaluate_unit_interval / 2)
-                                        )
-                                        evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
-                                    evaluate_epoch_feature_matrix = [row]
-                                    evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
-                                    evaluate_first_reading_flag = False
-                                else:
-                                    evaluate_epoch_feature_matrix.append(row)
+                                retraining_feature_matrix.append(row)
+                                print("... retraining matrix append")
+                            # --- Evaluate
+                            if timestamp > evaluate_unit_end_daytime:
+                                if not evaluate_first_reading_flag:
+                                    print("\n--- evaluate model")
+                                    evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
+                                    evaluate_results_array, scaled_flag = modelEvaluator.main(
+                                        model=model,
+                                        df=evaluate_df,
+                                        scaler=scalar,
+                                        scaled_flag=scaled_flag,
+                                        evaluate_daytime=evaluate_unit_end_daytime - timedelta(
+                                            seconds=evaluate_unit_interval / 2)
+                                    )
+                                    evaluate_results_list = np.vstack(
+                                        [evaluate_results_list, evaluate_results_array])
+                                evaluate_epoch_feature_matrix = [row]
+                                evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
+                                evaluate_first_reading_flag = False
+                            else:
+                                evaluate_epoch_feature_matrix.append(row)
+                                print("... evaluate matrix append")
+
+                            if timestamp > end_daytime:
+                                print("detected end_daytime")
+                                end_flag = True
+                                break
                         else:
                             pass
-
     else:
         print("\n- online mode activated")
 
