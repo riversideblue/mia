@@ -2,6 +2,7 @@ import asyncio
 import csv
 import json
 import os
+import pickle
 import sys
 from datetime import datetime, timedelta
 
@@ -85,12 +86,23 @@ async def main():
     evaluate_results_list = evaluate_results.values
 
     # --- Create foundation model
+    foundation_model_path = settings["FOUNDATION_MODEL_PATH"]
     model = modelCreator.main()
+    if foundation_model_path == "":
+        print("- start with new model ...")
+    elif os.path.exists(foundation_model_path):
+        with open(foundation_model_path, 'rb') as f:
+            print(f"- start with exist model [{foundation_model_path}] ...")
+            init_weights = pickle.load(f)
+            model.set_weights(init_weights)
+    else:
+        print("- invalid path")
+        print("- start with new model ...")
 
     # --- Online mode or not
 
     if not online_mode:
-        print("\n- offline mode activated")
+        print("- offline mode activated")
         if dynamic_mode:
             print("- dynamic mode activated")
             for dataset_file in os.listdir(datasets_folder_path):

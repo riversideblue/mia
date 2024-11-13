@@ -5,12 +5,13 @@
     "CUDA_VISIBLE_DEVICES": "-1"
   },
   "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/2022wtnb",
-  "BEGINNING_DAYTIME": "2022-08-04 13:00:00",
+  "FOUNDATION_MODEL_PATH": "src/main/outputs/training/20241113164544/model_weights/2022-08-06 02:00:00-weights.pickle",
+  "BEGINNING_DAYTIME": "2022-08-05 13:00:00",
   "ONLINE_MODE": 0,
-  "EVALUATE_UNIT_INTERVAL" : 3600,
+  "EVALUATE_UNIT_INTERVAL" : 60,
   "TargetRange": {
-    "DAYS": 5,
-    "HOURS": 0,
+    "DAYS": 0,
+    "HOURS": 3,
     "MINUTES": 0,
     "SECONDS": 0
   },
