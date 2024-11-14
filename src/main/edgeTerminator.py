@@ -151,7 +151,9 @@ async def main():
 
                         if timestamp >= beginning_daytime:
                             # Drift Detection
-                            drift_flag = True
+                            drift_flag = driftDetector.main()
+
+
 
                             # Training
                             if drift_flag:
@@ -191,7 +193,7 @@ async def main():
                                         [evaluate_results_list, evaluate_results_array])
                                 evaluate_epoch_feature_matrix = [row]
                                 evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
-                                
+
                                 # dataが存在しない区間は直前の結果を流用
                                 while timestamp > evaluate_unit_end_daytime:
                                     print("- no data detected")

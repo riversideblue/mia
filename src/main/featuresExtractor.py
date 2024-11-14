@@ -109,9 +109,11 @@ def extract_features_from_flow(packets_in_flow):
     most_port = None
     port_count = 0
     rcv_max_interval = rcv_min_interval = None
-    rcv_max_length = rcv_min_length = 0
+    rcv_max_length = 0
+    rcv_min_length = 65535
     snd_max_interval = snd_min_interval = None
-    snd_max_length = snd_min_length = 0
+    snd_max_length = 0
+    snd_min_length = 65535
     label = None
 
     port_freq = {}
