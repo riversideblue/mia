@@ -56,4 +56,4 @@ def main(model, df, output_dir_path, scalar, epochs, batch_size, repeat_count, r
 
     flow_num = df.shape[0]
 
-    return model,[retraining_daytime, flow_num, training_time, benign_count, malicious_count]
+    return model,[retraining_daytime, training_time, benign_count, malicious_count, flow_num]

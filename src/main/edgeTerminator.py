@@ -1,4 +1,3 @@
-import asyncio
 import csv
 import json
 import os
@@ -9,9 +8,9 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 import pytz
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-from main import driftDetector, featuresExtractor, modelSender, modelTrainer, trafficServer, modelCreator, modelEvaluator
+from main import driftDetector, featuresExtractor, modelTrainer, modelCreator, modelEvaluator
 
 
 def is_pass_exist(path):
@@ -21,7 +20,7 @@ def is_pass_exist(path):
 
 # ----- Main
 
-async def main():
+def main():
 
     # --- Load settings
     settings = json.load(open("src/main/settings.json", "r"))
@@ -80,10 +79,10 @@ async def main():
     os.makedirs(f"{output_dir_path}/model_weights")
 
     # --- Set results
-    training_results = pd.DataFrame(columns=["daytime", "flow_num", "training_time", "benign_count", "malicious_count"])
-    training_results_list = training_results.values
-    evaluate_results = pd.DataFrame(columns=["daytime", "flow_num", "accuracy", "f1_score", "precision", "recall"])
-    evaluate_results_list = evaluate_results.values
+    training_results_column = ["daytime", "training_time", "benign_count", "malicious_count", "flow_num", "nmr_flow_num"]
+    training_results_list = np.empty((0, 5), dtype=object)
+    evaluate_results_column = ["daytime", "accuracy", "precision", "recall", "f1_score", "benign_count", "malicious_count", "benign_rate", "flow_num", "nmr_flow_num", "nmr_benign_ratio", "nmr_benign_ratio2"]
+    evaluate_results_list = np.empty((0, 9), dtype=object)
 
     # --- Create foundation model
     foundation_model_path = settings["FOUNDATION_MODEL_PATH"]
@@ -152,8 +151,6 @@ async def main():
                         if timestamp >= beginning_daytime:
                             # Drift Detection
                             drift_flag = driftDetector.main()
-
-
 
                             # Training
                             if drift_flag:
@@ -324,10 +321,32 @@ async def main():
     with open(f"{output_dir_path}/settings_log_edge.json", "w") as f:
         json.dump(settings, f, indent=1)  # type:
 
-    evaluate_results = pd.concat([evaluate_results, pd.DataFrame(evaluate_results_list, columns=evaluate_results.columns)])
+    # --- results processing
+
+    # training/evaluate flow num/benign ratio normalized
+    min_max_scaler = MinMaxScaler()
+    reshaper = training_results_list[:,4].reshape(-1,1)
+    scaled = min_max_scaler.fit_transform(reshaper)
+    training_results_list = np.hstack((training_results_list,scaled))
+
+    reshaper = evaluate_results_list[:, -1].reshape(-1, 1)
+    scaled = min_max_scaler.fit_transform(reshaper)
+    evaluate_results_list = np.hstack((evaluate_results_list, scaled))
+
+    reshaper = evaluate_results_list[:,-3].reshape(-1,1)
+    scaled = min_max_scaler.fit_transform(reshaper)
+    evaluate_results_list = np.hstack((evaluate_results_list, scaled))
+
+    sum_flow_num = np.sum(evaluate_results_list[:,-3])
+    benign_rate_in_sfn = evaluate_results_list[:,-6]/sum_flow_num
+    reshaper = benign_rate_in_sfn.reshape(-1, 1)
+    scaled = min_max_scaler.fit_transform(reshaper)
+    evaluate_results_list = np.hstack((evaluate_results_list, scaled))
+
+    evaluate_results = pd.DataFrame(evaluate_results_list, columns=evaluate_results_column)
     evaluate_results.to_csv(os.path.join(output_dir_path, "results_evaluate.csv"), index=False)
-    training_results = pd.concat([training_results, pd.DataFrame(training_results_list, columns=training_results.columns)])
+    training_results = pd.DataFrame(training_results_list, columns=training_results_column)
     training_results.to_csv(os.path.join(output_dir_path, "results_training.csv"), index=False)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

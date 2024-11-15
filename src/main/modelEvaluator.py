@@ -1,3 +1,4 @@
+import numpy as np
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 def main(model, df, scaler, scaled_flag, evaluate_daytime):
@@ -17,10 +18,24 @@ def main(model, df, scaler, scaled_flag, evaluate_daytime):
         prediction_binary_values = (prediction_values >= 0.5).astype(int)
 
         # --- Evaluate
-        flow_num = df.shape[0]
         accuracy = accuracy_score(targets, prediction_binary_values)
         precision = precision_score(targets, prediction_binary_values)
         recall = recall_score(targets, prediction_binary_values)
         f1 = f1_score(targets, prediction_binary_values)
 
-        return [evaluate_daytime, flow_num, accuracy, precision, recall, f1], scaled_flag
+        flow_num = df.shape[0]
+        benign_count = np.sum(targets == 0)
+        malicious_count = np.sum(targets == 1)
+        benign_rate = benign_count/flow_num
+
+        return [
+            evaluate_daytime,
+            accuracy,
+            precision,
+            recall,
+            f1,
+            benign_count,
+            malicious_count,
+            benign_rate,
+            flow_num
+        ], scaled_flag
