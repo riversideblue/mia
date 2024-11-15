@@ -80,9 +80,9 @@ def main():
 
     # --- Set results
     training_results_column = ["daytime", "training_time", "benign_count", "malicious_count", "flow_num", "nmr_flow_num"]
-    training_results_list = np.empty((0, 5), dtype=object)
-    evaluate_results_column = ["daytime", "accuracy", "precision", "recall", "f1_score", "benign_count", "malicious_count", "benign_rate", "flow_num", "nmr_flow_num", "nmr_benign_ratio", "nmr_benign_ratio2"]
-    evaluate_results_list = np.empty((0, 9), dtype=object)
+    training_results_list = np.empty((0, len(training_results_column)), dtype=object)
+    evaluate_results_column = ["daytime", "accuracy", "precision", "recall", "f1_score", "benign_count", "malicious_count", "benign_rate", "flow_num", "nmr_flow_num_ratio", "nmr_benign_ratio"]
+    evaluate_results_list = np.empty((0, len(evaluate_results_column)), dtype=object)
 
     # --- Create foundation model
     foundation_model_path = settings["FOUNDATION_MODEL_PATH"]
@@ -323,23 +323,20 @@ def main():
 
     # --- results processing
 
+    sum_flow_num = np.sum(evaluate_results_list[:, -1])
+
     # training/evaluate flow num/benign ratio normalized
     min_max_scaler = MinMaxScaler()
     reshaper = training_results_list[:,4].reshape(-1,1)
     scaled = min_max_scaler.fit_transform(reshaper)
     training_results_list = np.hstack((training_results_list,scaled))
 
-    reshaper = evaluate_results_list[:, -1].reshape(-1, 1)
+    flow_num_rate = evaluate_results_list[:,-1]/sum_flow_num
+    reshaper = flow_num_rate.reshape(-1, 1)
     scaled = min_max_scaler.fit_transform(reshaper)
     evaluate_results_list = np.hstack((evaluate_results_list, scaled))
 
     reshaper = evaluate_results_list[:,-3].reshape(-1,1)
-    scaled = min_max_scaler.fit_transform(reshaper)
-    evaluate_results_list = np.hstack((evaluate_results_list, scaled))
-
-    sum_flow_num = np.sum(evaluate_results_list[:,-3])
-    benign_rate_in_sfn = evaluate_results_list[:,-6]/sum_flow_num
-    reshaper = benign_rate_in_sfn.reshape(-1, 1)
     scaled = min_max_scaler.fit_transform(reshaper)
     evaluate_results_list = np.hstack((evaluate_results_list, scaled))
 
