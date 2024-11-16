@@ -1,14 +1,12 @@
 import tensorflow as tf
 
-print(tf.__version__)  # TensorFlowのバージョン確認
-print(tf.keras.__file__)  # kerasモジュールのパス確認
-
 # ----- Define foundation model
 def main():
     # Sequentialモデルを定義
     model = tf.keras.models.Sequential([
         # 入力層＋1層目の全結合レイヤー（ReLU活性化関数）
-        tf.keras.layers.Dense(100, activation='relu', input_dim=14),
+        tf.keras.layers.Input(shape=(14,)),  # 入力形状を明示的に指定
+        tf.keras.layers.Dense(100, activation='relu'),
         # 2層目の全結合レイヤー（ReLU活性化関数）
         tf.keras.layers.Dense(50, activation='relu'),
         # 3層目の全結合レイヤー（ReLU活性化関数）
