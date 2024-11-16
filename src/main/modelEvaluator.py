@@ -20,7 +20,7 @@ def evaluate_model(targets, predictions):
     precision = precision_score(targets, prediction_binary)
     recall = recall_score(targets, prediction_binary)
     f1 = f1_score(targets, prediction_binary)
-    loss = log_loss(targets, predictions)  # 損失値の計算
+    loss = log_loss(targets, predictions, labels=[0, 1])  # 損失値の計算
 
     return accuracy, precision, recall, f1, loss
 

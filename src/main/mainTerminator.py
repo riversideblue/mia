@@ -159,7 +159,12 @@ def main():
     evaluate_results = pd.concat([evaluate_results, additional_results], axis=1)
     evaluate_results.to_csv(os.path.join(output_dir_path, "results_evaluate.csv"), index=False)
 
+    print("\n")
     model.summary()
+
+    for layer in model.layers:
+        print(f"Layer: {layer.name}, Trainable: {layer.trainable}")
+
 
 if __name__ == "__main__":
     main()
