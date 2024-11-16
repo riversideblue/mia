@@ -1,20 +1,27 @@
 import tensorflow as tf
 
-# ----- Def foundation model
+print(tf.__version__)  # TensorFlowのバージョン確認
+print(tf.keras.__file__)  # kerasモジュールのパス確認
+
+# ----- Define foundation model
 def main():
-    model = tf.keras.models.Sequential()
+    # Sequentialモデルを定義
+    model = tf.keras.models.Sequential([
+        # 入力層＋1層目の全結合レイヤー（ReLU活性化関数）
+        tf.keras.layers.Dense(100, activation='relu', input_dim=14),
+        # 2層目の全結合レイヤー（ReLU活性化関数）
+        tf.keras.layers.Dense(50, activation='relu'),
+        # 3層目の全結合レイヤー（ReLU活性化関数）
+        tf.keras.layers.Dense(25, activation='relu'),
+        # 出力層（Sigmoid活性化関数）
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
 
-    model.add(tf.keras.layers.Dense(100, input_dim=14))
-    model.add(tf.keras.layers.Activation(tf.nn.relu))
+    # モデルのコンパイル
+    model.compile(
+        optimizer="adam",
+        loss="binary_crossentropy",
+        metrics=["accuracy"]
+    )
 
-    model.add(tf.keras.layers.Dense(50))
-    model.add(tf.keras.layers.Activation(tf.nn.relu))
-
-    model.add(tf.keras.layers.Dense(25))
-    model.add(tf.keras.layers.Activation(tf.nn.relu))
-
-    model.add(tf.keras.layers.Dense(1))
-    model.add(tf.keras.layers.Activation(tf.nn.sigmoid))
-
-    model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
     return model
