@@ -19,7 +19,6 @@ def main(
         scaler,
         epochs,
         batch_size,
-        repeat_count,
         static_interval,
         evaluate_unit_interval,
         training_results_list,
@@ -30,9 +29,9 @@ def main(
     evaluate_epoch_feature_matrix = []
 
     if online_mode:
-        print("- static/online mode activate")
+        print("- < static/online mode activate >")
     else:
-        print("- static/offline mode activate")
+        print("- < static/offline mode activate >")
 
         first_timestamp_flag = True
         first_training_flag = True
@@ -65,7 +64,7 @@ def main(
                     elif timestamp < beginning_daytime: # beginning_daytime以前の行は読み飛ばす
                         pass
                     elif timestamp > end_daytime: # timestampがend_daytimeを超えた時
-                        print("--- detected end_daytime")
+                        print("- < detected end_daytime >")
                         end_flag = True
                         break
                     else:
@@ -83,7 +82,6 @@ def main(
                                     scalar=scaler,
                                     epochs=epochs,
                                     batch_size=batch_size,
-                                    repeat_count=repeat_count,
                                     retraining_daytime=retraining_daytime
                                 )
                                 training_results_list = np.vstack([training_results_list, training_results_array])
@@ -91,6 +89,17 @@ def main(
                             retraining_feature_matrix = [row]
                             retraining_daytime += timedelta(seconds=static_interval)
                             first_training_flag = False
+
+                            while timestamp > retraining_daytime:
+                                print(f"- < no data range detected : {timestamp} >")
+                                training_results_array = training_results_list[-1].copy()
+                                training_results_array[0] = retraining_daytime - timedelta(seconds=static_interval/2)
+                                training_results_array[4] = 0
+                                training_results_array[5] = 0
+                                training_results_array[6] = 0
+                                training_results_list = np.vstack(
+                                    [training_results_list, training_results_array])
+                                retraining_daytime += timedelta(seconds=static_interval)
 
                         else:
                             retraining_feature_matrix.append(row)
@@ -102,6 +111,7 @@ def main(
 
                                 print("--- evaluate model")
                                 evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
+                                print(evaluate_unit_end_daytime)
                                 evaluate_results_array, scaled_flag = modelEvaluator.main(
                                     model=model,
                                     df=evaluate_df,
@@ -114,19 +124,21 @@ def main(
 
                             evaluate_epoch_feature_matrix = [row]
                             evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
+                            first_evaluate_flag = False
 
                             # dataが存在しない区間は直前の結果を流用
                             while timestamp > evaluate_unit_end_daytime:
-                                print("- no data detected")
-                                evaluate_results_array = evaluate_results_list[-1]
+                                print(f"- < no data range detected : {timestamp} >")
+                                evaluate_results_array = evaluate_results_list[-1].copy()
                                 evaluate_results_array[0] = evaluate_unit_end_daytime - timedelta(
                                     seconds=evaluate_unit_interval / 2)
-                                evaluate_results_array[1] = 0  # flow_num = 0
-                                print(evaluate_results_array)
+                                evaluate_results_array[6] = 0 # benign count = 0
+                                evaluate_results_array[7] = 0 # malicious count = 0
+                                evaluate_results_array[8] = 0 # benign rate = 0
+                                evaluate_results_array[9] = 0 # flow_num = 0
                                 evaluate_results_list = np.vstack(
                                     [evaluate_results_list, evaluate_results_array])
                                 evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
-                            first_evaluate_flag = False
 
                         else:
                             evaluate_epoch_feature_matrix.append(row)

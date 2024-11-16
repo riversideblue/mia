@@ -54,7 +54,6 @@ def main():
     settings["Log"]["END_DAYTIME"] = end_daytime.isoformat()
     epochs: int = settings["TrainingDefine"]["EPOCHS"]
     batch_size: int = settings["TrainingDefine"]["BATCH_SIZE"]
-    repeat_count: int = settings["TrainingDefine"]["REPEAT_COUNT"]
 
     online_mode: bool = bool(settings["ONLINE_MODE"])
     dynamic_mode: bool = bool(settings["RetrainingCycle"]["DYNAMIC_MODE"])
@@ -70,9 +69,10 @@ def main():
     os.makedirs(f"{output_dir_path}/model_weights")
 
     # --- Set results
-    training_results_column = ["daytime", "training_time", "benign_count", "malicious_count", "flow_num"]
+    training_results_column = ["daytime", "accuracy", "loss", "training_time", "benign_count", "malicious_count", "flow_num"]
     training_results_list = np.empty((0,len(training_results_column)),dtype=object)
-    evaluate_results_column = ["daytime", "accuracy", "precision", "recall", "f1_score", "benign_count", "malicious_count", "benign_rate", "flow_num"]
+    print(training_results_list.shape)
+    evaluate_results_column = ["daytime", "accuracy", "precision", "recall", "f1_score", "loss", "benign_count", "malicious_count", "benign_rate", "flow_num"]
     evaluate_results_list = np.empty((0,len(evaluate_results_column)),dtype=object)
 
     # --- Foundation model setting
@@ -101,7 +101,6 @@ def main():
              scaler=scalar,
              epochs=epochs,
              batch_size=batch_size,
-             repeat_count=repeat_count,
              evaluate_unit_interval=evaluate_unit_interval,
              training_results_list=training_results_list,
              evaluate_results_list=evaluate_results_list
@@ -117,7 +116,6 @@ def main():
             scaler=scalar,
             epochs=epochs,
             batch_size=batch_size,
-            repeat_count=repeat_count,
             static_interval=static_interval,
             evaluate_unit_interval=evaluate_unit_interval,
             training_results_list=training_results_list,
@@ -160,6 +158,8 @@ def main():
     # Combine evaluate_results with additional_results
     evaluate_results = pd.concat([evaluate_results, additional_results], axis=1)
     evaluate_results.to_csv(os.path.join(output_dir_path, "results_evaluate.csv"), index=False)
+
+    model.summary()
 
 if __name__ == "__main__":
     main()

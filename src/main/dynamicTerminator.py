@@ -19,7 +19,6 @@ def main(
         scaler,
         epochs,
         batch_size,
-        repeat_count,
         evaluate_unit_interval,
         training_results_list,
         evaluate_results_list
@@ -101,7 +100,6 @@ def main(
                                 scalar=scaler,
                                 epochs=epochs,
                                 batch_size=batch_size,
-                                repeat_count=repeat_count,
                                 retraining_daytime=retraining_daytime
                             )
                             training_results_list = np.vstack(
@@ -113,7 +111,7 @@ def main(
 
                         # Evaluate
                         if timestamp > evaluate_unit_end_daytime:
-                            if not evaluate_first_reading_flag:
+                            if not first_evaluate_flag:
                                 print("\n--- evaluate model")
                                 evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
                                 evaluate_results_array, scaled_flag = modelEvaluator.main(
@@ -131,16 +129,17 @@ def main(
 
                             # dataが存在しない区間は直前の結果を流用
                             while timestamp > evaluate_unit_end_daytime:
-                                print("- no data detected")
-                                evaluate_results_array = evaluate_results_list[-1]
+                                print(f"\n- < no data range detected : {timestamp} >")
+                                evaluate_results_array = evaluate_results_list[-1].copy()
                                 evaluate_results_array[0] = evaluate_unit_end_daytime - timedelta(
                                     seconds=evaluate_unit_interval / 2)
-                                evaluate_results_array[1] = 0  # flow_num = 0
-                                print(evaluate_results_array)
+                                evaluate_results_array[6] = 0 # benign count = 0
+                                evaluate_results_array[7] = 0 # malicious count = 0
+                                evaluate_results_array[8] = 0 # benign rate = 0
+                                evaluate_results_array[9] = 0 # flow_num = 0
                                 evaluate_results_list = np.vstack(
                                     [evaluate_results_list, evaluate_results_array])
                                 evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
-                            evaluate_first_reading_flag = False
                         else:
                             evaluate_epoch_feature_matrix.append(row)
 
