@@ -69,6 +69,44 @@ def main(
                         break
                     else:
 
+                        # --- Evaluate
+                        if timestamp > evaluate_unit_end_daytime:
+
+                            if not first_evaluate_flag:
+
+                                print("--- evaluate model")
+                                evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
+                                evaluate_results_array, scaled_flag = modelEvaluator.main(
+                                    model=model,
+                                    df=evaluate_df,
+                                    scaler=scaler,
+                                    scaled_flag=scaled_flag,
+                                    evaluate_daytime=evaluate_unit_end_daytime - timedelta(
+                                        seconds=evaluate_unit_interval / 2)
+                                )
+                                evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
+
+                            evaluate_epoch_feature_matrix = [row]
+                            evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
+                            first_evaluate_flag = False
+
+                            # dataが存在しない区間は直前の結果を流用
+                            while timestamp > evaluate_unit_end_daytime:
+                                print(f"- < no data range detected : {timestamp} >")
+                                evaluate_results_array = evaluate_results_list[-1].copy()
+                                evaluate_results_array[0] = evaluate_unit_end_daytime - timedelta(
+                                    seconds=evaluate_unit_interval / 2)
+                                evaluate_results_array[6] = 0 # benign count = 0
+                                evaluate_results_array[7] = 0 # malicious count = 0
+                                evaluate_results_array[8] = 0 # benign rate = 0
+                                evaluate_results_array[9] = 0 # flow_num = 0
+                                evaluate_results_list = np.vstack(
+                                    [evaluate_results_list, evaluate_results_array])
+                                evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
+
+                        else:
+                            evaluate_epoch_feature_matrix.append(row)
+
                         # --- Training
                         if timestamp > retraining_daytime:
 
@@ -103,45 +141,6 @@ def main(
 
                         else:
                             retraining_feature_matrix.append(row)
-
-                        # --- Evaluate
-                        if timestamp > evaluate_unit_end_daytime:
-
-                            if not first_evaluate_flag:
-
-                                print("--- evaluate model")
-                                evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
-                                print(evaluate_unit_end_daytime)
-                                evaluate_results_array, scaled_flag = modelEvaluator.main(
-                                    model=model,
-                                    df=evaluate_df,
-                                    scaler=scaler,
-                                    scaled_flag=scaled_flag,
-                                    evaluate_daytime=evaluate_unit_end_daytime - timedelta(
-                                        seconds=evaluate_unit_interval / 2)
-                                )
-                                evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
-
-                            evaluate_epoch_feature_matrix = [row]
-                            evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
-                            first_evaluate_flag = False
-
-                            # dataが存在しない区間は直前の結果を流用
-                            while timestamp > evaluate_unit_end_daytime:
-                                print(f"- < no data range detected : {timestamp} >")
-                                evaluate_results_array = evaluate_results_list[-1].copy()
-                                evaluate_results_array[0] = evaluate_unit_end_daytime - timedelta(
-                                    seconds=evaluate_unit_interval / 2)
-                                evaluate_results_array[6] = 0 # benign count = 0
-                                evaluate_results_array[7] = 0 # malicious count = 0
-                                evaluate_results_array[8] = 0 # benign rate = 0
-                                evaluate_results_array[9] = 0 # flow_num = 0
-                                evaluate_results_list = np.vstack(
-                                    [evaluate_results_list, evaluate_results_array])
-                                evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
-
-                        else:
-                            evaluate_epoch_feature_matrix.append(row)
 
         # --- End static-offline processing
     return training_results_list,evaluate_results_list

@@ -1,0 +1,56 @@
+{
+ "OS": {
+  "TF_CPP_MIN_LOG_LEVEL": "3",
+  "TF_FORCE_GPU_ALLOW_GROWTH": "true",
+  "CUDA_VISIBLE_DEVICES": "-1"
+ },
+ "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/2022wtnb",
+ "FOUNDATION_MODEL_PATH": "src/main/outputs/training/20241117044408/model_weights/2022-08-03 20:51:35-weights.pickle",
+ "BEGINNING_DAYTIME": "2022-08-10 00:00:00",
+ "ONLINE_MODE": 0,
+ "RETRAINING_MODE": "non-training",
+ "STATIC_INTERVAL": 3600,
+ "EVALUATE_UNIT_INTERVAL": 3600,
+ "TargetRange": {
+  "DAYS": 10,
+  "HOURS": 0,
+  "MINUTES": 0,
+  "SECONDS": 0
+ },
+ "TrainingDefine": {
+  "EPOCHS": 1,
+  "BATCH_SIZE": 512
+ },
+ "FeatureExtract": {
+  "ONLINE_MODE": 0,
+  "TRAFFIC_DATA_PATH": "src/main/traffic_data/2022_wtnb",
+  "FLOW_TIMEOUT": 60,
+  "CAPTURE_TIMEOUT": 900,
+  "NetworkAddress": {
+   "BENIGN": [
+    "172.29.148.0/24",
+    "172.21.41.0/24",
+    "192.168.11.0/24",
+    "192.168.1.0/24"
+   ],
+   "MALICIOUS": [
+    "192.168.10.5/32"
+   ],
+   "EXCEPTION": [
+    "0.0.0.0",
+    "255.255.255.255",
+    "239.255.255.250",
+    "239.255.255.251",
+    "168.63.129.16",
+    "8.8.8.8",
+    "8.8.4.4",
+    "224.0.0.250"
+   ]
+  }
+ },
+ "Log": {
+  "INIT_TIME": "20241117044609",
+  "BEGINNING_DAYTIME": "2022-08-10T00:00:00",
+  "END_DAYTIME": "2022-08-20T00:00:00"
+ }
+}

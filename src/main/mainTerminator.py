@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import pickle
@@ -10,7 +11,7 @@ import pytz
 
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-from main import modelCreator, dynamicTerminator, staticTerminator
+from main import modelCreator, dynamicTerminator, staticTerminator, modelEvaluator
 
 
 def is_pass_exist(path):
@@ -56,11 +57,15 @@ def main():
     batch_size: int = settings["TrainingDefine"]["BATCH_SIZE"]
 
     online_mode: bool = bool(settings["ONLINE_MODE"])
-    dynamic_mode: bool = bool(settings["RetrainingCycle"]["DYNAMIC_MODE"])
-    static_interval: int = settings["RetrainingCycle"]["STATIC_INTERVAL"]
+    retraining_mode = settings["RETRAINING_MODE"]
+    static_interval: int = settings["STATIC_INTERVAL"]
     evaluate_unit_interval: int = settings["EVALUATE_UNIT_INTERVAL"]
 
-    scalar = StandardScaler()
+    past_window_size = settings["DriftDetection"]["PAST_WINDOW_SIZE"]
+    present_window_size = settings["DriftDetection"]["PRESENT_WINDOW_SIZE"]
+    threshold = settings["DriftDetection"]["THRESHOLD"]
+
+    scaler = StandardScaler()
     is_pass_exist(datasets_folder_path)
 
     # --- Create output directory
@@ -71,7 +76,6 @@ def main():
     # --- Set results
     training_results_column = ["daytime", "accuracy", "loss", "training_time", "benign_count", "malicious_count", "flow_num"]
     training_results_list = np.empty((0,len(training_results_column)),dtype=object)
-    print(training_results_list.shape)
     evaluate_results_column = ["daytime", "accuracy", "precision", "recall", "f1_score", "loss", "benign_count", "malicious_count", "benign_rate", "flow_num"]
     evaluate_results_list = np.empty((0,len(evaluate_results_column)),dtype=object)
 
@@ -90,7 +94,7 @@ def main():
         sys.exit(1)
 
     # --- Terminate
-    if dynamic_mode:
+    if retraining_mode == "dynamic":
          training_results_list,evaluate_results_list = dynamicTerminator.main(
              online_mode= online_mode,
              datasets_folder_path=datasets_folder_path,
@@ -98,14 +102,17 @@ def main():
              beginning_daytime=beginning_daytime,
              end_daytime=end_daytime,
              model=model,
-             scaler=scalar,
+             scaler=scaler,
              epochs=epochs,
              batch_size=batch_size,
              evaluate_unit_interval=evaluate_unit_interval,
+             past_window_size=past_window_size,
+             present_window_size=present_window_size,
+             threshold=threshold,
              training_results_list=training_results_list,
              evaluate_results_list=evaluate_results_list
          )
-    else:
+    elif retraining_mode == "static":
         training_results_list,evaluate_results_list = staticTerminator.main(
             online_mode= online_mode,
             datasets_folder_path=datasets_folder_path,
@@ -113,7 +120,7 @@ def main():
             beginning_daytime=beginning_daytime,
             end_daytime=end_daytime,
             model=model,
-            scaler=scalar,
+            scaler=scaler,
             epochs=epochs,
             batch_size=batch_size,
             static_interval=static_interval,
@@ -121,6 +128,80 @@ def main():
             training_results_list=training_results_list,
             evaluate_results_list=evaluate_results_list
         )
+    elif retraining_mode == "non-training":
+
+        evaluate_epoch_feature_matrix = []
+        first_timestamp_flag = True
+        first_evaluate_flag = True
+        end_flag = False
+        scaled_flag = False
+        evaluate_unit_end_daytime = beginning_daytime
+
+        for dataset_file in os.listdir(datasets_folder_path):
+            if end_flag : break
+            dataset_file_path: str = f"{datasets_folder_path}/{dataset_file}"
+            print(f"- {dataset_file} set now")
+            with open(dataset_file_path, mode='r') as file:
+                reader = csv.reader(file)
+                headers = next(reader)  # 最初の行をヘッダーとして読み込む
+
+                timestamp_index = headers.index("timestamp")
+
+                for row in reader:
+                    timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
+
+                    # --- Beginning and end filter
+                    if first_timestamp_flag: # 最初の行のtimestamp
+                        if timestamp > beginning_daytime:
+                            print("- error : beginning_daytime should be within datasets range")
+                            sys.exit(1)
+                        else:
+                            first_timestamp_flag = False
+                    elif timestamp < beginning_daytime: # beginning_daytime以前の行は読み飛ばす
+                        pass
+                    elif timestamp > end_daytime: # timestampがend_daytimeを超えた時
+                        print("- < detected end_daytime >")
+                        end_flag = True
+                        break
+                    else:
+                        # --- Evaluate
+                        if timestamp > evaluate_unit_end_daytime:
+                            if not first_evaluate_flag:
+                                print("--- evaluate model")
+                                evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
+                                print(evaluate_unit_end_daytime)
+                                evaluate_results_array, scaled_flag = modelEvaluator.main(
+                                    model=model,
+                                    df=evaluate_df,
+                                    scaler=scaler,
+                                    scaled_flag=scaled_flag,
+                                    evaluate_daytime=evaluate_unit_end_daytime - timedelta(
+                                        seconds=evaluate_unit_interval / 2)
+                                )
+                                evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
+
+                            evaluate_epoch_feature_matrix = [row]
+                            evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
+                            first_evaluate_flag = False
+
+                            # dataが存在しない区間は直前の結果を流用
+                            while timestamp > evaluate_unit_end_daytime:
+                                print(f"- < no data range detected : {timestamp} >")
+                                evaluate_results_array = evaluate_results_list[-1].copy()
+                                evaluate_results_array[0] = evaluate_unit_end_daytime - timedelta(
+                                    seconds=evaluate_unit_interval / 2)
+                                evaluate_results_array[6] = 0 # benign count = 0
+                                evaluate_results_array[7] = 0 # malicious count = 0
+                                evaluate_results_array[8] = 0 # benign rate = 0
+                                evaluate_results_array[9] = 0 # flow_num = 0
+                                evaluate_results_list = np.vstack(
+                                    [evaluate_results_list, evaluate_results_array])
+                                evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
+                        else:
+                            evaluate_epoch_feature_matrix.append(row)
+    else:
+        print("retraining mode invalid")
+        sys.exit(1)
 
     # --- Save settings_log
     with open(f"{output_dir_path}/settings_log_edge.json", "w") as f:
@@ -161,9 +242,6 @@ def main():
 
     print("\n")
     model.summary()
-
-    for layer in model.layers:
-        print(f"Layer: {layer.name}, Trainable: {layer.trainable}")
 
 
 if __name__ == "__main__":

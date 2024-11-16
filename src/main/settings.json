@@ -8,7 +8,9 @@
   "FOUNDATION_MODEL_PATH": "",
   "BEGINNING_DAYTIME": "2022-08-10 00:00:00",
   "ONLINE_MODE": 0,
-  "EVALUATE_UNIT_INTERVAL" : 3600,
+  "RETRAINING_MODE": "dynamic",
+  "STATIC_INTERVAL": 3600,
+  "EVALUATE_UNIT_INTERVAL" : 1800,
   "TargetRange": {
     "DAYS": 3,
     "HOURS": 0,
@@ -17,11 +19,12 @@
   },
   "TrainingDefine": {
     "EPOCHS": 1,
-    "BATCH_SIZE": 2048
+    "BATCH_SIZE": 512
   },
-  "RetrainingCycle": {
-    "DYNAMIC_MODE": 0,
-    "STATIC_INTERVAL": 3600
+  "DriftDetection": {
+    "PAST_WINDOW_SIZE": 1000,
+    "PRESENT_WINDOW_SIZE": 1000,
+    "THRESHOLD": 100
   },
   "FeatureExtract": {
     "ONLINE_MODE": 0,

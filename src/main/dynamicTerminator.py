@@ -1,12 +1,41 @@
 import csv
 import os
 import sys
+from collections import deque
 from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
 
-from main import modelTrainer, modelEvaluator, driftDetector
+from main import modelTrainer, modelEvaluator
+
+class DriftManager:
+    def __init__(self,past_window_size,present_window_size,threshold):
+
+        self.flow_count = 0
+        self.past_window = deque(maxlen=past_window_size)
+        self.past_window_size = past_window_size
+        self.present_window = deque(maxlen=present_window_size)
+        self.present_window_size = present_window_size
+        self.first_wait_count = past_window_size + present_window_size
+        self.threshold = threshold
+
+    def detection(self,flow):
+
+        if len(self.past_window) == self.past_window_size:
+            self.present_window.append(self.past_window.popleft())
+
+        self.past_window.append(flow)
+
+        self.flow_count += 1
+
+        if self.flow_count > self.first_wait_count:
+            ave_past = sum(self.past_window) / self.past_window_size
+            ave_present = sum(self.present_window) / self.present_window_size
+            if abs(ave_present - ave_past) > self.threshold:
+                return True
+
+        return False
 
 
 def main(
@@ -20,12 +49,16 @@ def main(
         epochs,
         batch_size,
         evaluate_unit_interval,
+        past_window_size,
+        present_window_size,
+        threshold,
         training_results_list,
         evaluate_results_list
 ):
 
     retraining_feature_matrix = []
     evaluate_epoch_feature_matrix = []
+    drift_manager = DriftManager(past_window_size,present_window_size,threshold)
 
     if online_mode:
         print("dynamic - online mode")
@@ -33,14 +66,13 @@ def main(
         print("dynamic - offline mode")
 
         first_timestamp_flag = True
-        first_training_flag = True
         first_evaluate_flag = True
         end_flag = False
         scaled_flag = False
-        retraining_daytime = beginning_daytime
         evaluate_unit_end_daytime = beginning_daytime
 
         for dataset_file in os.listdir(datasets_folder_path):
+            if end_flag : break
             dataset_file_path: str = f"{datasets_folder_path}/{dataset_file}"
             print(f"- {dataset_file} set now")
             with open(dataset_file_path, mode='r') as file:
@@ -68,31 +100,70 @@ def main(
 
                 for row in reader:
                     timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
+                    flow_num:int = int(row[rcv_packet_count]) + int(row[snd_packet_count])
 
-                    # --- Beginning and end filter
-
-                    if first_timestamp_flag:
-                        if beginning_daytime < timestamp:
-                            print("beginning_daytime should be over datasets first timestamp")
+                    # --- Beginning and end daytime filter
+                    if first_timestamp_flag: # 最初の行のtimestamp
+                        if timestamp > beginning_daytime:
+                            print("- error : beginning_daytime should be within datasets range")
                             sys.exit(1)
                         else:
                             first_timestamp_flag = False
-                    elif beginning_daytime > timestamp:
+                    elif timestamp < beginning_daytime: # beginning_daytime以前の行は読み飛ばす
                         pass
-                    elif end_daytime < timestamp:
-                        print("detected end_daytime")
+                    elif timestamp > end_daytime: # timestampがend_daytimeを超えた時
+                        print("- < detected end_daytime >")
+                        end_flag = True
                         break
 
-                    # --- Drift detection
-
                     else:
+                        # --- Evaluate
+                        if timestamp > evaluate_unit_end_daytime:
 
-                        drift_flag = driftDetector.main()
+                            if not first_evaluate_flag:
+
+                                print("--- evaluate model")
+                                evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
+                                evaluate_results_array, scaled_flag = modelEvaluator.main(
+                                    model=model,
+                                    df=evaluate_df,
+                                    scaler=scaler,
+                                    scaled_flag=scaled_flag,
+                                    evaluate_daytime=evaluate_unit_end_daytime - timedelta(
+                                        seconds=evaluate_unit_interval / 2)
+                                )
+                                evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
+
+                            evaluate_epoch_feature_matrix = [row]
+                            evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
+                            first_evaluate_flag = False
+
+                            # dataが存在しない区間は直前の結果を流用
+                            while timestamp > evaluate_unit_end_daytime:
+                                print(f"- < no data range detected : {timestamp} >")
+                                evaluate_results_array = evaluate_results_list[-1].copy()
+                                evaluate_results_array[0] = evaluate_unit_end_daytime - timedelta(
+                                    seconds=evaluate_unit_interval / 2)
+                                evaluate_results_array[6] = 0 # benign count = 0
+                                evaluate_results_array[7] = 0 # malicious count = 0
+                                evaluate_results_array[8] = 0 # benign rate = 0
+                                evaluate_results_array[9] = 0 # flow_num = 0
+                                evaluate_results_list = np.vstack(
+                                    [evaluate_results_list, evaluate_results_array])
+                                evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
+
+                        else:
+                            evaluate_epoch_feature_matrix.append(row)
+
+                        # --- Drift detection
+                        drift_flag = drift_manager.detection(flow_num)
 
                         # --- Training
                         if drift_flag:
+                            print("Drift Detected")
                             df_training = pd.DataFrame(retraining_feature_matrix)
-                            retraining_daytime = df_training[2,-1] # データセット内の最後のフローがキャプチャされた時間
+                            print(df_training)
+                            retraining_daytime = df_training.iloc[-1,2] # データセット内の最後のフローがキャプチャされた時間
                             model, training_results_array = modelTrainer.main(
                                 model=model,
                                 df=df_training,
@@ -107,41 +178,6 @@ def main(
                             retraining_feature_matrix = [row]
                         else:
                             retraining_feature_matrix.append(row)
-                            print("... retraining matrix append")
-
-                        # Evaluate
-                        if timestamp > evaluate_unit_end_daytime:
-                            if not first_evaluate_flag:
-                                print("\n--- evaluate model")
-                                evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
-                                evaluate_results_array, scaled_flag = modelEvaluator.main(
-                                    model=model,
-                                    df=evaluate_df,
-                                    scaler=scaler,
-                                    scaled_flag=scaled_flag,
-                                    evaluate_daytime=evaluate_unit_end_daytime - timedelta(
-                                        seconds=evaluate_unit_interval / 2)
-                                )
-                                evaluate_results_list = np.vstack(
-                                    [evaluate_results_list, evaluate_results_array])
-                            evaluate_epoch_feature_matrix = [row]
-                            evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
-
-                            # dataが存在しない区間は直前の結果を流用
-                            while timestamp > evaluate_unit_end_daytime:
-                                print(f"\n- < no data range detected : {timestamp} >")
-                                evaluate_results_array = evaluate_results_list[-1].copy()
-                                evaluate_results_array[0] = evaluate_unit_end_daytime - timedelta(
-                                    seconds=evaluate_unit_interval / 2)
-                                evaluate_results_array[6] = 0 # benign count = 0
-                                evaluate_results_array[7] = 0 # malicious count = 0
-                                evaluate_results_array[8] = 0 # benign rate = 0
-                                evaluate_results_array[9] = 0 # flow_num = 0
-                                evaluate_results_list = np.vstack(
-                                    [evaluate_results_list, evaluate_results_array])
-                                evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
-                        else:
-                            evaluate_epoch_feature_matrix.append(row)
 
     # --- End dynamic-offline processing
     return training_results_list,evaluate_results_list
