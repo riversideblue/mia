@@ -98,8 +98,8 @@ def main(
                                     seconds=evaluate_unit_interval / 2)
                                 evaluate_results_array[6] = 0 # benign count = 0
                                 evaluate_results_array[7] = 0 # malicious count = 0
-                                evaluate_results_array[8] = 0 # benign rate = 0
-                                evaluate_results_array[9] = 0 # flow_num = 0
+                                evaluate_results_array[8] = 0 # flow num = 0
+                                evaluate_results_array[9] = 0 # benign rate = 0
                                 evaluate_results_list = np.vstack(
                                     [evaluate_results_list, evaluate_results_array])
                                 evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)

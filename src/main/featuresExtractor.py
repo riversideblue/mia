@@ -31,9 +31,9 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     # src : malicious address
     # パケットの送信元IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
     if src in malicious_addresses:
-        direction = "rcv"
-        external_network_address = src
-        internal_network_address = dst
+        direction = "snd"
+        external_network_address = dst
+        internal_network_address = src
         label = "1"
         if protocol == "tcp":
             port = str(pkt[TCP].sport)
@@ -45,9 +45,9 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     # dst : malicious address
     # パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
     elif dst in malicious_addresses:
-        direction = "snd"
-        external_network_address = dst
-        internal_network_address = src
+        direction = "rcv"
+        external_network_address = src
+        internal_network_address = dst
         label = "1"
         if protocol == "tcp":
             port = str(pkt[TCP].dport)
@@ -59,9 +59,9 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     # src : benign address
     # パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif src in benign_addresses and dst not in benign_addresses:
-        direction = "rcv"
-        external_network_address = src
-        internal_network_address = dst
+        direction = "snd"
+        external_network_address = dst
+        internal_network_address = src
         label = "0"
         if protocol == "tcp":
             port = str(pkt[TCP].sport)
@@ -73,9 +73,9 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     # dst : benign address
     #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、送信元IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
     elif dst in benign_addresses and src not in benign_addresses:
-        direction = "snd"
-        external_network_address = dst
-        internal_network_address = src
+        direction = "rcv"
+        external_network_address = src
+        internal_network_address = dst
         label = "0"
         if protocol == "tcp":
             port = str(pkt[TCP].dport)
@@ -92,7 +92,7 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
         external_network_address, # 外部ネットワークのアドレス
         internal_network_address # 内部ネットワークのアドレス
     ),[
-        direction, # 通信の方向が外部 => 内部なら「snd」，内部 => 外部なら「rcv」 ? ここは疑問が残る
+        direction, # 通信の方向が外部 => 内部なら「rcv」，内部 => 外部なら「snd」
         protocol, # IPレイヤーのアプリケーションプロトコル
         port, # IPレイヤーの使用されているポート
         tcp_flag, # TCPフラグ

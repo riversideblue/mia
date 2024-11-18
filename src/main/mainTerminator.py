@@ -76,7 +76,7 @@ def main():
     # --- Set results
     training_results_column = ["daytime", "accuracy", "loss", "training_time", "benign_count", "malicious_count", "flow_num"]
     training_results_list = np.empty((0,len(training_results_column)),dtype=object)
-    evaluate_results_column = ["daytime", "accuracy", "precision", "recall", "f1_score", "loss", "benign_count", "malicious_count", "benign_rate", "flow_num"]
+    evaluate_results_column = ["daytime", "TP_rate", "FP_rate", "TN_rate", "FN_rate", "accuracy", "loss", "f1_score", "benign_count", "malicious_count", "flow_num", "benign_rate"]
     evaluate_results_list = np.empty((0,len(evaluate_results_column)),dtype=object)
 
     # --- Foundation model setting
@@ -192,8 +192,8 @@ def main():
                                     seconds=evaluate_unit_interval / 2)
                                 evaluate_results_array[6] = 0 # benign count = 0
                                 evaluate_results_array[7] = 0 # malicious count = 0
-                                evaluate_results_array[8] = 0 # benign rate = 0
-                                evaluate_results_array[9] = 0 # flow_num = 0
+                                evaluate_results_array[8] = 0 # flow_num = 0
+                                evaluate_results_array[9] = 0 # benign rate = 0
                                 evaluate_results_list = np.vstack(
                                     [evaluate_results_list, evaluate_results_array])
                                 evaluate_unit_end_daytime += timedelta(seconds=evaluate_unit_interval)
@@ -211,17 +211,17 @@ def main():
     additional_results_column = ["nmr_flow_num_ratio", "nmr_benign_ratio"]
     additional_results_list = []
 
-    sum_flow_num = np.sum(evaluate_results_list[:, 8])
+    sum_flow_num = np.sum(evaluate_results_list[:, 10])
 
     # nmr_flow_num_ratio
     min_max_scaler = MinMaxScaler()
-    flow_num_rate = evaluate_results_list[:, 8] / sum_flow_num
+    flow_num_rate = evaluate_results_list[:, 10] / sum_flow_num
     reshaped_flow_num_rate = flow_num_rate.reshape(-1, 1)
     scaled_flow_num_rate = min_max_scaler.fit_transform(reshaped_flow_num_rate)
     additional_results_list.append(scaled_flow_num_rate.flatten())
 
     # nmr_benign_ratio
-    reshaped_benign_ratio = evaluate_results_list[:, 7].reshape(-1, 1)
+    reshaped_benign_ratio = evaluate_results_list[:, 11].reshape(-1, 1)
     scaled_benign_ratio = min_max_scaler.fit_transform(reshaped_benign_ratio)
     additional_results_list.append(scaled_benign_ratio.flatten())
 

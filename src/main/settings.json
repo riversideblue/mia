@@ -4,19 +4,19 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/2022wtnb",
   "FOUNDATION_MODEL_PATH": "",
-  "BEGINNING_DAYTIME": "2022-08-10 00:00:00",
-  "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "dynamic",
-  "STATIC_INTERVAL": 3600,
-  "EVALUATE_UNIT_INTERVAL" : 1800,
+  "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/Bot-iot/OS_scan",
+  "BEGINNING_DAYTIME": "2018-05-21 13:06:05",
   "TargetRange": {
     "DAYS": 3,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },
+  "ONLINE_MODE": 0,
+  "RETRAINING_MODE": "static",
+  "STATIC_INTERVAL": 900,
+  "EVALUATE_UNIT_INTERVAL" : 300,
   "TrainingDefine": {
     "EPOCHS": 1,
     "BATCH_SIZE": 512
@@ -28,7 +28,7 @@
   },
   "FeatureExtract": {
     "ONLINE_MODE": 0,
-    "TRAFFIC_DATA_PATH": "src/main/traffic_data/2022_wtnb",
+    "TRAFFIC_DATA_PATH": "src/main/traffic_data/DoS_TCP",
     "FLOW_TIMEOUT": 60,
     "CAPTURE_TIMEOUT" : 900,
     "NetworkAddress": {
@@ -36,10 +36,21 @@
         "172.29.148.0/24",
         "172.21.41.0/24",
         "192.168.11.0/24",
-        "192.168.1.0/24"
+        "192.168.1.0/24",
+
+        "192.168.100.3",
+        "192.168.100.4",
+        "192.168.100.5",
+        "192.168.100.6",
+        "192.168.100.7"
       ],
       "MALICIOUS": [
-        "192.168.10.5/32"
+        "192.168.10.5/32",
+
+        "192.168.100.147",
+        "192.168.100.148",
+        "192.168.100.149",
+        "192.168.100.150"
       ],
       "EXCEPTION": [
         "0.0.0.0",
