@@ -185,8 +185,10 @@ def extract_features_from_flow(packets_in_flow):
 
     rcv_max_interval = rcv_max_interval if rcv_max_interval is not None else 60
     rcv_min_interval = rcv_min_interval if rcv_min_interval is not None else 60
+    rcv_min_length = rcv_min_length if rcv_min_length != 65535 else -10000
     snd_max_interval = snd_max_interval if snd_max_interval is not None else 60
     snd_min_interval = snd_min_interval if snd_min_interval is not None else 60
+    snd_min_length = snd_min_length if snd_min_length != 65535 else -10000
 
     return [
         rcv_packet_count,
