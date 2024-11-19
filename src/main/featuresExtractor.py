@@ -57,7 +57,7 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
             tcp_flag = "-1"
 
     # src : benign address
-    # パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、宛先IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
+    # パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれている時(内部間での通信はキャプチャしない)
     elif src in benign_addresses and dst not in benign_addresses:
         direction = "snd"
         external_network_address = dst
@@ -71,7 +71,7 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
             tcp_flag = "-1"
 
     # dst : benign address
-    #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれていて、送信元IPアドレスが指定された良性のあるIPアドレスのリストに含まれていない時
+    #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれている時(内部間での通信はキャプチャしない)
     elif dst in benign_addresses and src not in benign_addresses:
         direction = "rcv"
         external_network_address = src
@@ -252,7 +252,7 @@ class FlowManager:
 
     def delete_flow(self,key): # flow_boxからフローを削除
         flow = self.flow_manager.pop(key)
-        featured_list = [key[2],key[1],(datetime.fromtimestamp(key[0], tz=timezone.utc).
+        featured_list = [key[1],key[2],(datetime.fromtimestamp(key[0], tz=timezone.utc).
                           astimezone(timezone(timedelta(hours=9)))
                           + timedelta(seconds=self.flow_timeout))
                          .strftime('%Y-%m-%d %H:%M:%S')]

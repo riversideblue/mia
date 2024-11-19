@@ -4,11 +4,11 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "FOUNDATION_MODEL_PATH": "experiment/1/butter/foundation_model/model_weights/2022-08-10 01:00:00-weights.pickle",
-  "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/2022wtnb",
-  "BEGINNING_DAYTIME": "2022-08-10 01:00:00",
+  "FOUNDATION_MODEL_PATH": "experiment/ex1/f-model2h-2023wtnb/model_weights/2023-04-04 17:15:24-weights.pickle",
+  "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/2023wtnb",
+  "BEGINNING_DAYTIME": "2023-04-04 17:15:24",
   "TargetRange": {
-    "DAYS": 20,
+    "DAYS": 180,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
@@ -28,7 +28,7 @@
   },
   "FeatureExtract": {
     "ONLINE_MODE": 0,
-    "TRAFFIC_DATA_PATH": "src/main/traffic_data/2022_wtnb",
+    "TRAFFIC_DATA_PATH": "src/main/traffic_data/2023_wtnb",
     "FLOW_TIMEOUT": 60,
     "CAPTURE_TIMEOUT" : 900,
     "NetworkAddress": {

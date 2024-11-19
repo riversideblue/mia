@@ -1,2 +1,0 @@
-daytime,accuracy,loss,training_time,benign_count,malicious_count,flow_num
-2022-08-10 01:00:00,0.6072555184364319,0.6724154353141785,0.7753486633300781,12,622,634
