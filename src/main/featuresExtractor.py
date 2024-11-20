@@ -4,7 +4,7 @@ from concurrent.futures import ProcessPoolExecutor
 
 import pandas as pd
 import pytz
-from scapy.layers.inet import IP, TCP, UDP
+from scapy.layers.inet import IP, UDP, TCP
 from scapy.sendrecv import sniff
 
 warnings.simplefilter('ignore')
@@ -14,11 +14,12 @@ import os
 import ipaddress
 import json
 
-def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
 
-    src = str(pkt[IP].src)
-    dst = str(pkt[IP].dst)
-    length = str(pkt[IP].len)
+def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
+    # 有効なパケットであればそのFieldを、そうでなければNoneを返す
+    src = pkt[IP].src
+    dst = pkt[IP].dst
+    length = pkt[IP].len
     if pkt[IP].proto == 6:
         protocol = "tcp"
     elif pkt[IP].proto == 17:
@@ -34,13 +35,13 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
         direction = "snd"
         external_network_address = dst
         internal_network_address = src
-        label = "1"
+        label = 1
         if protocol == "tcp":
-            port = str(pkt[TCP].sport)
+            port = pkt[TCP].sport
             tcp_flag = str(pkt[TCP].flags)
         elif protocol == "udp":
-            port = str(pkt[UDP].sport)
-            tcp_flag = "-1"
+            port = pkt[UDP].sport
+            tcp_flag = -1
 
     # dst : malicious address
     # パケットの宛先IPアドレスが、指定された悪意のあるIPアドレスのリストに含まれている時
@@ -48,13 +49,13 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
         direction = "rcv"
         external_network_address = src
         internal_network_address = dst
-        label = "1"
+        label = 1
         if protocol == "tcp":
-            port = str(pkt[TCP].dport)
+            port = pkt[TCP].dport
             tcp_flag = str(pkt[TCP].flags)
         elif protocol == "udp":
-            port = str(pkt[UDP].dport)
-            tcp_flag = "-1"
+            port = pkt[UDP].dport
+            tcp_flag = -1
 
     # src : benign address
     # パケットの送信元IPアドレスが、指定された良性のあるIPアドレスのリストに含まれている時(内部間での通信はキャプチャしない)
@@ -62,13 +63,13 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
         direction = "snd"
         external_network_address = dst
         internal_network_address = src
-        label = "0"
+        label = 0
         if protocol == "tcp":
-            port = str(pkt[TCP].sport)
+            port = pkt[TCP].sport
             tcp_flag = str(pkt[TCP].flags)
         elif protocol == "udp":
-            port = str(pkt[UDP].sport)
-            tcp_flag = "-1"
+            port = pkt[UDP].sport
+            tcp_flag = -1
 
     # dst : benign address
     #パケットの宛先IPアドレスが、指定された良性のあるIPアドレスのリストに含まれている時(内部間での通信はキャプチャしない)
@@ -76,32 +77,23 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
         direction = "rcv"
         external_network_address = src
         internal_network_address = dst
-        label = "0"
+        label = 0
         if protocol == "tcp":
-            port = str(pkt[TCP].dport)
+            port = pkt[TCP].dport
             tcp_flag = str(pkt[TCP].flags)
         elif protocol == "udp":
-            port = str(pkt[UDP].dport)
-            tcp_flag = "-1"
+            port = pkt[UDP].dport
+            tcp_flag = -1
 
     # それ以外のパケットは関係のないものとして破棄
     else:
         return (None,None),None
 
-    return (
-        external_network_address, # 外部ネットワークのアドレス
-        internal_network_address # 内部ネットワークのアドレス
-    ),[
-        direction, # 通信の方向が外部 => 内部なら「rcv」，内部 => 外部なら「snd」
-        protocol, # IPレイヤーのアプリケーションプロトコル
-        port, # IPレイヤーの使用されているポート
-        tcp_flag, # TCPフラグ
-        length, # IPレイヤーのパケット長 ここはEthernetレイヤーじゃなくていいのか？
-        label # 悪性なら1、良性なら0
-    ]
+    return (external_network_address,internal_network_address),[direction,protocol,port,tcp_flag,length,label]
+
 
 def extract_features_from_flow(packets_in_flow):
-
+    # フロー単位にまとめられたパケット(packets_in_flow)から特徴量を抽出
     rcv_packet_count = 0
     snd_packet_count = 0
     tcp_count = 0
@@ -136,11 +128,21 @@ def extract_features_from_flow(packets_in_flow):
             last_rcv_time = key
 
             # --- rcv_max/min_length
-            rcv_length = int(field[4])
+            rcv_length = field[4]
             if rcv_max_length is None or rcv_length > rcv_max_length:
                 rcv_max_length = rcv_length
             if rcv_min_length is None or rcv_length < rcv_min_length:
                 rcv_min_length = rcv_length
+
+            # --- most port / port count
+            port = int(field[2])
+            if port in port_freq:
+                port_freq[port] += 1
+            else:
+                port_freq[port] = 1
+            if port_freq[port] > port_count:
+                most_port = port
+                port_count = port_freq[port]
 
         elif field[0] == "snd":
 
@@ -157,7 +159,7 @@ def extract_features_from_flow(packets_in_flow):
             last_snd_time = key
 
             # --- rcv_max/min_length
-            snd_length = int(field[4])
+            snd_length = field[4]
             if snd_length > snd_max_length:
                 snd_max_length = snd_length
             if snd_length < snd_min_length:
@@ -169,21 +171,11 @@ def extract_features_from_flow(packets_in_flow):
         elif field[1] == "udp":
             udp_count += 1
 
-        # --- most port / port count
-        port = field[2]
-        if port in port_freq:
-            port_freq[port] += 1
-        else:
-            port_freq[port] = 1
-        if port_freq[port] > port_count:
-            most_port = port
-            port_count = port_freq[port]
-
         # --- label
         if label is None:
             label = field[5]
 
-    rcv_max_interval = rcv_max_interval if rcv_max_interval is not None else 60
+    rcv_max_interval = rcv_max_interval if rcv_max_interval is not None else 60 # FLOW_TIMEOUTとこの値は一致させる
     rcv_min_interval = rcv_min_interval if rcv_min_interval is not None else 60
     rcv_min_length = rcv_min_length if rcv_min_length != 65535 else -10000
     snd_max_interval = snd_max_interval if snd_max_interval is not None else 60
@@ -207,6 +199,7 @@ def extract_features_from_flow(packets_in_flow):
         snd_min_length,
         label
     ]
+
 
 class FlowManager:
 
@@ -232,7 +225,7 @@ class FlowManager:
         self.featured_flow_matrix = [[
             "ex_address",
             "in_address",
-            "timestamp",
+            "daytime",
             "rcv_packet_count",
             "snd_packet_count",
             "tcp_count",
@@ -250,58 +243,68 @@ class FlowManager:
             "label"
         ]]
 
-    def delete_flow(self,key): # flow_boxからフローを削除
+    def delete_flow(self, key):  # flow_boxからフローを削除
         flow = self.flow_manager.pop(key)
-        featured_list = [key[1],key[2],(datetime.fromtimestamp(key[0], tz=timezone.utc).
-                          astimezone(timezone(timedelta(hours=9)))
-                          + timedelta(seconds=self.flow_timeout))
-                         .strftime('%Y-%m-%d %H:%M:%S')]
+        flow_begin_timestamp = key[0]
+        flow_end_timestamp = flow_begin_timestamp + self.flow_timeout
+        flow_daytime_jst = datetime.fromtimestamp(flow_end_timestamp, timezone(timedelta(hours=9)))  # jst-utc間時差9時間
+        flow_daytime_str = flow_daytime_jst.strftime("%Y-%m-%d %H:%M:%S.%f")
+        featured_list = [key[1], key[2], flow_daytime_str]
         featured_list.extend(extract_features_from_flow(flow))
+        print(flow)
+        print(f"<< {featured_list} >>")
         self.featured_flow_matrix.append(featured_list)
+        time.sleep(3)
 
     def is_flow_exist(self, captured_time, src, dst):
         if not self.flow_manager:
             return None
         else:
-        # --- is all flow timeout ?
-            keys = list(self.flow_manager.keys())  # 明示的にキーリストを作成
+            # --- タイムアウトのフローは存在しているか？
+            keys = list(self.flow_manager.keys())
+
             for key in keys:
                 if captured_time - key[0] > float(self.flow_timeout):
+                    print(f"<< {key} FLOW TIMEOUT >>")
                     self.delete_flow(key)
 
-            # --- is flow pkt specified existing ?
             keys = list(self.flow_manager.keys())
             for key in keys:
                 if (key[1] == src and key[2] == dst) or (key[1] == dst and key[2] == src):
                     return key  # if exist return key
             return None
 
-    def callback(self,pkt):
+    def callback(self, pkt):
+        # time.sleep(0.1)
+        print("-----")
         captured_time = float(pkt.time)
-        src = str(pkt[IP].src)
-        dst = str(pkt[IP].dst)
+        src = pkt[IP].src
+        dst = pkt[IP].dst
+        print(f"timestamp: {captured_time}")
+        print(f"src: {src}")
+        print(f"dst: {dst}")
 
         addr,field = extract_features_from_packet(pkt, self.malicious_address_set,
-                                                  self.benign_address_set)
+                                                   self.benign_address_set)
         key = self.is_flow_exist(captured_time, src, dst)
-
+        print(f"FIELD = {field}")
+        print(f"KEY = {key}")
 
         if field is not None:
             if key is None:
-                new_flow_key = (captured_time,addr[0],addr[1])
-                self.flow_manager[new_flow_key] = {captured_time:field}
-                # print("--- newflow")
-                # print(new_flow_key)
+                new_flow_key = (captured_time, addr[0], addr[1])
+                self.flow_manager[new_flow_key] = {captured_time: field}
+                print(f"<< MAKE NEW FLOW {new_flow_key}>>")
             else:
+                print(f"<< ADD TO EXIST FLOW {key} >>")
                 self.flow_manager[key][captured_time] = field
-            #     print(f"--- exist: [[[{captured_time},{addr[0]},{addr[1]}]]]")
-            #     print(key)
-            # print(field)
+
 
 def online(manager, filter_online):
     print("online mode")
     while 1:
-        sniff(prn=manager.callback, timeout = capture_timeout, store = False, filter=filter_online)
+        sniff(prn=manager.callback, timeout=capture_timeout, store=False, filter=filter_online)
+
 
 def offline(file_path, manager, filter_offline):
     if os.path.getsize(file_path) == 0:
@@ -313,7 +316,6 @@ def offline(file_path, manager, filter_offline):
 
 def process_pcap_file(pcap_file_path, outputs_dir_path, external_addr_list, malicious_addresses, benign_addresses,
                       timeout, c_filter, count):
-
     # 各タスクごとに新しいFlowManagerインスタンスを生成
     manager = FlowManager(external_addr_list, malicious_addresses, benign_addresses, timeout)
 
@@ -327,6 +329,7 @@ def process_pcap_file(pcap_file_path, outputs_dir_path, external_addr_list, mali
     feature_matrix.to_csv(f"{outputs_dir_path}/{count:05d}_{os.path.splitext(os.path.basename(pcap_file_path))[0]}.csv",
                           index=False)
     return count  # 処理が完了したカウント番号を返す
+
 
 # 与えられたフォルダまたはファイルに含まれるトラヒックデータ（pcapファイル）から特徴量を抽出してcsvファイルに書き込む
 if __name__ == "__main__":
@@ -347,7 +350,7 @@ if __name__ == "__main__":
 
     flow_timeout = settings["FeatureExtract"]["FLOW_TIMEOUT"]  # connection timeout [seconds]
     capture_timeout = settings["FeatureExtract"]["CAPTURE_TIMEOUT"]
-
+    max_worker = settings["FeatureExtract"]["MAX_WORKER"]
 
     malicious_network_address_list = settings["FeatureExtract"]["NetworkAddress"]["MALICIOUS"]
     malicious_address_set = set()
@@ -370,18 +373,18 @@ if __name__ == "__main__":
     os.makedirs(outputs_path)
 
     # --- build constructor
-    flow_manager = FlowManager(ex_addr_list,malicious_address_set,benign_address_set,flow_timeout)
+    flow_manager = FlowManager(ex_addr_list, malicious_address_set, benign_address_set, flow_timeout)
 
     # --- Online mode
     if online_mode:
-        online(flow_manager,filter_condition)
+        online(flow_manager, filter_condition)
 
     # --- Offline mode
     # --- データセット内のpcapファイルごとに特徴量抽出を行う
     elif os.path.isdir(traffic_data_path):
         print("offline mode sniffing ...")
         pcap_files = os.listdir(traffic_data_path)
-        with ProcessPoolExecutor() as executor:
+        with ProcessPoolExecutor(max_workers=max_worker) as executor:
             futures = [
                 executor.submit(process_pcap_file,
                                 os.path.join(traffic_data_path, pcap_file),

@@ -28,9 +28,10 @@
   },
   "FeatureExtract": {
     "ONLINE_MODE": 0,
-    "TRAFFIC_DATA_PATH": "src/main/traffic_data/2023_wtnb",
+    "TRAFFIC_DATA_PATH": "src/main/traffic_data/2022wtnb",
     "FLOW_TIMEOUT": 60,
     "CAPTURE_TIMEOUT" : 900,
+    "MAX_WORKER" : 1,
     "NetworkAddress": {
       "BENIGN": [
         "172.29.148.0/24",
