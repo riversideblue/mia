@@ -8,13 +8,13 @@
   "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/2023wtnb",
   "BEGINNING_DAYTIME": "2023-04-04 17:15:24",
   "TargetRange": {
-    "DAYS": 180,
+    "DAYS": 3,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },
   "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "non-training",
+  "RETRAINING_MODE": "dynamic",
   "STATIC_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
@@ -24,7 +24,7 @@
   "DriftDetection": {
     "PAST_WINDOW_SIZE": 1000,
     "PRESENT_WINDOW_SIZE": 1000,
-    "THRESHOLD": 100
+    "THRESHOLD": 300
   },
   "FeatureExtract": {
     "ONLINE_MODE": 0,
