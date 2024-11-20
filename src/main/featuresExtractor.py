@@ -17,6 +17,7 @@ import json
 
 def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     # 有効なパケットであればそのFieldを、そうでなければNoneを返す
+    timestamp = pkt.time
     src = pkt[IP].src
     dst = pkt[IP].dst
     length = pkt[IP].len
@@ -89,7 +90,7 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
     else:
         return (None,None),None
 
-    return (external_network_address,internal_network_address),[direction,protocol,port,tcp_flag,length,label]
+    return (external_network_address,internal_network_address),[timestamp,direction,protocol,port,tcp_flag,length,label]
 
 
 def extract_features_from_flow(packets_in_flow):
@@ -111,31 +112,36 @@ def extract_features_from_flow(packets_in_flow):
     port_freq = {}
     last_rcv_time = last_snd_time = None
 
-    for key, field in packets_in_flow.items():
+    for field in packets_in_flow.values():
 
-        if field[0] == "rcv":
+        timestamp = float(field[0])
+        direction = field[1]
+        proto = field[2]
+        port = int(field[3])
+        length = field[5]
+
+        if direction == "rcv":
 
             # --- rcv_count
             rcv_packet_count += 1
 
             # --- rcv_max/min_interval
             if last_rcv_time is not None:
-                rcv_interval = key - last_rcv_time
+                rcv_interval = timestamp - last_rcv_time
                 if rcv_max_interval is None or rcv_max_interval < rcv_interval:
                     rcv_max_interval = rcv_interval
                 if rcv_min_interval is None or rcv_max_interval > rcv_interval:
                     rcv_min_interval = rcv_interval
-            last_rcv_time = key
+            last_rcv_time = timestamp
 
             # --- rcv_max/min_length
-            rcv_length = field[4]
+            rcv_length = length
             if rcv_max_length is None or rcv_length > rcv_max_length:
                 rcv_max_length = rcv_length
             if rcv_min_length is None or rcv_length < rcv_min_length:
                 rcv_min_length = rcv_length
 
             # --- most port / port count
-            port = int(field[2])
             if port in port_freq:
                 port_freq[port] += 1
             else:
@@ -144,36 +150,36 @@ def extract_features_from_flow(packets_in_flow):
                 most_port = port
                 port_count = port_freq[port]
 
-        elif field[0] == "snd":
+        elif direction == "snd":
 
             # --- snd_count
             snd_packet_count += 1
 
             # --- snd_max/min_interval
             if last_snd_time is not None:
-                snd_interval = key - last_snd_time
+                snd_interval = timestamp - last_snd_time
                 if snd_max_interval is None or snd_interval > snd_max_interval:
                     snd_max_interval = snd_interval
                 if snd_min_interval is None or snd_interval < snd_min_interval:
                     snd_min_interval = snd_interval
-            last_snd_time = key
+            last_snd_time = timestamp
 
             # --- rcv_max/min_length
-            snd_length = field[4]
+            snd_length = length
             if snd_length > snd_max_length:
                 snd_max_length = snd_length
             if snd_length < snd_min_length:
                 snd_min_length = snd_length
 
         # --- tcp/udp count
-        if field[1] == "tcp":
+        if proto == "tcp":
             tcp_count += 1
-        elif field[1] == "udp":
+        elif proto == "udp":
             udp_count += 1
 
         # --- label
         if label is None:
-            label = field[5]
+            label = field[6]
 
     rcv_max_interval = rcv_max_interval if rcv_max_interval is not None else 60 # FLOW_TIMEOUTとこの値は一致させる
     rcv_min_interval = rcv_min_interval if rcv_min_interval is not None else 60
@@ -187,7 +193,7 @@ def extract_features_from_flow(packets_in_flow):
         snd_packet_count,
         tcp_count,
         udp_count,
-        most_port,
+        int(most_port),
         port_count,
         rcv_max_interval,
         rcv_min_interval,
@@ -211,16 +217,18 @@ class FlowManager:
         self.flow_timeout = ft
         # flow_manager = {
         #     (Flow registered time(unix epoc time), "External_Address", "Internal_Address"): {
-        #         1st Packet registered time(unix epoc time): [direction, protocol, port, tcp_flag, length, label],
-        #         2nd Packet registered time(unix epoc time): [direction, protocol, port, tcp_flag, length, label],
-        #         3rd Packet registered time(unix epoc time): [direction, protocol, port, tcp_flag, length, label],
+        #         1st seq: [Packet registered time(unix epoc time), direction, protocol, port, tcp_flag, length, label],
+        #         2nd seq: [Packet registered time(unix epoc time), direction, protocol, port, tcp_flag, length, label],
+        #         3rd seq: [Packet registered time(unix epoc time), direction, protocol, port, tcp_flag, length, label],
         #         >>>
-        #         Nth Packet registered time(unix epoc time): [direction, protocol, port, tcp_flag, length, label]
+        #         Nth seq: [Packet registered time(unix epoc time), direction, protocol, port, tcp_flag, length, label]
         #     },
         #     (1659513007.736493, '192.168.10.5', '187.35.147.87'): {
-        #         1659513007.736493: ['rcv', 'tcp', '22', 'PA', '136', '1'],
+        #         1: ['rcv', 'tcp', '22', 'PA', '136', '1'],
+        #         2: ['snd', 'udp', '22', 'PA', '136', '1'],
         #     }
         # }
+        self.seq = 0
         self.flow_manager = dict()
         self.featured_flow_matrix = [[
             "ex_address",
@@ -245,16 +253,14 @@ class FlowManager:
 
     def delete_flow(self, key):  # flow_boxからフローを削除
         flow = self.flow_manager.pop(key)
-        flow_begin_timestamp = key[0]
-        flow_end_timestamp = flow_begin_timestamp + self.flow_timeout
-        flow_daytime_jst = datetime.fromtimestamp(flow_end_timestamp, timezone(timedelta(hours=9)))  # jst-utc間時差9時間
-        flow_daytime_str = flow_daytime_jst.strftime("%Y-%m-%d %H:%M:%S.%f")
+        flow_begin_timestamp = datetime.fromtimestamp(key[0], timezone.utc)
+        js = timezone(timedelta(hours=9))
+        flow_daytime_jst = flow_begin_timestamp.astimezone(js)  # jst-utc間時差9時間
+        flow_daytime_str = flow_daytime_jst.strftime("%Y-%m-%d %H:%M:%S")
         featured_list = [key[1], key[2], flow_daytime_str]
         featured_list.extend(extract_features_from_flow(flow))
-        print(flow)
         print(f"<< {featured_list} >>")
         self.featured_flow_matrix.append(featured_list)
-        time.sleep(3)
 
     def is_flow_exist(self, captured_time, src, dst):
         if not self.flow_manager:
@@ -264,7 +270,7 @@ class FlowManager:
             keys = list(self.flow_manager.keys())
 
             for key in keys:
-                if captured_time - key[0] > float(self.flow_timeout):
+                if captured_time - key[0] > self.flow_timeout:
                     print(f"<< {key} FLOW TIMEOUT >>")
                     self.delete_flow(key)
 
@@ -275,7 +281,9 @@ class FlowManager:
             return None
 
     def callback(self, pkt):
-        # time.sleep(0.1)
+        # time.sleep(3)
+        # print(self.flow_manager)
+        self.seq += 1 # パケット識別子
         print("-----")
         captured_time = float(pkt.time)
         src = pkt[IP].src
@@ -293,11 +301,11 @@ class FlowManager:
         if field is not None:
             if key is None:
                 new_flow_key = (captured_time, addr[0], addr[1])
-                self.flow_manager[new_flow_key] = {captured_time: field}
+                self.flow_manager[new_flow_key] = {f"{self.seq:08d}": field}
                 print(f"<< MAKE NEW FLOW {new_flow_key}>>")
             else:
                 print(f"<< ADD TO EXIST FLOW {key} >>")
-                self.flow_manager[key][captured_time] = field
+                self.flow_manager[key][f"{self.seq:08d}"] = field
 
 
 def online(manager, filter_online):
