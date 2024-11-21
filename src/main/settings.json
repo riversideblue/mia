@@ -4,9 +4,9 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "FOUNDATION_MODEL_PATH": "experiment/ex1/f-model2h-2023wtnb/model_weights/2023-04-04 17:15:24-weights.pickle",
-  "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/2023wtnb",
-  "BEGINNING_DAYTIME": "2023-04-04 17:15:24",
+  "FOUNDATION_MODEL_PATH": "",
+  "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/wt2022",
+  "BEGINNING_DAYTIME": "2022-08-03 16:50:07",
   "TargetRange": {
     "DAYS": 3,
     "HOURS": 0,
@@ -14,7 +14,7 @@
     "SECONDS": 0
   },
   "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "dynamic",
+  "RETRAINING_MODE": "static",
   "STATIC_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
@@ -28,10 +28,10 @@
   },
   "FeatureExtract": {
     "ONLINE_MODE": 0,
-    "TRAFFIC_DATA_PATH": "src/main/traffic_data/2022wtnb",
+    "TRAFFIC_DATA_PATH": "src/main/traffic_data/wt2023",
     "FLOW_TIMEOUT": 60,
     "CAPTURE_TIMEOUT" : 900,
-    "MAX_WORKER" : 1,
+    "MAX_WORKER": null,
     "NetworkAddress": {
       "BENIGN": [
         "172.29.148.0/24",

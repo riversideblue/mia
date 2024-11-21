@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sklearn.metrics import accuracy_score, f1_score, log_loss, confusion_matrix
 
 
@@ -35,7 +36,13 @@ def evaluate_model(targets, predictions):
 def main(model, df, scaler, scaled_flag, evaluate_daytime):
 
     if not df.empty:
+
+        print(type(df.iloc[0,1]))
+        df = df.replace('', np.nan)
+        df = df.fillna(-1)
+        df = df.apply(pd.to_numeric, errors="coerce")
         features = df.iloc[:, 3:-1]
+
         targets = df.iloc[:, -1].astype(int)
 
         scaled_features, scaled_flag = scale_features(features, scaler, scaled_flag)

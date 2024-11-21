@@ -193,7 +193,7 @@ def extract_features_from_flow(packets_in_flow):
         snd_packet_count,
         tcp_count,
         udp_count,
-        int(most_port),
+        most_port,
         port_count,
         rcv_max_interval,
         rcv_min_interval,
@@ -259,7 +259,6 @@ class FlowManager:
         flow_daytime_str = flow_daytime_jst.strftime("%Y-%m-%d %H:%M:%S")
         featured_list = [key[1], key[2], flow_daytime_str]
         featured_list.extend(extract_features_from_flow(flow))
-        print(f"<< {featured_list} >>")
         self.featured_flow_matrix.append(featured_list)
 
     def is_flow_exist(self, captured_time, src, dst):
@@ -271,7 +270,6 @@ class FlowManager:
 
             for key in keys:
                 if captured_time - key[0] > self.flow_timeout:
-                    print(f"<< {key} FLOW TIMEOUT >>")
                     self.delete_flow(key)
 
             keys = list(self.flow_manager.keys())
@@ -284,27 +282,19 @@ class FlowManager:
         # time.sleep(3)
         # print(self.flow_manager)
         self.seq += 1 # パケット識別子
-        print("-----")
         captured_time = float(pkt.time)
         src = pkt[IP].src
         dst = pkt[IP].dst
-        print(f"timestamp: {captured_time}")
-        print(f"src: {src}")
-        print(f"dst: {dst}")
 
         addr,field = extract_features_from_packet(pkt, self.malicious_address_set,
                                                    self.benign_address_set)
         key = self.is_flow_exist(captured_time, src, dst)
-        print(f"FIELD = {field}")
-        print(f"KEY = {key}")
 
         if field is not None:
             if key is None:
                 new_flow_key = (captured_time, addr[0], addr[1])
                 self.flow_manager[new_flow_key] = {f"{self.seq:08d}": field}
-                print(f"<< MAKE NEW FLOW {new_flow_key}>>")
             else:
-                print(f"<< ADD TO EXIST FLOW {key} >>")
                 self.flow_manager[key][f"{self.seq:08d}"] = field
 
 
@@ -392,7 +382,7 @@ if __name__ == "__main__":
     elif os.path.isdir(traffic_data_path):
         print("offline mode sniffing ...")
         pcap_files = os.listdir(traffic_data_path)
-        with ProcessPoolExecutor(max_workers=max_worker) as executor:
+        with ProcessPoolExecutor() as executor:
             futures = [
                 executor.submit(process_pcap_file,
                                 os.path.join(traffic_data_path, pcap_file),

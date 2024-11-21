@@ -50,7 +50,7 @@ def main(
                 reader = csv.reader(file)
                 headers = next(reader)  # 最初の行をヘッダーとして読み込む
 
-                timestamp_index = headers.index("timestamp")
+                timestamp_index = headers.index("daytime")
 
                 for row in reader:
                     timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")

@@ -81,7 +81,7 @@ def main(
 
                 ex_addr_index = headers.index("timestamp")
                 in_addr_index = headers.index("timestamp")
-                timestamp_index = headers.index("timestamp")
+                timestamp_index = headers.index("daytime")
                 rcv_packet_count = headers.index("rcv_packet_count")
                 snd_packet_count = headers.index("snd_packet_count")
                 tcp_count = headers.index("tcp_count")
