@@ -99,7 +99,7 @@ def extract_features_from_flow(packets_in_flow):
     snd_packet_count = 0
     tcp_count = 0
     udp_count = 0
-    most_port = None
+    most_port = -1
     port_count = 0
     rcv_max_interval = rcv_min_interval = None
     rcv_max_length = 0
@@ -382,7 +382,7 @@ if __name__ == "__main__":
     elif os.path.isdir(traffic_data_path):
         print("offline mode sniffing ...")
         pcap_files = os.listdir(traffic_data_path)
-        with ProcessPoolExecutor() as executor:
+        with ProcessPoolExecutor(max_workers=max_worker) as executor:
             futures = [
                 executor.submit(process_pcap_file,
                                 os.path.join(traffic_data_path, pcap_file),

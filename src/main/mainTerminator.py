@@ -11,7 +11,7 @@ import pytz
 
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-from main import modelCreator, dynamicTerminator, staticTerminator, modelEvaluator
+from main import modelCreator, dynamicTerminator, staticTerminator, ntTerminator
 
 
 def is_pass_exist(path):
@@ -75,7 +75,7 @@ def main():
     # --- Set results
     training_results_column = ["daytime", "accuracy", "loss", "training_time", "benign_count", "malicious_count", "flow_num"]
     training_results_list = np.empty((0,len(training_results_column)),dtype=object)
-    evaluate_results_column = ["daytime", "TP_rate", "FP_rate", "TN_rate", "FN_rate", "accuracy", "loss", "f1_score", "benign_count", "malicious_count", "flow_num", "benign_rate"]
+    evaluate_results_column = ["daytime", "TP", "FP", "FN", "TN", "TP_rate", "FP_rate", "TN_rate", "FN_rate", "accuracy", "precision", "f1_score", "loss", "flow_num", "benign_rate"]
     evaluate_results_list = np.empty((0,len(evaluate_results_column)),dtype=object)
 
     # --- Foundation model setting
@@ -113,7 +113,7 @@ def main():
          )
     elif retraining_mode == "static":
         training_results_list,evaluate_results_list,end_daytime = staticTerminator.main(
-            online_mode= online_mode,
+            online_mode=online_mode,
             datasets_folder_path=datasets_folder_path,
             output_dir_path=output_dir_path,
             beginning_daytime=beginning_daytime,
@@ -128,76 +128,16 @@ def main():
             evaluate_results_list=evaluate_results_list
         )
     elif retraining_mode == "non-training":
-
-        evaluate_epoch_feature_matrix = []
-        first_timestamp_flag = True
-        first_evaluate_flag = True
-        end_flag = False
-        scaled_flag = False
-        next_evaluate_daytime = beginning_daytime
-
-        for dataset_file in os.listdir(datasets_folder_path):
-            if end_flag : break
-            dataset_file_path: str = f"{datasets_folder_path}/{dataset_file}"
-            print(f"- {dataset_file} set now")
-            with open(dataset_file_path, mode='r') as file:
-                reader = csv.reader(file)
-                headers = next(reader)  # 最初の行をヘッダーとして読み込む
-
-                timestamp_index = headers.index("daytime")
-
-                for row in reader:
-                    timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
-
-                    # --- Beginning and end filter
-                    if first_timestamp_flag: # 最初の行のtimestamp
-                        if timestamp > beginning_daytime:
-                            print("- error : beginning_daytime should be within datasets range")
-                            sys.exit(1)
-                        else:
-                            first_timestamp_flag = False
-                    elif timestamp < beginning_daytime: # beginning_daytime以前の行は読み飛ばす
-                        pass
-                    elif timestamp > end_daytime: # timestampがend_daytimeを超えた時
-                        print("- < detected end_daytime >")
-                        end_flag = True
-                        break
-                    else:
-                        # --- Evaluate
-                        if timestamp > next_evaluate_daytime:
-                            if not first_evaluate_flag:
-                                print("--- evaluate model")
-                                evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
-                                print(next_evaluate_daytime)
-                                evaluate_results_array, scaled_flag = modelEvaluator.main(
-                                    model=model,
-                                    df=evaluate_df,
-                                    scaler=scaler,
-                                    scaled_flag=scaled_flag,
-                                    evaluate_daytime=next_evaluate_daytime - timedelta(
-                                        seconds=evaluate_unit_interval / 2)
-                                )
-                                evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
-
-                            evaluate_epoch_feature_matrix = [row]
-                            next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
-                            first_evaluate_flag = False
-
-                            # dataが存在しない区間は直前の結果を流用
-                            while timestamp > next_evaluate_daytime:
-                                print(f"- < no data range detected : {timestamp} >")
-                                evaluate_results_array = evaluate_results_list[-1].copy()
-                                evaluate_results_array[0] = next_evaluate_daytime - timedelta(
-                                    seconds=evaluate_unit_interval / 2)
-                                evaluate_results_array[8] = 0 # benign count = 0
-                                evaluate_results_array[9] = 0 # malicious count = 0
-                                evaluate_results_array[10] = 0 # flow num = 0
-                                evaluate_results_array[11] = 0 # benign rate = 0
-                                evaluate_results_list = np.vstack(
-                                    [evaluate_results_list, evaluate_results_array])
-                                next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
-                        else:
-                            evaluate_epoch_feature_matrix.append(row)
+        training_results_list,evaluate_results_list,end_daytime = ntTerminator.main(
+            online_mode=online_mode,
+            datasets_folder_path=datasets_folder_path,
+            beginning_daytime=beginning_daytime,
+            end_daytime=end_daytime,
+            model=model,
+            evaluate_unit_interval=evaluate_unit_interval,
+            training_results_list=training_results_list,
+            evaluate_results_list=evaluate_results_list
+        )
     else:
         print("retraining mode invalid")
         sys.exit(1)
@@ -207,21 +147,22 @@ def main():
     with open(f"{output_dir_path}/settings_log_edge.json", "w") as f:
         json.dump(settings, f, indent=1)  # type:
 
-    # --- Results processing
+    # --- Results processing 修正する！！！！
     additional_results_column = ["nmr_fn_rate", "nmr_benign_rate"]
     additional_results_list = []
 
-    sum_flow_num = np.sum(evaluate_results_list[:, 10])
+    sum_flow_num = np.sum(evaluate_results_list[:, 15])
 
     # nmr_flow_num_ratio
     min_max_scaler = MinMaxScaler()
-    flow_num_rate = evaluate_results_list[:, 10] / sum_flow_num
+    print(evaluate_results_list)
+    flow_num_rate = evaluate_results_list[:, 15] / sum_flow_num
     reshaped_flow_num_rate = flow_num_rate.reshape(-1, 1)
     scaled_flow_num_rate = min_max_scaler.fit_transform(reshaped_flow_num_rate)
     additional_results_list.append(scaled_flow_num_rate.flatten())
 
     # nmr_benign_ratio
-    reshaped_benign_ratio = evaluate_results_list[:, 11].reshape(-1, 1)
+    reshaped_benign_ratio = evaluate_results_list[:, 16].reshape(-1, 1)
     scaled_benign_ratio = min_max_scaler.fit_transform(reshaped_benign_ratio)
     additional_results_list.append(scaled_benign_ratio.flatten())
 
