@@ -6,8 +6,8 @@ FROM python:${PYTHON_VERSION}-slim AS base
 #ARG WORKDIR=/home
 #WORKDIR ${WORKDIR}
 #
-## ホストのディレクトリをコンテナ内にCOPY
-COPY .. .
+# ## ホストのディレクトリをコンテナ内にCOPY
+# COPY .. .
 
 # 必要なパッケージをインストール
 RUN apt-get update && apt-get install -y \
