@@ -2,7 +2,6 @@ services:
   dev:
     container_name: dev
     build:
-      context: ..
       dockerfile: .devcontainer/Dockerfile  # Dockerfileの場所を指定（デフォルトでDockerfileを探すので、省略可能）
     secrets:
       - .git-credentials
