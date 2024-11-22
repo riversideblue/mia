@@ -1,4 +1,5 @@
 # ベースイメージを設定
+RUN echo "Hello World"
 ARG PYTHON_VERSION=3.11.9
 FROM python:${PYTHON_VERSION}-slim AS base
 
