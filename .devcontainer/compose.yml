@@ -8,6 +8,8 @@ services:
       - .git-credentials
     environment:
       - DEBUG=True  # 必要に応じて環境変数を設定
+    volumes:
+      - /c/traffic_data:/traffic_data
 
 secrets:
   .git-credentials:
