@@ -1,5 +1,6 @@
 services:
   dev:
+    context: .
     container_name: dev
     build:
       dockerfile: .devcontainer/Dockerfile  # Dockerfileの場所を指定（デフォルトでDockerfileを探すので、省略可能）
