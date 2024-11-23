@@ -7,7 +7,7 @@ FROM python:${PYTHON_VERSION}-slim AS base
 #WORKDIR ${WORKDIR}
 #
 # ## ホストのディレクトリをコンテナ内にCOPY
-# COPY .. .
+COPY .. .
 
 # 必要なパッケージをインストール
 RUN apt-get update && apt-get install -y \
