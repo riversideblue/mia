@@ -34,3 +34,4 @@ LICENSE
 README.md
 src/main/edge/pcap/
 src/main/outputs/
+src/main/traffic_data

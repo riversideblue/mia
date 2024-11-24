@@ -55,6 +55,8 @@ def main(
         training_results_list,
         evaluate_results_list
 ):
+    # --- Confusion matrix = [tp,fn,fp,tp]
+    confusion_matrix = np.empty((0, 4), dtype=int)
 
     retraining_feature_matrix = []
     evaluate_epoch_feature_matrix = []
@@ -72,7 +74,9 @@ def main(
         next_evaluate_daytime = beginning_daytime
 
         for dataset_file in os.listdir(datasets_folder_path):
-            if end_flag : break
+            if end_flag :
+                return training_results_list,evaluate_results_list,end_daytime
+
             dataset_file_path: str = f"{datasets_folder_path}/{dataset_file}"
             print(f"- {dataset_file} set now")
             with open(dataset_file_path, mode='r') as file:
@@ -96,11 +100,13 @@ def main(
                 snd_min_interval = headers.index("snd_min_interval")
                 snd_max_length = headers.index("snd_max_length")
                 snd_min_length = headers.index("snd_min_length")
-
+                label_index = headers.index("label")
 
                 for row in reader:
                     timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
                     flow_num:int = int(row[rcv_packet_count]) + int(row[snd_packet_count])
+                    feature = np.array(row[3:-1], dtype=float).reshape(1, -1)
+                    target = int(row[label_index])
 
                     # --- Beginning and end daytime filter
                     if first_timestamp_flag: # 最初の行のtimestamp
@@ -119,22 +125,13 @@ def main(
                     else:
                         # --- Evaluate
                         if timestamp > next_evaluate_daytime:
-
                             if not first_evaluate_flag:
-
                                 print("--- evaluate model")
-                                evaluate_df = pd.DataFrame(evaluate_epoch_feature_matrix)
-                                evaluate_results_array, scaled_flag = modelEvaluator.main(
-                                    model=model,
-                                    df=evaluate_df,
-                                    scaler=scaler,
-                                    scaled_flag=scaled_flag,
-                                    evaluate_daytime=next_evaluate_daytime - timedelta(
-                                        seconds=evaluate_unit_interval / 2)
-                                )
+                                evaluate_results_array = modelEvaluator.main(confusion_matrix)
+                                evaluate_daytime = next_evaluate_daytime - timedelta(seconds=evaluate_unit_interval/2)
+                                evaluate_results_array = np.append([evaluate_daytime],evaluate_results_array)
                                 evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
 
-                            evaluate_epoch_feature_matrix = [row]
                             next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
                             first_evaluate_flag = False
 
@@ -152,8 +149,19 @@ def main(
                                     [evaluate_results_list, evaluate_results_array])
                                 next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
 
-                        else:
-                            evaluate_epoch_feature_matrix.append(row)
+                            # --- Prediction
+                            prediction_value = model.predict(feature, verbose=0)
+                            prediction_binary = (prediction_value >= 0.5).astype(int)
+                            if target == 1:
+                                if prediction_binary == 1:  # TP
+                                    confusion_matrix = np.vstack([confusion_matrix, [1, 0, 0, 0]])
+                                elif prediction_binary == 0:  # FP
+                                    confusion_matrix = np.vstack([confusion_matrix, [0, 1, 0, 0]])
+                            elif target == 0:
+                                if prediction_binary == 1:  # FN
+                                    confusion_matrix = np.vstack([confusion_matrix, [0, 0, 1, 0]])
+                                elif prediction_binary == 0:  # TN
+                                    confusion_matrix = np.vstack([confusion_matrix, [0, 0, 0, 1]])
 
                         # --- Drift detection
                         drift_flag = drift_manager.detection(flow_num)
@@ -182,4 +190,5 @@ def main(
         # --- End dynamic-offline processing
         if not end_flag:
             end_daytime = datetime.strptime(retraining_feature_matrix[-1][2], "%Y-%m-%d %H:%M:%S")
+
     return training_results_list,evaluate_results_list,end_daytime

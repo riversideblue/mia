@@ -367,7 +367,7 @@ if __name__ == "__main__":
     filter_condition = f"ether proto 0x0800 and ({ex_addr_filter}) and (tcp or udp)"
 
     # --- Create output directory for csv
-    outputs_path: str = f"src/main/outputs/extracted/{init_time}"
+    outputs_path: str = f"src/main/traffic_data/csv/{init_time}"
     os.makedirs(outputs_path)
 
     # --- build constructor
@@ -383,17 +383,21 @@ if __name__ == "__main__":
         print("offline mode sniffing ...")
         pcap_files = os.listdir(traffic_data_path)
         with ProcessPoolExecutor(max_workers=max_worker) as executor:
-            futures = [
-                executor.submit(process_pcap_file,
-                                os.path.join(traffic_data_path, pcap_file),
-                                outputs_path,
-                                ex_addr_list,
-                                malicious_address_set,
-                                benign_address_set,
-                                flow_timeout,
-                                filter_condition,
-                                count)
-                for count, pcap_file in enumerate(pcap_files)
-            ]
+            futures = []
+            for count, pcap_file in enumerate(pcap_files, start=1):
+                print(f"Processing file {count}/{len(pcap_files)}: {pcap_file}")
+                future = executor.submit(
+                    process_pcap_file,
+                    os.path.join(traffic_data_path, pcap_file),
+                    outputs_path,
+                    ex_addr_list,
+                    malicious_address_set,
+                    benign_address_set,
+                    flow_timeout,
+                    filter_condition,
+                    count
+                )
+                futures.append(future)
+
             for future in futures:
                 print(f"Completed processing file {future.result()}")

@@ -1,4 +1,3 @@
-import csv
 import json
 import os
 import pickle
@@ -68,7 +67,7 @@ def main():
     is_pass_exist(datasets_folder_path)
 
     # --- Create output directory
-    output_dir_path: str = f"src/main/outputs/training/{init_time}"
+    output_dir_path: str = f"src/main/outputs/{init_time}"
     os.makedirs(output_dir_path)
     os.makedirs(f"{output_dir_path}/model_weights")
 
