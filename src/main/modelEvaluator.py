@@ -3,11 +3,10 @@ import pandas as pd
 
 def main (confusion_matrix):
 
-    print(pd.DataFrame(confusion_matrix))
-    tp = sum(confusion_matrix[:,0])
-    fp = sum(confusion_matrix[:, 1])
-    fn = sum(confusion_matrix[:, 2])
-    tn = sum(confusion_matrix[:, 3])
+    tp = int(sum(confusion_matrix[:,0]))
+    fp = int(sum(confusion_matrix[:, 1]))
+    fn = int(sum(confusion_matrix[:, 2]))
+    tn = int(sum(confusion_matrix[:, 3]))
 
     # 各指標を計算
 

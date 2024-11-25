@@ -74,7 +74,7 @@ def main():
     # --- Set results
     training_results_column = ["daytime", "accuracy", "loss", "training_time", "benign_count", "malicious_count", "flow_num"]
     training_results_list = np.empty((0,len(training_results_column)),dtype=object)
-    evaluate_results_column = ["daytime", "TP", "FP", "FN", "TN", "TP_rate", "FP_rate", "TN_rate", "FN_rate", "accuracy", "precision", "f1_score", "loss", "flow_num", "benign_rate"]
+    evaluate_results_column = ["daytime", "TP", "FP", "FN", "TN", "TP_rate", "FP_rate", "FN_rate", "TN_rate", "accuracy", "precision", "f1_score", "loss", "flow_num", "benign_rate"]
     evaluate_results_list = np.empty((0,len(evaluate_results_column)),dtype=object)
 
     # --- Foundation model setting
@@ -154,7 +154,6 @@ def main():
 
     # nmr_flow_num_ratio
     min_max_scaler = MinMaxScaler()
-    print(evaluate_results_list)
     flow_num_rate = evaluate_results_list[:, 13] / sum_flow_num
     reshaped_flow_num_rate = flow_num_rate.reshape(-1, 1)
     scaled_flow_num_rate = min_max_scaler.fit_transform(reshaped_flow_num_rate)

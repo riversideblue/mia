@@ -34,7 +34,7 @@ def main():
 
     print("--- Complete processing")
     print(f"- delete {attack_delete_range} minute malicious data")
-    print(f"- > {timestamp}")
+    print(f"- from {beginning_daytime} to {timestamp}")
 
 if __name__ == "__main__":
     main()

@@ -21,6 +21,7 @@ def main(
     # --- Confusion matrix = [tp,fn,fp,tp]
     confusion_matrix = np.empty((0, 4), dtype=int)
 
+
     if online_mode:
         print("- < non-training/online mode activate >")
     else:
@@ -68,28 +69,27 @@ def main(
                         # --- Evaluate
                         if timestamp > next_evaluate_daytime:
                             if not first_evaluate_flag:
-                                print("--- evaluate model")
+                                print("-- evaluate model")
                                 evaluate_results_array = modelEvaluator.main(confusion_matrix)
                                 evaluate_daytime = next_evaluate_daytime - timedelta(seconds=evaluate_unit_interval/2)
                                 evaluate_results_array = np.append([evaluate_daytime],evaluate_results_array)
                                 evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
 
+                            confusion_matrix = np.empty((0, 4), dtype=int)
                             next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
                             first_evaluate_flag = False
 
-                            # dataが存在しない区間は直前の結果を流用
-                            while timestamp > next_evaluate_daytime:
-                                print(f"- < no data range detected : {timestamp} >")
-                                evaluate_results_array = evaluate_results_list[-1].copy()
-                                evaluate_results_array[0] = next_evaluate_daytime - timedelta(
-                                    seconds=evaluate_unit_interval / 2)
-                                evaluate_results_array[8] = 0 # benign count = 0
-                                evaluate_results_array[9] = 0 # malicious count = 0
-                                evaluate_results_array[10] = 0 # flow num = 0
-                                evaluate_results_array[11] = 0 # benign rate = 0
-                                evaluate_results_list = np.vstack(
-                                    [evaluate_results_list, evaluate_results_array])
-                                next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
+                            # # dataが存在しない区間は直前の結果を流用
+                            # while timestamp > next_evaluate_daytime:
+                            #     print(f"- < no data range detected : {timestamp} >")
+                            #     evaluate_results_array = evaluate_results_list[-1].copy()
+                            #     evaluate_results_array[0] = next_evaluate_daytime - timedelta(
+                            #         seconds=evaluate_unit_interval / 2)
+                            #     evaluate_results_array[13] = 0  # flow num = 0
+                            #     evaluate_results_array[14] = 0 # benign count = 0
+                            #     evaluate_results_list = np.vstack(
+                            #         [evaluate_results_list, evaluate_results_array])
+                            #     next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
 
                         # --- Prediction
                         prediction_value = model.predict(feature,verbose=0)
