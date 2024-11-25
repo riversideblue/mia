@@ -27,7 +27,6 @@ def main(
     # --- Confusion matrix = [tp,fn,fp,tp]
     confusion_matrix = np.empty((0, 4), dtype=int)
     retraining_feature_matrix = []
-    evaluate_epoch_feature_matrix = []
 
     if online_mode:
         print("- < static/online mode activate >")
@@ -38,7 +37,6 @@ def main(
         first_training_flag = True
         first_evaluate_flag = True
         end_flag = False
-        scaled_flag = False
         next_retraining_daytime = beginning_daytime
         next_evaluate_daytime = beginning_daytime
 

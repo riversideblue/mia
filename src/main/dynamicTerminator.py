@@ -57,9 +57,7 @@ def main(
 ):
     # --- Confusion matrix = [tp,fn,fp,tp]
     confusion_matrix = np.empty((0, 4), dtype=int)
-
     retraining_feature_matrix = []
-    evaluate_epoch_feature_matrix = []
     drift_manager = DriftManager(past_window_size,present_window_size,threshold)
 
     if online_mode:
@@ -70,7 +68,6 @@ def main(
         first_timestamp_flag = True
         first_evaluate_flag = True
         end_flag = False
-        scaled_flag = False
         next_evaluate_daytime = beginning_daytime
 
         for dataset_file in os.listdir(datasets_folder_path):

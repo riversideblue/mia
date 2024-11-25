@@ -383,21 +383,18 @@ if __name__ == "__main__":
         print("offline mode sniffing ...")
         pcap_files = os.listdir(traffic_data_path)
         with ProcessPoolExecutor(max_workers=max_worker) as executor:
-            futures = []
-            for count, pcap_file in enumerate(pcap_files, start=1):
-                print(f"Processing file {count}/{len(pcap_files)}: {pcap_file}")
-                future = executor.submit(
-                    process_pcap_file,
-                    os.path.join(traffic_data_path, pcap_file),
-                    outputs_path,
-                    ex_addr_list,
-                    malicious_address_set,
-                    benign_address_set,
-                    flow_timeout,
-                    filter_condition,
-                    count
-                )
-                futures.append(future)
+            futures = [
+                executor.submit(process_pcap_file,
+                                os.path.join(traffic_data_path, pcap_file),
+                                outputs_path,
+                                ex_addr_list,
+                                malicious_address_set,
+                                benign_address_set,
+                                flow_timeout,
+                                filter_condition,
+                                count)
+                for count, pcap_file in enumerate(pcap_files)
+            ]
 
-            for future in futures:
-                print(f"Completed processing file {future.result()}")
+            for count,future in enumerate(futures,start=1):
+                print(f"Completed processing {future.result()}/{len(pcap_files)}")
