@@ -150,18 +150,18 @@ def main():
     additional_results_column = ["nmr_fn_rate", "nmr_benign_rate"]
     additional_results_list = []
 
-    sum_flow_num = np.sum(evaluate_results_list[:, 15])
+    sum_flow_num = np.sum(evaluate_results_list[:, 13])
 
     # nmr_flow_num_ratio
     min_max_scaler = MinMaxScaler()
     print(evaluate_results_list)
-    flow_num_rate = evaluate_results_list[:, 15] / sum_flow_num
+    flow_num_rate = evaluate_results_list[:, 13] / sum_flow_num
     reshaped_flow_num_rate = flow_num_rate.reshape(-1, 1)
     scaled_flow_num_rate = min_max_scaler.fit_transform(reshaped_flow_num_rate)
     additional_results_list.append(scaled_flow_num_rate.flatten())
 
     # nmr_benign_ratio
-    reshaped_benign_ratio = evaluate_results_list[:, 16].reshape(-1, 1)
+    reshaped_benign_ratio = evaluate_results_list[:, 14].reshape(-1, 1)
     scaled_benign_ratio = min_max_scaler.fit_transform(reshaped_benign_ratio)
     additional_results_list.append(scaled_benign_ratio.flatten())
 

@@ -5,12 +5,12 @@
     "CUDA_VISIBLE_DEVICES": "-1"
   },
   "FOUNDATION_MODEL_PATH": "",
-  "DATASETS_FOLDER_PATH": "src/main/outputs/extracted/wt2022",
+  "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/wt2022",
   "BEGINNING_DAYTIME": "2022-08-03 16:50:07",
   "TargetRange": {
     "DAYS": 0,
-    "HOURS": 0,
-    "MINUTES": 11,
+    "HOURS": 3,
+    "MINUTES": 0,
     "SECONDS": 0
   },
   "ONLINE_MODE": 0,
