@@ -132,33 +132,11 @@ def main(
                             next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
                             first_evaluate_flag = False
 
-                            # dataが存在しない区間は直前の結果を流用
-                            while timestamp > next_evaluate_daytime:
-                                print(f"- < no data range detected : {timestamp} >")
-                                evaluate_results_array = evaluate_results_list[-1].copy()
-                                evaluate_results_array[0] = next_evaluate_daytime - timedelta(
-                                    seconds=evaluate_unit_interval / 2)
-                                evaluate_results_array[8] = 0 # benign count = 0
-                                evaluate_results_array[9] = 0 # malicious count = 0
-                                evaluate_results_array[10] = 0 # benign rate = 0
-                                evaluate_results_array[11] = 0 # flow_num = 0
-                                evaluate_results_list = np.vstack(
-                                    [evaluate_results_list, evaluate_results_array])
-                                next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
-
-                            # --- Prediction
-                            prediction_value = model.predict(feature, verbose=0)
-                            prediction_binary = (prediction_value >= 0.5).astype(int)
-                            if target == 1:
-                                if prediction_binary == 1:  # TP
-                                    confusion_matrix = np.vstack([confusion_matrix, [1, 0, 0, 0]])
-                                elif prediction_binary == 0:  # FP
-                                    confusion_matrix = np.vstack([confusion_matrix, [0, 1, 0, 0]])
-                            elif target == 0:
-                                if prediction_binary == 1:  # FN
-                                    confusion_matrix = np.vstack([confusion_matrix, [0, 0, 1, 0]])
-                                elif prediction_binary == 0:  # TN
-                                    confusion_matrix = np.vstack([confusion_matrix, [0, 0, 0, 1]])
+                        # --- Prediction
+                        prediction_value = model.predict(feature,verbose=0)
+                        prediction_binary = (prediction_value >= 0.5).astype(int)
+                        index = 2 * (target == 0) + (prediction_binary == 1)
+                        confusion_matrix[index] += 1
 
                         # --- Drift detection
                         drift_flag = drift_manager.detection(flow_num)
