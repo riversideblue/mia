@@ -1,12 +1,13 @@
-import pandas as pd
+import numpy as np
 
 
 def main (confusion_matrix):
 
-    tp = int(sum(confusion_matrix[:,0]))
-    fp = int(sum(confusion_matrix[:, 1]))
-    fn = int(sum(confusion_matrix[:, 2]))
-    tn = int(sum(confusion_matrix[:, 3]))
+    tp = confusion_matrix[0]
+    fp = confusion_matrix[1]
+    fn = confusion_matrix[2]
+    tn = confusion_matrix[3]
+    flow_num = np.sum(confusion_matrix)
 
     # 各指標を計算
 
@@ -15,7 +16,7 @@ def main (confusion_matrix):
     elif fn == 0:
         tpr = 1
     else:
-        tpr = tp / (tp + fn) # 真陽性率
+        tpr = tp / (tp + fn) # 真陽性率(=Recallともいう)
 
     if fp == 0:
         fpr = 0
@@ -43,22 +44,28 @@ def main (confusion_matrix):
     elif fp+fn == 0:
         accuracy = 1
     else:
-        accuracy = (tp + tn) / (tp + tn + fp + fn) # Accuracy
+        accuracy = (tp + tn) / (tp + tn + fp + fn) # Accuracy(正解率)
 
     if tp == 0:
         precision = 0
     elif fp == 0:
         precision = 1
     else:
-        precision = tp / (tp + fp) # precision (陽性的中率)
+        precision = tp / (tp + fp) # precision(陽性的中率)
+
 
     f1 = (2 * precision * tpr) / (precision + tpr) \
         if (precision + tpr) != 0 else 0
+
     loss = 1
 
     benign_count = tn + fp
-    malicious_count = tp + fn
-    flow_count = benign_count + malicious_count
-    benign_rate = benign_count / flow_count
 
-    return tp,fp,fn,tn,tpr,fpr,fnr,tnr,accuracy,precision,f1,loss,flow_count,benign_rate
+    if benign_count == 0:
+        benign_rate = 0
+    elif flow_num == 0:
+        benign_rate = 1
+    else:
+        benign_rate = benign_count / flow_num
+
+    return tp,fp,fn,tn,flow_num,tpr,fpr,fnr,tnr,accuracy,precision,f1,loss,benign_rate

@@ -2,6 +2,7 @@ import json
 import os
 import pickle
 import sys
+import time
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -74,7 +75,7 @@ def main():
     # --- Set results
     training_results_column = ["daytime", "accuracy", "loss", "training_time", "benign_count", "malicious_count", "flow_num"]
     training_results_list = np.empty((0,len(training_results_column)),dtype=object)
-    evaluate_results_column = ["daytime", "TP", "FP", "FN", "TN", "TP_rate", "FP_rate", "FN_rate", "TN_rate", "accuracy", "precision", "f1_score", "loss", "flow_num", "benign_rate"]
+    evaluate_results_column = ["daytime", "TP", "FP", "FN", "TN", "flow_num", "TP_rate", "FP_rate", "FN_rate", "TN_rate", "accuracy", "precision", "f1_score", "loss", "benign_rate"]
     evaluate_results_list = np.empty((0,len(evaluate_results_column)),dtype=object)
 
     # --- Foundation model setting
@@ -90,6 +91,8 @@ def main():
     else:
         print("- invalid path")
         sys.exit(1)
+
+    processing_beginning_time = time.time()
 
     # --- Terminate
     if retraining_mode == "dynamic":
@@ -141,8 +144,11 @@ def main():
         print("retraining mode invalid")
         sys.exit(1)
 
+    processing_time = time.time() - processing_beginning_time
+
     # --- Save settings_log
     settings["Log"]["END_DAYTIME"] = end_daytime.isoformat()
+    settings["Log"]["Processing_TIME"] = processing_time
     with open(f"{output_dir_path}/settings_log_edge.json", "w") as f:
         json.dump(settings, f, indent=1)  # type:
 
@@ -150,11 +156,11 @@ def main():
     additional_results_column = ["nmr_fn_rate", "nmr_benign_rate"]
     additional_results_list = []
 
-    sum_flow_num = np.sum(evaluate_results_list[:, 13])
+    sum_flow_num = np.sum(evaluate_results_list[:, 5])
 
     # nmr_flow_num_ratio
     min_max_scaler = MinMaxScaler()
-    flow_num_rate = evaluate_results_list[:, 13] / sum_flow_num
+    flow_num_rate = evaluate_results_list[:, 5] / sum_flow_num
     reshaped_flow_num_rate = flow_num_rate.reshape(-1, 1)
     scaled_flow_num_rate = min_max_scaler.fit_transform(reshaped_flow_num_rate)
     additional_results_list.append(scaled_flow_num_rate.flatten())
