@@ -1,6 +1,5 @@
 from sklearn.metrics import confusion_matrix, recall_score, accuracy_score, precision_score, f1_score
 from tensorflow.keras.losses import BinaryCrossentropy
-import numpy as np
 
 def main (y_true,y_pred):
 
