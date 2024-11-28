@@ -25,7 +25,7 @@ def main(
         evaluate_results_list
 ):
     # --- Confusion matrix = [tp,fn,fp,tp]
-    confusion_matrix = np.empty((0, 4), dtype=int)
+    confusion_matrix = np.zeros(4, dtype=int)
     retraining_feature_matrix = []
 
     if online_mode:
@@ -89,7 +89,7 @@ def main(
                         # --- Prediction
                         prediction_value = model.predict(feature, verbose=0)
                         prediction_binary = (prediction_value >= 0.5).astype(int)
-                        index = 2 * (target == 0) + (prediction_binary == 1)
+                        index = 2 * (target == 0) + (prediction_binary == 0)
                         confusion_matrix[index] += 1
 
                         # --- Training

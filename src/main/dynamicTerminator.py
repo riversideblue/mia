@@ -135,7 +135,7 @@ def main(
                         # --- Prediction
                         prediction_value = model.predict(feature,verbose=0)
                         prediction_binary = (prediction_value >= 0.5).astype(int)
-                        index = 2 * (target == 0) + (prediction_binary == 1)
+                        index = 2 * (target == 0) + (prediction_binary == 0)
                         confusion_matrix[index] += 1
 
                         # --- Drift detection

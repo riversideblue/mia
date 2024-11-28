@@ -4,12 +4,12 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "FOUNDATION_MODEL_PATH": "",
+  "FOUNDATION_MODEL_PATH": "/IdeaProjects/nids-cdd/experiment/ex2/foundation_model/model_weights/2022-08-03 20:50:07-weights.pickle",
   "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/wt2022",
-  "BEGINNING_DAYTIME": "2022-08-03 16:50:07",
+  "BEGINNING_DAYTIME": "2022-08-03 20:20:07",
   "TargetRange": {
-    "DAYS": 1,
-    "HOURS": 2,
+    "DAYS": 5,
+    "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },

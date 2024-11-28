@@ -75,7 +75,7 @@ def main():
     # --- Set results
     training_results_column = ["daytime", "accuracy", "loss", "training_time", "benign_count", "malicious_count", "flow_num"]
     training_results_list = np.empty((0,len(training_results_column)),dtype=object)
-    evaluate_results_column = ["daytime", "TP", "FP", "FN", "TN", "flow_num", "TP_rate", "FP_rate", "FN_rate", "TN_rate", "accuracy", "precision", "f1_score", "loss", "benign_rate"]
+    evaluate_results_column = ["daytime", "TP", "FN", "FP", "TN", "flow_num", "TP_rate", "FP_rate", "FN_rate", "TN_rate", "accuracy", "precision", "f1_score", "loss", "benign_rate"]
     evaluate_results_list = np.empty((0,len(evaluate_results_column)),dtype=object)
 
     # --- Foundation model setting
