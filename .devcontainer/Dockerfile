@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y \
 RUN git config --global user.name murasemaru \
     && git config --global user.email bp21071@shibaura-it.ac.jp
 
+WORKDIR /home/nids-cdd
+
 COPY .devcontainer/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     python3 -m pip install -r requirements.txt
