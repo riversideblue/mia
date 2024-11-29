@@ -2,17 +2,17 @@ services:
   dev:
     container_name: dev
     build:
-      context: .. # Dockerfileでの作業ディレクトリを設定
-      dockerfile: .devcontainer/Dockerfile  # Dockerfileの場所を指定（デフォルトでDockerfileを探すので、省略可能）
-    secrets:
-      - git-credentials
+      context: ..  # Dockerfileでの作業ディレクトリを設定
+      dockerfile: .devcontainer/Dockerfile  # Dockerfileの場所を指定
+      secrets:
+        - git_credentials  # シークレットをbuildセクション内に移動
     environment:
       - DEBUG=True  # 必要に応じて環境変数を設定
     volumes:
       - ..:/home/nids-cdd
       - ${USERPROFILE}/traffic_data:/home/nids-cdd/src/main/traffic_data
-    user: "919:919"  # UID:GIDを指定（devuserのUID/GIDに一致）
+    user: "919:919"  # UID:GIDを指定
 
 secrets:
-  git-credentials:
+  git_credentials:
     file: ~/.git-credentials
