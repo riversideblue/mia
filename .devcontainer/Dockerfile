@@ -25,8 +25,7 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} \
 RUN --mount=type=secret,id=git-credentials \
     dos2unix -n /run/secrets/git-credentials /home/${USERNAME}/.git-credentials \
     && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.git-credentials \
-    && chmod 600 /home/${USERNAME}/.git-credentials \
-    && git config --global credential.helper store  # 認証ヘルパーを設定
+    && chmod 600 /home/${USERNAME}/.git-credentials 
 
 # ユーザーを切り替え
 USER ${USERNAME}
@@ -41,5 +40,6 @@ RUN --mount=type=cache,target=/home/${USERNAME}/.cache/pip \
 
 # config(git)ファイルの設定
 RUN git config --global user.name murasemaru \
-    && git config --global user.email bp21071@shibaura-it.ac.jp
+    && git config --global user.email bp21071@shibaura-it.ac.jp \
+    && git config --global credential.helper store  # 認証ヘルパーを設定
 
