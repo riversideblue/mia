@@ -27,6 +27,15 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} \
     && apt-get clean
 
 WORKDIR /home/nids-cdd
+
+# 認証情報を安全にコピー
+COPY --from=secrets /.git-credentials /run/secrets/.git-credentials
+
+# 認証ヘルパーを設定
+RUN git config --global credential.helper store \
+    && dos2unix -n /run/secrets/.git-credentials /home/${USERNAME}/.git-credentials \
+    && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.git-credentials
+
 # ユーザーを切り替え
 USER ${USERNAME}
 

@@ -4,8 +4,6 @@
       "./compose.yml"
     ],
     "service": "dev",
-    "workspaceFolder": "/home/nids-cdd",
-    "onCreateCommand": "dos2unix -n /run/secrets/.git-credentials /root/.git-credentials",
-    "postCreateCommand": "git config --global credential.helper store"
+    "workspaceFolder": "/home/nids-cdd"
 }
 

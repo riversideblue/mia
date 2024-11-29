@@ -9,8 +9,8 @@ services:
     environment:
       - DEBUG=True  # 必要に応じて環境変数を設定
     volumes:
-      - ${USERPROFILE}/traffic_data:/home/nids-cdd/src/main/traffic_data
       - ..:/home/nids-cdd
+      - ${USERPROFILE}/traffic_data:/home/nids-cdd/src/main/traffic_data
     user: "919:919"  # UID:GIDを指定（devuserのUID/GIDに一致）
 
 secrets:
