@@ -5,40 +5,35 @@ FROM python:${PYTHON_VERSION}-slim AS base
 # Python環境変数の設定
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
-    
+
 # 必要なパッケージをインストール
 RUN apt-get update && apt-get install -y \
     git \
     dos2unix \
     tcpdump \
-    && rm -rf /var/lib/apt/lists/* ?
+    && rm -rf /var/lib/apt/lists/*
 
-# config(git)ファイルの設定
-RUN git config --global user.name murasemaru \
-    && git config --global user.email bp21071@shibaura-it.ac.jp
-
-# 非rootユーザーを作成
+# 非 root ユーザーを作成
 ARG USERNAME=murasemaru
 ARG USER_UID=919
 ARG USER_GID=919
-
 RUN groupadd --gid ${USER_GID} ${USERNAME} \
     && useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} \
     && apt-get clean
 
-WORKDIR /home/nids-cdd
-
-# 認証情報を安全にコピー
-COPY --from=secrets /.git-credentials /run/secrets/.git-credentials
-
-# 認証ヘルパーを設定
-RUN git config --global credential.helper store \
-    && dos2unix -n /run/secrets/.git-credentials /home/${USERNAME}/.git-credentials \
-    && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.git-credentials
+# root 権限で認証情報を処理
+RUN --mount=type=secret,id=git_credentials \
+    dos2unix -n /run/secrets/git_credentials /home/${USERNAME}/.git-credentials \
+    && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.git-credentials \
+    && chmod 600 /home/${USERNAME}/.git-credentials
 
 # ユーザーを切り替え
 USER ${USERNAME}
 
+# 作業ディレクトリを設定
+WORKDIR /home/nids-cdd
+
+# パッケージのインストール
 COPY .devcontainer/requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
+RUN --mount=type=cache,target=/home/${USERNAME}/.cache/pip \
     python3 -m pip install -r requirements.txt
