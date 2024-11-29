@@ -22,7 +22,7 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} \
     && apt-get clean
 
 # root 権限で認証情報を処理
-RUN --mount=type=secret,id=git_credentials \
+RUN --mount=type=secret,id=.git_credentials \
     dos2unix -n /run/secrets/git_credentials /home/${USERNAME}/.git-credentials \
     && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.git-credentials \
     && chmod 600 /home/${USERNAME}/.git-credentials
