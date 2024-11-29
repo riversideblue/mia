@@ -25,7 +25,8 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} \
 RUN --mount=type=secret,id=git-credentials \
     dos2unix -n /run/secrets/git-credentials /home/${USERNAME}/.git-credentials \
     && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.git-credentials \
-    && chmod 600 /home/${USERNAME}/.git-credentials
+    && chmod 600 /home/${USERNAME}/.git-credentials \
+    && git config --global credential.helper store  # 認証ヘルパーを設定
 
 # ユーザーを切り替え
 USER ${USERNAME}
