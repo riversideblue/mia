@@ -17,7 +17,18 @@ RUN apt-get update && apt-get install -y \
 RUN git config --global user.name murasemaru \
     && git config --global user.email bp21071@shibaura-it.ac.jp
 
+# 非rootユーザーを作成
+ARG USERNAME=murasemaru
+ARG USER_UID=919
+ARG USER_GID=919
+
+RUN groupadd --gid ${USER_GID} ${USERNAME} \
+    && useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} \
+    && apt-get clean
+
 WORKDIR /home/nids-cdd
+# ユーザーを切り替え
+USER ${USERNAME}
 
 COPY .devcontainer/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \

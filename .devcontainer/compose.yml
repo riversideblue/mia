@@ -11,6 +11,7 @@ services:
     volumes:
       - ${USERPROFILE}/traffic_data:/home/nids-cdd/src/main/traffic_data
       - ..:/home/nids-cdd
+    user: "919:919"  # UID:GIDを指定（devuserのUID/GIDに一致）
 
 secrets:
   .git-credentials:
