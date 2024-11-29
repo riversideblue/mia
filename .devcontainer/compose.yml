@@ -5,7 +5,7 @@ services:
       context: .. # Dockerfileでの作業ディレクトリを設定
       dockerfile: .devcontainer/Dockerfile  # Dockerfileの場所を指定（デフォルトでDockerfileを探すので、省略可能）
     secrets:
-      - .git-credentials
+      - git-credentials
     environment:
       - DEBUG=True  # 必要に応じて環境変数を設定
     volumes:
@@ -14,5 +14,5 @@ services:
     user: "919:919"  # UID:GIDを指定（devuserのUID/GIDに一致）
 
 secrets:
-  .git-credentials:
+  git-credentials:
     file: ~/.git-credentials
