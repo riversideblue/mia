@@ -9,7 +9,7 @@
 **/.venv
 **/.classpath
 **/.dockerignore
-**/.env
+.devcontainer/devcontainer.env
 **/.git
 **/.gitignore
 **/.project

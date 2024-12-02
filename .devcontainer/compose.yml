@@ -8,10 +8,14 @@ services:
         - git-credentials  # シークレットをbuildセクション内に移動
     environment:
       - DEBUG=True  # 必要に応じて環境変数を設定
+      - USERNAME=${USERNAME}
+      - HOST_USER_DIR=${HOST_USER_DIR}
+      - USER_UID=${USER_UID}
+      - USER_GID=${USER_GID}
     volumes:
-      - ..:/home/nids-cdd
-      - ${USERPROFILE}/traffic_data:/home/nids-cdd/src/main/traffic_data
-    user: "919:919"  # UID:GIDを指定
+      - ..:/home/${USERNAME}/nids-cdd
+      - ${HOST_USER_DIR}/traffic_data:/home/${USERNAME}/nids-cdd/src/main/traffic_data
+    user: ${USER_UID}:${USER_GID}  # UID:GIDを指定
 
 secrets:
   git-credentials:

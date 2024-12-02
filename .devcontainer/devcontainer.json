@@ -1,9 +1,32 @@
 {
     "name": "nids-cdd",
-    "dockerComposeFile": [
-      "./compose.yml"
+    "containerEnv": {
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONUNBUFFERED": "1"
+    },
+    "build": {
+      "dockerfile": "Dockerfile",
+      "context": "..",
+      "args": {
+        "PYTHON_VERSION": "3.9",
+        "USERNAME": "murasemaru",
+        "USER_UID": "919",
+        "USER_GID": "919"
+      }
+    },
+    "workspaceFolder": "/home/murasemaru/nids-cdd",
+    "runArgs": [
+      "--name=nids-cdd"
     ],
-    "service": "dev",
-    "workspaceFolder": "/home/nids-cdd"
+    "workspaceMount": "source=/path/to/project,target=${containerWorkspaceFolder},type=bind",
+    "mounts": [{
+      "type": "volume",
+      "source": "..",
+      "target": "${containerWorkspaceFolder}"
+    },{
+      "type": "volume",
+      "source": "${localEnv:HOME:-${localEnv:USERPROFILE}}",
+      "target": "${containerWorkspaceFolder}/src/main/traffic_data"
+    }]
 }
 
