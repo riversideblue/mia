@@ -13,7 +13,7 @@ ARG USERNAME=murasemaru
 ARG USER_UID=919
 ARG USER_GID=919
 
-ENV PYTHONDONTWRITEBYTECODE=1,
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # 非 root ユーザーを作成
@@ -21,10 +21,13 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
     && apt-get clean
 
+# 作業ディレクトリを設定
+WORKDIR /home/$USERNAME/nids-cdd
+
 # ユーザーを切り替え
 USER $USERNAME
 
 # config(git)ファイルの設定
 RUN git config --global user.name murasemaru \
     && git config --global user.email bp21071@shibaura-it.ac.jp \
-    && git config --global credential.helper store  # 認証ヘルパーを設定
+    && git config --global credential.helper store
