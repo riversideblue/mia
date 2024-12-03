@@ -8,13 +8,10 @@ RUN apt-get update && apt-get install -y \
     tcpdump \
     && rm -rf /var/lib/apt/lists/*
 
-
 # ARG の再定義
 ARG USERNAME=murasemaru
 ARG USER_UID=919
 ARG USER_GID=919
-
-ENV GUEST_USER_DIR="home"
 
 ENV PYTHONDONTWRITEBYTECODE=1,
 ENV PYTHONUNBUFFERED=1

@@ -7,7 +7,7 @@
     "runArgs": [
       "--name=nids-cdd"
     ],
-    "workspaceFolder": "/home",
+    "workspaceFolder": "/workspace",
     "mounts": [{
       "type": "bind",
       "source": "${localEnv:USERPROFILE}/traffic_data",
