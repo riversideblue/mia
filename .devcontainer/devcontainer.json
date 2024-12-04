@@ -1,9 +1,25 @@
 {
-    "name": "nids-cdd",
-    "dockerComposeFile": [
-      "./compose.yml"
-    ],
-    "service": "dev",
-    "workspaceFolder": "/home/nids-cdd"
+  "name": "nids-cdd",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/home/murasemaru/nids-cdd",
+  "remoteUser": "murasemaru",
+  "runArgs": [
+    "--name=nids-cdd"
+  ],
+  "mounts": [{
+      "type": "bind",
+      "source": "${localEnv:USERPROFILE}/traffic_data",
+      "target": "/${containerWorkspaceFolder}/src/main/traffic_data"
+    },{
+      "type": "bind",
+      "source": "${localEnv:USERPROFILE}/.git-credentials",
+      "target": "/tmp/.git-credentials"
+  }],
+  "onCreateCommand": "cp /tmp/.git-credentials /home/murasemaru/.git-credentials &&  dos2unix -n /home/murasemaru/.git-credentials /home/murasemaru//.git-credentials && chown murasemaru:murasemaru /home/murasemaru/.git-credentials && chmod 600 /home/murasemaru/.git-credentials",
+  "postAttachCommand": "git config --global user.name murasemaru  && git config --global user.email bp21071@shibaura-it.ac.jp && git config --global credential.helper store && git config --global --add safe.directory ${containerWorkspaceFolder}"
 }
+
 
