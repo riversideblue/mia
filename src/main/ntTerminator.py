@@ -4,7 +4,6 @@ import sys
 from datetime import datetime, timedelta
 
 import numpy as np
-from scipy.special import y_pred
 
 from main import modelEvaluator
 
