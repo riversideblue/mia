@@ -21,6 +21,4 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
     && apt-get clean
 
-USER $USERNAME
-
 RUN python3 -m pip install -r /home/$USERNAME/nids-cdd/.devcontainer/requirements.txt
