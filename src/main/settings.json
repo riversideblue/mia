@@ -28,7 +28,7 @@
   },
   "FeatureExtract": {
     "ONLINE_MODE": 0,
-    "TRAFFIC_DATA_PATH": "src/main/traffic_data/pcap/wt2023",
+    "TRAFFIC_DATA_PATH": "src/main/traffic_data/pcap/wt2022",
     "FLOW_TIMEOUT": 60,
     "CAPTURE_TIMEOUT" : 900,
     "MAX_WORKER": 8,
