@@ -22,4 +22,6 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && apt-get clean
 
 USER $USERNAME
-RUN python3 -m pip install -r .devcontainer/requirements.txt
+# requirements.txt をコピーしてパッケージをインストール
+COPY .devcontainer/requirements.txt /tmp/requirements.txt
+RUN python3 -m pip install --no-cache-dir -r /tmp/requirements.txt
