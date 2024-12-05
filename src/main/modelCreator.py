@@ -1,11 +1,11 @@
-from tensorflow.python.keras import models, layers
+from tensorflow.python.keras import models,layers
 
 # ----- Define foundation model
 def main():
     # Sequentialモデルを定義
     model = models.Sequential([
         # 入力層＋1層目の全結合レイヤー（ReLU活性化関数）
-        layers.InputLayer(input_shape=(14,)),
+        layers.Input(shape=(14,)),
         layers.Dense(100, activation='relu'),
         # 2層目の全結合レイヤー（ReLU活性化関数）
         layers.Dense(50, activation='relu'),

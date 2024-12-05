@@ -1,9 +1,12 @@
+import numpy as np
 from sklearn.metrics import confusion_matrix, recall_score, accuracy_score, precision_score, f1_score
 from tensorflow.python.keras.losses import BinaryCrossentropy
 
 
 def main (y_true,y_pred):
 
+    print(y_pred)
+    y_pred = np.array(y_pred)
     y_pred_bin = (y_pred >= 0.5).astype(int)
     conf_matrix = confusion_matrix(y_true, y_pred_bin)
     tn, fp, fn, tp = conf_matrix.ravel()
