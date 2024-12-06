@@ -1,14 +1,11 @@
 import numpy as np
 from sklearn.metrics import confusion_matrix, recall_score, accuracy_score, precision_score, f1_score
-from tensorflow.python.keras.losses import BinaryCrossentropy
-
+import tensorflow as tf
 
 def main (y_true,y_pred):
 
-    print(y_pred)
-    y_pred = np.array(y_pred)
-    y_pred_bin = (y_pred >= 0.5).astype(int)
-    conf_matrix = confusion_matrix(y_true, y_pred_bin)
+    y_pred_bin =  [1 if x >= 0.5 else 0 for x in y_pred]
+    conf_matrix = confusion_matrix(y_true, y_pred_bin,labels=[0,1])
     tn, fp, fn, tp = conf_matrix.ravel()
 
     tpr = recall_score(y_true, y_pred_bin)  # TPR
@@ -20,11 +17,11 @@ def main (y_true,y_pred):
     precision = precision_score(y_true, y_pred_bin)
     f1 = f1_score(y_true, y_pred_bin)
 
-    bce = BinaryCrossentropy()
-    loss = bce(y_true, y_pred).numpy()
+    bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
+    eval_loss = bce(y_true, y_pred).numpy()
 
     flow_num = tn + fp + fn + tp
     benign_count = tn + fp
     benign_rate = benign_count / flow_num if flow_num > 0 else 0
 
-    return tp,fn,fp,tn,flow_num,tpr,fpr,fnr,tnr,accuracy,precision,f1,loss,benign_rate
+    return tp,fn,fp,tn,flow_num,tpr,fpr,fnr,tnr,accuracy,precision,f1,eval_loss,benign_rate

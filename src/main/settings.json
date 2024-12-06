@@ -8,8 +8,8 @@
   "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/wt2022",
   "BEGINNING_DAYTIME": "2022-08-03 20:20:07",
   "TargetRange": {
-    "DAYS": 0,
-    "HOURS": 3,
+    "DAYS": 2,
+    "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },
