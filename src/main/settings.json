@@ -4,17 +4,17 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "FOUNDATION_MODEL_PATH": "",
-  "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/wt2022",
-  "BEGINNING_DAYTIME": "2022-08-05 16:00:00",
+  "FOUNDATION_MODEL_PATH": "experiment/fm3h-nt/fm3h/model_weights/2023-04-04 18:14:24-weights.pickle",
+  "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/wt2023",
+  "BEGINNING_DAYTIME": "2023-04-04 18:14:24",
   "TargetRange": {
-    "DAYS": 1,
+    "DAYS": 50,
     "HOURS": 0,
     "MINUTES": 0,
-    "SECONDS": 0
+    "SECONDS": 1
   },
   "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "static",
+  "RETRAINING_MODE": "non-training",
   "STATIC_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {

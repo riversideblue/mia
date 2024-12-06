@@ -135,7 +135,7 @@ def main(
                             first_evaluate_flag = False
 
                         # --- Prediction
-                        y_pred.append(model.predict_on_batch(feature)[0][0].item())
+                        y_pred.append(model(feature,training=False)[0][0].item())
                         y_true.append(target)
 
                         # --- Drift detection
