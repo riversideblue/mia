@@ -73,14 +73,14 @@ def main(
                                 evaluate_results_array = np.append([evaluate_daytime],evaluate_results_array)
                                 evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
 
-                            y_pred = []
                             y_true = []
+                            y_pred = []
                             next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
                             first_evaluate_flag = False
 
-                        # --- Prediction
-                        y_pred.append(model.predict_on_batch(feature)[0][0].item())
-                        y_true.append(target)
+                    # --- Prediction
+                    y_pred.append(model.predict_on_batch(feature)[0][0].item())
+                    y_true.append(target)
 
         # --- End static-offline processing
         if not end_flag:

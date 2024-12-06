@@ -55,8 +55,8 @@ def main(
         training_results_list,
         evaluate_results_list
 ):
-    # --- Confusion matrix = [tp,fn,fp,tp]
-    confusion_matrix = np.empty((0, 4), dtype=int)
+    y_true = []
+    y_pred = []
     retraining_feature_matrix = []
     drift_manager = DriftManager(past_window_size,present_window_size,threshold)
 
@@ -124,19 +124,19 @@ def main(
                         if timestamp > next_evaluate_daytime:
                             if not first_evaluate_flag:
                                 print("--- evaluate model")
-                                evaluate_results_array = modelEvaluator.main(confusion_matrix)
-                                evaluate_daytime = next_evaluate_daytime - timedelta(seconds=evaluate_unit_interval/2)
-                                evaluate_results_array = np.append([evaluate_daytime],evaluate_results_array)
+                                evaluate_daytime = next_evaluate_daytime - timedelta(seconds=evaluate_unit_interval / 2)
+                                evaluate_results_array = modelEvaluator.main(y_true, y_pred)
+                                evaluate_results_array = np.append([evaluate_daytime], evaluate_results_array)
                                 evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
 
+                            y_true = []
+                            y_pred = []
                             next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
                             first_evaluate_flag = False
 
                         # --- Prediction
-                        prediction_value = model.predict(feature,verbose=0)
-                        prediction_binary = (prediction_value >= 0.5).astype(int)
-                        index = 2 * (target == 0) + (prediction_binary == 0)
-                        confusion_matrix[index] += 1
+                        y_pred.append(model.predict_on_batch(feature)[0][0].item())
+                        y_true.append(target)
 
                         # --- Drift detection
                         drift_flag = drift_manager.detection(flow_num)

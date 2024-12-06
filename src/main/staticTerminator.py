@@ -24,8 +24,9 @@ def main(
         training_results_list,
         evaluate_results_list
 ):
-    # --- Confusion matrix = [tp,fn,fp,tp]
-    confusion_matrix = np.zeros(4, dtype=int)
+
+    y_true = []
+    y_pred = []
     retraining_feature_matrix = []
 
     if online_mode:
@@ -76,21 +77,20 @@ def main(
                         # --- Evaluate
                         if timestamp > next_evaluate_daytime:
                             if not first_evaluate_flag:
-                                print("--- evaluate model")
-                                evaluate_results_array = modelEvaluator.main(confusion_matrix)
+                                print("\n--- evaluate model")
                                 evaluate_daytime = next_evaluate_daytime - timedelta(seconds=evaluate_unit_interval / 2)
+                                evaluate_results_array = modelEvaluator.main(y_true, y_pred)
                                 evaluate_results_array = np.append([evaluate_daytime], evaluate_results_array)
                                 evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
 
-                            confusion_matrix = np.zeros(4, dtype=int)  # 初期化
+                            y_true = []
+                            y_pred = []
                             next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
                             first_evaluate_flag = False
 
                         # --- Prediction
-                        prediction_value = model.predict(feature, verbose=0)
-                        prediction_binary = (prediction_value >= 0.5).astype(int)
-                        index = 2 * (target == 0) + (prediction_binary == 0)
-                        confusion_matrix[index] += 1
+                        y_pred.append(model.predict_on_batch(feature)[0][0].item())
+                        y_true.append(target)
 
                         # --- Training
                         if timestamp > next_retraining_daytime:
@@ -111,18 +111,6 @@ def main(
                             retraining_feature_matrix = [row]
                             next_retraining_daytime += timedelta(seconds=static_interval)
                             first_training_flag = False
-
-                            # while timestamp > next_retraining_daytime:
-                            #     print(f"- < no data range detected : {timestamp} >")
-                            #     training_results_array = training_results_list[-1].copy()
-                            #     training_results_array[0] = next_retraining_daytime - timedelta(seconds=static_interval/2)
-                            #     training_results_array[3] = 0
-                            #     training_results_array[4] = 0
-                            #     training_results_array[5] = 0
-                            #     training_results_array[6] = 0
-                            #     training_results_list = np.vstack(
-                            #         [training_results_list, training_results_array])
-                            #     next_retraining_daytime += timedelta(seconds=static_interval)
 
                         else:
                             retraining_feature_matrix.append(row)

@@ -18,7 +18,7 @@ def main (y_true,y_pred):
     f1 = f1_score(y_true, y_pred_bin)
 
     bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
-    eval_loss = bce(y_true, y_pred).numpy()
+    eval_loss = bce(np.array(y_true), np.array(y_pred)).numpy()
 
     flow_num = tn + fp + fn + tp
     benign_count = tn + fp
