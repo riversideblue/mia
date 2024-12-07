@@ -1,3 +1,6 @@
 src/main/outputs/
 src/main/traffic_data/
 experiment/
+*.pcap
+*.csv
+*.pickle
