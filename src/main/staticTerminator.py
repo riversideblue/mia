@@ -56,7 +56,7 @@ def main(
 
                 for row in reader:
                     timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
-                    feature = np.array(row[3:-1], dtype=float).reshape(1, -1)
+                    batch = np.array(row[3:-1], dtype=float).reshape(1, -1)
                     target = int(row[label_index])
 
                     # --- Beginning and end filter
@@ -89,7 +89,7 @@ def main(
                             first_evaluate_flag = False
 
                         # --- Prediction
-                        y_pred.append(model(feature,training=False)[0][0].item())
+                        y_pred.append(model(batch,training=False).numpy()[0][0])
                         y_true.append(target)
 
                         # --- Training
