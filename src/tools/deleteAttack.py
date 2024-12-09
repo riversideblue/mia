@@ -7,10 +7,10 @@ import pandas as pd
 def main():
 
     # Input
-    target_dir_path = "src/main/traffic_data/csv/wt2023"
-    beginning_daytime = "2023-04-04 15:14:24"
+    target_dir_path = "src/main/traffic_data/csv/wt2022"
+    beginning_daytime = "2022-08-03 16:50:07"
     beginning_daytime = datetime.strptime(beginning_daytime, "%Y-%m-%d %H:%M:%S")
-    attack_delete_range = 2880 # minute
+    attack_delete_range = 7200 # minute
 
     ad_delta = timedelta(minutes=attack_delete_range)
     timestamp = beginning_daytime + ad_delta

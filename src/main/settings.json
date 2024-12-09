@@ -5,16 +5,16 @@
     "CUDA_VISIBLE_DEVICES": "-1"
   },
   "FOUNDATION_MODEL_PATH": "",
-  "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/wt2022",
-  "BEGINNING_DAYTIME": "2022-08-03 19:50:07",
+  "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/wt2022-da-0808165007",
+  "BEGINNING_DAYTIME": "2022-08-06 17:00:58",
   "TargetRange": {
-    "DAYS": 5,
+    "DAYS": 4,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },
   "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "static",
+  "RETRAINING_MODE": "dynamic",
   "STATIC_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
@@ -24,7 +24,7 @@
   "DriftDetection": {
     "PAST_WINDOW_SIZE": 1000,
     "PRESENT_WINDOW_SIZE": 1000,
-    "THRESHOLD": 300
+    "THRESHOLD": 30
   },
   "FeatureExtract": {
     "ONLINE_MODE": 0,

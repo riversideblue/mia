@@ -125,7 +125,7 @@ def main():
             static_interval=static_interval,
             evaluate_unit_interval=evaluate_unit_interval,
             list_rtr_results=training_results_list,
-            evaluate_results_list=evaluate_results_list
+            list_eval_results=evaluate_results_list
         )
     elif retraining_mode == "non-training":
         training_results_list,evaluate_results_list,end_daytime = ntTerminator.main(
@@ -135,8 +135,8 @@ def main():
             end_daytime=end_daytime,
             model=model,
             evaluate_unit_interval=evaluate_unit_interval,
-            training_results_list=training_results_list,
-            evaluate_results_list=evaluate_results_list
+            list_rtr_results=training_results_list,
+            list_eval_results=evaluate_results_list
         )
     else:
         print("retraining mode invalid")

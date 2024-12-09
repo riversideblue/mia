@@ -79,8 +79,8 @@ def main(
                 reader = csv.reader(file)
                 headers = next(reader)  # 最初の行をヘッダーとして読み込む
 
-                ex_addr_index = headers.index("timestamp")
-                in_addr_index = headers.index("timestamp")
+                ex_addr_index = headers.index("ex_address")
+                in_addr_index = headers.index("in_address")
                 timestamp_index = headers.index("daytime")
                 rcv_packet_count = headers.index("rcv_packet_count")
                 snd_packet_count = headers.index("snd_packet_count")
@@ -101,7 +101,7 @@ def main(
                 for row in reader:
                     timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
                     flow_num:int = int(row[rcv_packet_count]) + int(row[snd_packet_count])
-                    feature = np.array(row[3:-1], dtype=float).reshape(1, -1)
+                    batch = np.array(row[3:-1], dtype=np.float32).reshape(1, -1)
                     target = int(row[label_index])
 
                     # --- Beginning and end daytime filter
@@ -134,7 +134,7 @@ def main(
                             first_evaluate_flag = False
 
                         # --- Prediction
-                        y_pred.append(model(feature,training=False).numpy()[0][0])
+                        y_pred.append(model.predict_on_batch(batch)[0][0])
                         y_true.append(target)
 
                         # --- Drift detection

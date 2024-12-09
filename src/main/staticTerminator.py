@@ -21,7 +21,7 @@ def main(
         static_interval,
         evaluate_unit_interval,
         list_rtr_results,
-        evaluate_results_list
+        list_eval_results
 ):
 
     y_true = []
@@ -33,7 +33,7 @@ def main(
     else:
         print("- < static/offline mode activate >")
 
-        first_timestamp_flag = True
+        first_col_flag = True
         first_training_flag = True
         first_evaluate_flag = True
         end_flag = False
@@ -42,7 +42,7 @@ def main(
 
         for dataset_file in os.listdir(datasets_folder_path):
             if end_flag :
-                return list_rtr_results,evaluate_results_list,end_daytime
+                return list_rtr_results,list_eval_results,end_daytime
 
             dataset_file_path: str = f"{datasets_folder_path}/{dataset_file}"
             print(f"- {dataset_file} set now")
@@ -60,12 +60,12 @@ def main(
                     target = int(row[label_index])
 
                     # --- Beginning and end filter
-                    if first_timestamp_flag: # 最初の行のtimestamp
+                    if first_col_flag: # 最初の行
                         if timestamp > beginning_daytime:
                             print("- error : beginning_daytime should be within datasets range")
                             sys.exit(1)
                         else:
-                            first_timestamp_flag = False
+                            first_col_flag = False
                     elif timestamp < beginning_daytime: # beginning_daytime以前の行は読み飛ばす
                         pass
                     elif timestamp > end_daytime: # timestampがend_daytimeを超えた時
@@ -81,7 +81,7 @@ def main(
                                 evaluate_daytime = next_evaluate_daytime - timedelta(seconds=evaluate_unit_interval / 2)
                                 evaluate_results_array = modelEvaluator.main(y_true, y_pred)
                                 evaluate_results_array = np.append([evaluate_daytime], evaluate_results_array)
-                                evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
+                                list_eval_results = np.vstack([list_eval_results, evaluate_results_array])
 
                             y_true = []
                             y_pred = []
@@ -121,4 +121,4 @@ def main(
         if not end_flag:
             end_daytime = datetime.strptime(rt_features[-1][2], "%Y-%m-%d %H:%M:%S")
 
-    return list_rtr_results,evaluate_results_list,end_daytime
+    return list_rtr_results,list_eval_results,end_daytime
