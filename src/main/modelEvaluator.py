@@ -7,10 +7,10 @@ def main (y_true,y_pred):
     y_pred_bin =  [1 if x >= 0.5 else 0 for x in y_pred]
     conf_matrix = confusion_matrix(y_true, y_pred_bin,labels=[0,1])
     tn, fp, fn, tp = conf_matrix.ravel()
-
+    print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
     tpr = recall_score(y_true, y_pred_bin)  # TPR
-    fnr = fn / (fn + tp) if (fn + tp) > 0 else 0  # 偽陰性率
     fpr = fp / (fp + tn) if (fp + tn) > 0 else 0  # 偽陽性率
+    fnr = fn / (fn + tp) if (fn + tp) > 0 else 0  # 偽陰性率
     tnr = tn / (tn + fp) if (tn + fp) > 0 else 0  # 真陰性率
 
     accuracy = accuracy_score(y_true, y_pred_bin)
@@ -24,4 +24,4 @@ def main (y_true,y_pred):
     benign_count = tn + fp
     benign_rate = benign_count / flow_num if flow_num > 0 else 0
 
-    return tp,fn,fp,tn,flow_num,tpr,fpr,fnr,tnr,accuracy,precision,f1,eval_loss,benign_rate
+    return tp,fn,fp,tn,flow_num,tpr,fnr,fpr,tnr,accuracy,precision,f1,eval_loss,benign_rate

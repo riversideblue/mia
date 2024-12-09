@@ -27,7 +27,7 @@ def extract_features_from_packet(pkt, malicious_addresses, benign_addresses):
         protocol = "udp"
     else:
         protocol = None
-    port = None
+    port = -1
     tcp_flag = None
 
     # src : malicious address

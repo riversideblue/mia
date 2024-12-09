@@ -75,7 +75,7 @@ def main():
     # --- Set results
     training_results_column = ["daytime", "accuracy", "loss", "training_time", "benign_count", "malicious_count", "flow_num"]
     training_results_list = np.empty((0,len(training_results_column)),dtype=object)
-    evaluate_results_column = ["daytime", "TP", "FN", "FP", "TN", "flow_num", "TP_rate", "FP_rate", "FN_rate", "TN_rate", "accuracy", "precision", "f1_score", "loss", "benign_rate"]
+    evaluate_results_column = ["daytime", "TP", "FN", "FP", "TN", "flow_num", "TP_rate", "FN_rate", "FP_rate", "TN_rate", "accuracy", "precision", "f1_score", "loss", "benign_rate"]
     evaluate_results_list = np.empty((0,len(evaluate_results_column)),dtype=object)
 
     # --- Foundation model setting
@@ -103,15 +103,14 @@ def main():
              beginning_daytime=beginning_daytime,
              end_daytime=end_daytime,
              model=model,
-             scaler=scaler,
              epochs=epochs,
              batch_size=batch_size,
              evaluate_unit_interval=evaluate_unit_interval,
              past_window_size=past_window_size,
              present_window_size=present_window_size,
              threshold=threshold,
-             training_results_list=training_results_list,
-             evaluate_results_list=evaluate_results_list
+             list_rtr_results=training_results_list,
+             list_eval_results=evaluate_results_list
          )
     elif retraining_mode == "static":
         training_results_list,evaluate_results_list,end_daytime = staticTerminator.main(
@@ -121,12 +120,11 @@ def main():
             beginning_daytime=beginning_daytime,
             end_daytime=end_daytime,
             model=model,
-            scaler=scaler,
             epochs=epochs,
             batch_size=batch_size,
             static_interval=static_interval,
             evaluate_unit_interval=evaluate_unit_interval,
-            training_results_list=training_results_list,
+            list_rtr_results=training_results_list,
             evaluate_results_list=evaluate_results_list
         )
     elif retraining_mode == "non-training":

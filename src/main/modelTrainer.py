@@ -13,25 +13,7 @@ def is_previous_model_exist(dir_name, file_format):
         previous_weight_file = file_list[-1]
     return previous_weight_file
 
-def main(model, df, output_dir_path, scalar, epochs, batch_size, retraining_daytime):
-
-    previous_weights_file = is_previous_model_exist(f"{output_dir_path}/model_weights",
-                                                   "*-weights.pickle")
-
-    features = df.iloc[:,3:-1].astype(float)
-    targets = df.iloc[:,-1].astype(float)
-
-    # --- load previous model weights file if exist
-    if previous_weights_file is not None:
-        features = scalar.transform(features)
-        with open(previous_weights_file, 'rb') as f:
-            print(f"previous -weights.pickle file: {previous_weights_file} found")
-            init_weights = pickle.load(f)
-            model.set_weights(init_weights)
-    else:
-        features = scalar.fit_transform(features)
-        print("previous -weights.pickle file: not found")
-        print("initialize model weights ... ")
+def main(model, features, targets, output_dir_path, epochs, batch_size, retraining_daytime):
 
     # --- execute model training
     print(f"execute model_training ...")
@@ -46,7 +28,8 @@ def main(model, df, output_dir_path, scalar, epochs, batch_size, retraining_dayt
     training_time_list.append(train_end_time - train_start_time)
     training_time = sum(training_time_list) / len(training_time_list)
 
-    with open(f"{output_dir_path}/model_weights/{retraining_daytime}-weights.pickle", 'wb') as f:
+    str_retraining_daytime = retraining_daytime.strftime("%Y-%m-%dT%H:%M:%S")
+    with open(f"{output_dir_path}/model_weights/{str_retraining_daytime}-weights.pickle", 'wb') as f:
         pickle.dump(model.get_weights(), f) # type: ignore
 
     # --- count benign and malicious
@@ -55,6 +38,6 @@ def main(model, df, output_dir_path, scalar, epochs, batch_size, retraining_dayt
 
     # count training data number
 
-    flow_num = df.shape[0]
+    flow_num = targets.shape[0]
 
     return model,[retraining_daytime, accuracy, loss, training_time, benign_count, malicious_count, flow_num]

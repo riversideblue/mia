@@ -1,9 +1,7 @@
-import csv
 import os
 from datetime import timedelta, datetime
 
 import pandas as pd
-
 
 # 指定された期間に存在する label = 1 のデータ行を削除
 def main():

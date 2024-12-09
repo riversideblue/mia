@@ -17,8 +17,7 @@ def main():
     # モデルのコンパイル
     model.compile(
         optimizer="adam",
-        loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
+        loss="binary_crossentropy",
         metrics=["accuracy"]
     )
-
     return model

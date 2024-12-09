@@ -16,18 +16,17 @@ def main(
         beginning_daytime,
         end_daytime,
         model,
-        scaler,
         epochs,
         batch_size,
         static_interval,
         evaluate_unit_interval,
-        training_results_list,
+        list_rtr_results,
         evaluate_results_list
 ):
 
     y_true = []
     y_pred = []
-    retraining_feature_matrix = []
+    rt_features = []
 
     if online_mode:
         print("- < static/online mode activate >")
@@ -43,7 +42,7 @@ def main(
 
         for dataset_file in os.listdir(datasets_folder_path):
             if end_flag :
-                return training_results_list,evaluate_results_list,end_daytime
+                return list_rtr_results,evaluate_results_list,end_daytime
 
             dataset_file_path: str = f"{datasets_folder_path}/{dataset_file}"
             print(f"- {dataset_file} set now")
@@ -56,7 +55,8 @@ def main(
 
                 for row in reader:
                     timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
-                    batch = np.array(row[3:-1], dtype=float).reshape(1, -1)
+
+                    batch = np.array(row[3:-1], dtype=np.float32).reshape(1, -1)
                     target = int(row[label_index])
 
                     # --- Beginning and end filter
@@ -89,34 +89,36 @@ def main(
                             first_evaluate_flag = False
 
                         # --- Prediction
-                        y_pred.append(model(batch,training=False).numpy()[0][0])
+                        y_pred.append(model.predict_on_batch(batch)[0][0])
                         y_true.append(target)
 
-                        # --- Training
+                        # --- Retraining
                         if timestamp > next_retraining_daytime:
                             if not first_training_flag:
                                 print("\n--- retraining model")
-                                df_training = pd.DataFrame(retraining_feature_matrix)
-                                model, training_results_array = modelTrainer.main(
+                                df = pd.DataFrame(rt_features)
+                                features = df.iloc[:, 3:-1].astype(float)
+                                targets = df.iloc[:, -1].astype(int)
+                                model, arr_rtr_results = modelTrainer.main(
                                     model=model,
-                                    df=df_training,
+                                    features=features,
+                                    targets=targets,
                                     output_dir_path=output_dir_path,
-                                    scalar=scaler,
                                     epochs=epochs,
                                     batch_size=batch_size,
                                     retraining_daytime=next_retraining_daytime
                                 )
-                                training_results_list = np.vstack([training_results_list, training_results_array])
+                                list_rtr_results = np.vstack([list_rtr_results, arr_rtr_results])
 
-                            retraining_feature_matrix = [row]
+                            rt_features = [row]
                             next_retraining_daytime += timedelta(seconds=static_interval)
                             first_training_flag = False
 
                         else:
-                            retraining_feature_matrix.append(row)
+                            rt_features.append(row)
 
         # --- End static-offline processing
         if not end_flag:
-            end_daytime = datetime.strptime(retraining_feature_matrix[-1][2], "%Y-%m-%d %H:%M:%S")
+            end_daytime = datetime.strptime(rt_features[-1][2], "%Y-%m-%d %H:%M:%S")
 
-    return training_results_list,evaluate_results_list,end_daytime
+    return list_rtr_results,evaluate_results_list,end_daytime

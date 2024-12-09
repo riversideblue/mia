@@ -45,19 +45,18 @@ def main(
         beginning_daytime,
         end_daytime,
         model,
-        scaler,
         epochs,
         batch_size,
         evaluate_unit_interval,
         past_window_size,
         present_window_size,
         threshold,
-        training_results_list,
-        evaluate_results_list
+        list_rtr_results,
+        list_eval_results
 ):
     y_true = []
     y_pred = []
-    retraining_feature_matrix = []
+    rt_features = []
     drift_manager = DriftManager(past_window_size,present_window_size,threshold)
 
     if online_mode:
@@ -72,7 +71,7 @@ def main(
 
         for dataset_file in os.listdir(datasets_folder_path):
             if end_flag :
-                return training_results_list,evaluate_results_list,end_daytime
+                return list_rtr_results,list_eval_results,end_daytime
 
             dataset_file_path: str = f"{datasets_folder_path}/{dataset_file}"
             print(f"- {dataset_file} set now")
@@ -127,7 +126,7 @@ def main(
                                 evaluate_daytime = next_evaluate_daytime - timedelta(seconds=evaluate_unit_interval / 2)
                                 evaluate_results_array = modelEvaluator.main(y_true, y_pred)
                                 evaluate_results_array = np.append([evaluate_daytime], evaluate_results_array)
-                                evaluate_results_list = np.vstack([evaluate_results_list, evaluate_results_array])
+                                list_eval_results = np.vstack([list_eval_results, evaluate_results_array])
 
                             y_true = []
                             y_pred = []
@@ -144,26 +143,27 @@ def main(
                         # --- Training
                         if drift_flag:
                             print("Drift Detected")
-                            df_training = pd.DataFrame(retraining_feature_matrix)
-                            print(df_training)
-                            retraining_daytime = df_training.iloc[-1,2] # データセット内の最後のフローがキャプチャされた時間
-                            model, training_results_array = modelTrainer.main(
+                            df = pd.DataFrame(rt_features)
+                            features = df.iloc[:, 3:-1].astype(float)
+                            targets = df.iloc[:, -1].astype(int)
+                            retraining_daytime = df.iloc[-1,2] # データセット内の最後のフローがキャプチャされた時間
+                            model, arr_rtr_results = modelTrainer.main(
                                 model=model,
-                                df=df_training,
+                                features=features,
+                                targets=targets,
                                 output_dir_path=output_dir_path,
-                                scalar=scaler,
                                 epochs=epochs,
                                 batch_size=batch_size,
                                 retraining_daytime=retraining_daytime
                             )
-                            training_results_list = np.vstack(
-                                [training_results_list, training_results_array])
-                            retraining_feature_matrix = [row]
+                            list_rtr_results = np.vstack(
+                                [list_rtr_results, arr_rtr_results])
+                            rt_features = [row]
                         else:
-                            retraining_feature_matrix.append(row)
+                            rt_features.append(row)
 
         # --- End dynamic-offline processing
         if not end_flag:
-            end_daytime = datetime.strptime(retraining_feature_matrix[-1][2], "%Y-%m-%d %H:%M:%S")
+            end_daytime = datetime.strptime(rt_features[-1][2], "%Y-%m-%d %H:%M:%S")
 
-    return training_results_list,evaluate_results_list,end_daytime
+    return list_rtr_results,list_eval_results,end_daytime

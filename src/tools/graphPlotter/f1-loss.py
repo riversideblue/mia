@@ -4,9 +4,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # CSVファイルを読み込む
-file_path = "/IdeaProjects/nids-cdd/experiment/fm/f-model2h-wt2023/results_evaluate.csv"  # CSVファイルのパスを指定
+file_path = "/experiment/ex1-fm4h-nt/1-wt2023/fm/results_evaluate.csv"  # CSVファイルのパスを指定
 data = pd.read_csv(file_path)
-metrix = ["f1_score","loss"]
+metrix = ["f1_score"]
 output_dir = f"{os.path.dirname(file_path)}/results_img"
 output_path = f"{output_dir}/{','.join(metrix)}.png"
 os.makedirs(output_dir, exist_ok=True)
