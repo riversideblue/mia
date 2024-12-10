@@ -13,28 +13,24 @@ class DriftManager:
     def __init__(self,past_window_size,present_window_size,threshold):
 
         self.flow_count = 0
-        self.past_window = deque(maxlen=past_window_size)
+        self.past_window = deque([-threshold] * past_window_size, maxlen=past_window_size)
         self.past_window_size = past_window_size
-        self.present_window = deque(maxlen=present_window_size)
+        self.present_window = deque([-threshold] * present_window_size, maxlen=present_window_size)
         self.present_window_size = present_window_size
-        self.first_wait_count = past_window_size + present_window_size
         self.threshold = threshold
 
     def detection(self,flow):
 
-        if len(self.past_window) == self.past_window_size:
-            self.present_window.append(self.past_window.popleft())
-
-        self.past_window.append(flow)
-
+        self.past_window.append(self.present_window.popleft())
+        self.present_window.append(flow)
         self.flow_count += 1
 
-        if self.flow_count > self.first_wait_count:
+        if self.flow_count >= self.present_window_size:
             ave_past = sum(self.past_window) / self.past_window_size
             ave_present = sum(self.present_window) / self.present_window_size
+            print(ave_past, ave_present)
             if abs(ave_present - ave_past) > self.threshold:
                 return True
-
         return False
 
 
@@ -140,13 +136,13 @@ def main(
                         # --- Drift detection
                         drift_flag = drift_manager.detection(flow_num)
 
-                        # --- Training
+                        # --- Retraining
                         if drift_flag:
                             print("Drift Detected")
                             df = pd.DataFrame(rt_features)
                             features = df.iloc[:, 3:-1].astype(float)
                             targets = df.iloc[:, -1].astype(int)
-                            retraining_daytime = df.iloc[-1,2] # データセット内の最後のフローがキャプチャされた時間
+                            retraining_daytime = datetime.strptime(df.iloc[-1,2], "%Y-%m-%d %H:%M:%S") # データセット内の最後のフローがキャプチャされた時間
                             model, arr_rtr_results = modelTrainer.main(
                                 model=model,
                                 features=features,
