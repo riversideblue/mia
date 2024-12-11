@@ -9,30 +9,22 @@ import pandas as pd
 
 from main import modelTrainer, modelEvaluator
 
-class DriftManager:
-    def __init__(self,past_window_size,present_window_size,threshold):
+def drift_detect(present_window,past_window,threshold):
 
-        self.flow_count = 0
-        self.past_window = deque([-threshold] * past_window_size, maxlen=past_window_size)
-        self.past_window_size = past_window_size
-        self.present_window = deque([-threshold] * present_window_size, maxlen=present_window_size)
-        self.present_window_size = present_window_size
-        self.threshold = threshold
+    # 必要な列を整数型に変換して取り出し
+    rcv_present = np.array(present_window)[:,3].astype(int)
+    snd_present = np.array(present_window)[:,4].astype(int)
+    fn_present = rcv_present + snd_present
+    ave_fn_present = np.mean(fn_present)
 
-    def detection(self,flow):
+    rcv_past = np.array(past_window)[:,3].astype(int)
+    snd_past = np.array(past_window)[:,4].astype(int)
+    fn_past = rcv_past + snd_past
+    ave_fn_past = np.mean(fn_past)
 
-        self.past_window.append(self.present_window.popleft())
-        self.present_window.append(flow)
-        self.flow_count += 1
-
-        if self.flow_count >= self.present_window_size:
-            ave_past = sum(self.past_window) / self.past_window_size
-            ave_present = sum(self.present_window) / self.present_window_size
-            print(ave_past, ave_present)
-            if abs(ave_present - ave_past) > self.threshold:
-                return True
-        return False
-
+    if abs(ave_fn_present - ave_fn_past) > threshold:
+        return True
+    return False
 
 def main(
         online_mode,
@@ -50,16 +42,16 @@ def main(
         list_rtr_results,
         list_eval_results
 ):
+
     y_true = []
     y_pred = []
-    rt_features = []
-    drift_manager = DriftManager(past_window_size,present_window_size,threshold)
+    counter = 0
 
     if online_mode:
         print("dynamic - online mode")
     else:
         print("dynamic - offline mode")
-
+        drift_flag = False
         first_timestamp_flag = True
         first_evaluate_flag = True
         end_flag = False
@@ -74,31 +66,13 @@ def main(
             with open(dataset_file_path, mode='r') as file:
                 reader = csv.reader(file)
                 headers = next(reader)  # 最初の行をヘッダーとして読み込む
-
-                ex_addr_index = headers.index("ex_address")
-                in_addr_index = headers.index("in_address")
                 timestamp_index = headers.index("daytime")
-                rcv_packet_count = headers.index("rcv_packet_count")
-                snd_packet_count = headers.index("snd_packet_count")
-                tcp_count = headers.index("tcp_count")
-                udp_count = headers.index("udp_count")
-                most_port = headers.index("most_port")
-                port_count = headers.index("port_count")
-                rcv_max_interval = headers.index("rcv_max_interval")
-                rcv_min_interval = headers.index("rcv_min_interval")
-                rcv_max_length = headers.index("rcv_max_length")
-                rcv_min_length = headers.index("rcv_min_length")
-                snd_max_interval = headers.index("snd_max_interval")
-                snd_min_interval = headers.index("snd_min_interval")
-                snd_max_length = headers.index("snd_max_length")
-                snd_min_length = headers.index("snd_min_length")
                 label_index = headers.index("label")
 
                 for row in reader:
-                    timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
-                    flow_num:int = int(row[rcv_packet_count]) + int(row[snd_packet_count])
-                    batch = np.array(row[3:-1], dtype=np.float32).reshape(1, -1)
+                    batch = np.array(row[3:-1], dtype=np.float32)
                     target = int(row[label_index])
+                    timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
 
                     # --- Beginning and end daytime filter
                     if first_timestamp_flag: # 最初の行のtimestamp
@@ -106,6 +80,15 @@ def main(
                             print("- error : beginning_daytime should be within datasets range")
                             sys.exit(1)
                         else:
+                            # Windowの定義
+                            past_window = deque(
+                                np.full((past_window_size, len(row)), -threshold, dtype=object),
+                                maxlen=past_window_size
+                            )
+                            present_window = deque(
+                                np.full((present_window_size, len(row)),  -threshold, dtype=object),
+                                maxlen=present_window_size
+                            )
                             first_timestamp_flag = False
                     elif timestamp < beginning_daytime: # beginning_daytime以前の行は読み飛ばす
                         pass
@@ -115,6 +98,9 @@ def main(
                         break
 
                     else:
+                        past_window.append(present_window.popleft())
+                        present_window.append(np.array(row, dtype=object))
+
                         # --- Evaluate
                         if timestamp > next_evaluate_daytime:
                             if not first_evaluate_flag:
@@ -123,26 +109,28 @@ def main(
                                 evaluate_results_array = modelEvaluator.main(y_true, y_pred)
                                 evaluate_results_array = np.append([evaluate_daytime], evaluate_results_array)
                                 list_eval_results = np.vstack([list_eval_results, evaluate_results_array])
-
                             y_true = []
                             y_pred = []
                             next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
                             first_evaluate_flag = False
 
                         # --- Prediction
-                        y_pred.append(model.predict_on_batch(batch)[0][0])
+                        y_pred.append(model.predict_on_batch(batch.reshape(1, -1))[0][0])
                         y_true.append(target)
 
                         # --- Drift detection
-                        drift_flag = drift_manager.detection(flow_num)
+                        counter += 1
+                        if counter >= present_window_size:
+                            drift_flag = drift_detect(present_window,past_window,threshold)
 
                         # --- Retraining
                         if drift_flag:
-                            print("Drift Detected")
-                            df = pd.DataFrame(rt_features)
+                            print("--- Drift Detected")
+                            counter = 0
+                            df = pd.DataFrame(np.array(present_window))
                             features = df.iloc[:, 3:-1].astype(float)
                             targets = df.iloc[:, -1].astype(int)
-                            retraining_daytime = datetime.strptime(df.iloc[-1,2], "%Y-%m-%d %H:%M:%S") # データセット内の最後のフローがキャプチャされた時間
+                            retraining_daytime = datetime.strptime(df.iloc[-1,2], "%Y-%m-%d %H:%M:%S")
                             model, arr_rtr_results = modelTrainer.main(
                                 model=model,
                                 features=features,
@@ -152,14 +140,11 @@ def main(
                                 batch_size=batch_size,
                                 retraining_daytime=retraining_daytime
                             )
-                            list_rtr_results = np.vstack(
-                                [list_rtr_results, arr_rtr_results])
-                            rt_features = [row]
-                        else:
-                            rt_features.append(row)
+                            list_rtr_results = np.vstack([list_rtr_results, arr_rtr_results])
+                            drift_flag = False
 
         # --- End dynamic-offline processing
         if not end_flag:
-            end_daytime = datetime.strptime(rt_features[-1][2], "%Y-%m-%d %H:%M:%S")
+            end_daytime = datetime.strptime(present_window[0][2], "%Y-%m-%d %H:%M:%S")
 
     return list_rtr_results,list_eval_results,end_daytime

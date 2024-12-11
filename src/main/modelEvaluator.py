@@ -8,7 +8,7 @@ def main (y_true,y_pred):
     conf_matrix = confusion_matrix(y_true, y_pred_bin,labels=[0,1])
     tn, fp, fn, tp = conf_matrix.ravel()
     print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
-    tpr = recall_score(y_true, y_pred_bin)  # TPR
+    tpr = tp / (tp + fn) if (tp + fn) > 0 else 0  # 真陽性率
     fpr = fp / (fp + tn) if (fp + tn) > 0 else 0  # 偽陽性率
     fnr = fn / (fn + tp) if (fn + tp) > 0 else 0  # 偽陰性率
     tnr = tn / (tn + fp) if (tn + fp) > 0 else 0  # 真陰性率

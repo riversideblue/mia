@@ -7,7 +7,7 @@ import pandas as pd
 def main():
 
     # Input
-    target_dir_path = "src/main/traffic_data/csv/wt2022"
+    target_dir_path = "/home/murasemaru/nids-cdd/src/main/traffic_data/csv/wt2022"
     beginning_daytime = "2022-08-03 16:50:07"
     beginning_daytime = datetime.strptime(beginning_daytime, "%Y-%m-%d %H:%M:%S")
     attack_delete_range = 7200 # minute
@@ -17,7 +17,7 @@ def main():
     ts_str = timestamp.strftime("%m%d%H%M%S")
 
     # --- Create output directory
-    output_dir_path: str = f"src/main/traffic_data/csv/{os.path.basename(target_dir_path)}-da-{ts_str}"
+    output_dir_path: str = f"/home/murasemaru/nids-cdd/src/main/traffic_data/csv/{os.path.basename(target_dir_path)}-da-{ts_str}"
     os.makedirs(output_dir_path)
 
     for count,target_file in enumerate(os.listdir(target_dir_path),start=1):
