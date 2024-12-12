@@ -6,9 +6,9 @@
   },
   "FOUNDATION_MODEL_PATH": "",
   "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/wt2022-da-0808165007",
-  "BEGINNING_DAYTIME": "2022-08-06 17:00:58",
+  "BEGINNING_DAYTIME": "2022-08-07 17:00:58",
   "TargetRange": {
-    "DAYS": 4,
+    "DAYS": 3,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
@@ -22,8 +22,8 @@
     "BATCH_SIZE": 256
   },
   "DriftDetection": {
-    "PAST_WINDOW_SIZE": 400,
-    "PRESENT_WINDOW_SIZE": 200,
+    "PAST_WINDOW_SIZE": 10,
+    "PRESENT_WINDOW_SIZE": 5,
     "THRESHOLD": 400
   },
   "FeatureExtract": {

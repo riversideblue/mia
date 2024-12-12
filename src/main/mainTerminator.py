@@ -99,18 +99,18 @@ def main():
          training_results_list,evaluate_results_list,end_daytime = dynamicTerminator.main(
              online_mode= online_mode,
              datasets_folder_path=datasets_folder_path,
-             output_dir_path=output_dir_path,
-             beginning_daytime=beginning_daytime,
-             end_daytime=end_daytime,
+             o_dir_path=output_dir_path,
+             beginning_dtime=beginning_daytime,
+             end_dtime=end_daytime,
              model=model,
              epochs=epochs,
              batch_size=batch_size,
-             evaluate_unit_interval=evaluate_unit_interval,
-             past_window_size=past_window_size,
-             present_window_size=present_window_size,
+             eval_unit_int=evaluate_unit_interval,
+             past_w_size=past_window_size,
+             present_w_size=present_window_size,
              threshold=threshold,
-             list_rtr_results=training_results_list,
-             list_eval_results=evaluate_results_list
+             rtr_results_list=training_results_list,
+             eval_results_list=evaluate_results_list
          )
     elif retraining_mode == "static":
         training_results_list,evaluate_results_list,end_daytime = staticTerminator.main(
