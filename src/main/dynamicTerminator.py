@@ -4,7 +4,8 @@ import os
 from datetime import datetime
 
 import numpy as np
-import driftDetection,tmClass
+import driftDetection as DD
+import tmClass
 
 def main(
         online_mode,
@@ -29,8 +30,7 @@ def main(
         print("dynamic - online mode")
     else:
         print("dynamic - offline mode")
-        dd = driftDetection
-        w = driftDetection.Window(present_w_size, past_w_size, threshold, row_len=18)
+        w = DD.Window(present_w_size, past_w_size, threshold, row_len=18)
 
         for dataset_file in os.listdir(datasets_folder_path):
             if t.end_flag :
@@ -51,20 +51,21 @@ def main(
                     target = int(row[label_index])
                     timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
 
-                    if t.b_filter:
-                        t.b_filtering(timestamp) # 開始フィルタ
+                    if t.b_filter: # 開始フィルタ
+                        if t.b_filtering(timestamp):
+                            continue
                     elif t.e_filter(timestamp): # 終了フィルタ
                         break
-                    else:
-                        w.update(row)
-                        # --- Evaluate
-                        if timestamp > t.next_eval_dtime:
-                            eval_results_list = t.call_eval(eval_results_list)
-                        # --- Prediction
-                        t.call_pred(model, feature=feature,target=target)
-                        # --- DD & Retraining
-                        if dd.TTest(w.fnum_present(), w.fnum_past(), threshold):
-                            rtr_results_list = t.call_rtr(model, w.present_window, rtr_results_list)
+
+                    w.update(row)
+                    # --- Evaluate
+                    if timestamp > t.next_eval_dtime:
+                        eval_results_list = t.call_eval(eval_results_list)
+                    # --- Prediction
+                    t.call_pred(model, feature=feature,target=target)
+                    # --- DD & Retraining
+                    if DD.TTest(w.fnum_present(), w.fnum_past(), threshold):
+                        rtr_results_list = t.call_rtr(model, w.present_window, rtr_results_list)
 
         # --- End dynamic-offline processing
         if not t.end_flag:

@@ -28,9 +28,11 @@ class TerminateManager:
                 print("- error : beginning_daytime should be within datasets range")
                 sys.exit(1)
             else:
-                self.b_filter = False
-        elif timestamp < self.beginning_dtime:  # beginning_daytime以前の行は読み飛ばす
-            pass
+                self.first_row_flag = False
+        elif timestamp > self.beginning_dtime:
+            self.b_filter = False
+            return False
+        return True
 
     def e_filter(self,timestamp):
         if timestamp > self.end_dtime:  # timestampがend_daytimeを超えた時
