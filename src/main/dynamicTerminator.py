@@ -17,15 +17,16 @@ def main(
         epochs,
         batch_size,
         eval_unit_int,
-        past_w_size,
-        present_w_size,
+        cw_size,
+        pw_size,
+        method_code,
         threshold,
         rtr_results_list,
         eval_results_list
 ):
 
     t = tmClass.TerminateManager(beginning_dtime, end_dtime, eval_unit_int, o_dir_path, epochs, batch_size)
-    w = DD.Window(present_w_size, past_w_size, threshold, row_len=18)
+    w = DD.Window(cw_size, pw_size, threshold, row_len=18)
 
     if online_mode:
         print("dynamic - online mode")
@@ -58,8 +59,8 @@ def main(
                 # --- Prediction
                 t.call_pred(model, feature=feature,target=target)
                 # --- DD & Retraining
-                if DD.TTest(w.fnum_present(), w.fnum_past(), threshold):
-                    rtr_results_list = t.call_rtr(model, w.present_window, rtr_results_list)
+                if DD.call(method_code,w.fnum_cw(), w.fnum_pw()):
+                    rtr_results_list = t.call_rtr(model, w.c_window, rtr_results_list)
             file.close()
 
     return rtr_results_list,eval_results_list,t.c_time

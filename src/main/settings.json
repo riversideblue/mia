@@ -8,7 +8,7 @@
   "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/wt2022-da-0808165007",
   "BEGINNING_DAYTIME": "2022-08-07 17:00:58",
   "TargetRange": {
-    "DAYS": 3,
+    "DAYS": 100,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
@@ -22,8 +22,9 @@
     "BATCH_SIZE": 256
   },
   "DriftDetection": {
-    "PAST_WINDOW_SIZE": 10,
-    "PRESENT_WINDOW_SIZE": 5,
+    "CW_SIZE": 25,
+    "PW_SIZE": 75,
+    "METHOD_CODE": 2,
     "THRESHOLD": 400
   },
   "FeatureExtract": {

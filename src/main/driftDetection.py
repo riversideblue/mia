@@ -1,78 +1,91 @@
 import numpy as np
 from collections import deque
 
+from scipy.stats import ttest_ind, ttest_rel, mannwhitneyu
+
+
 class Window:
-    def __init__(self,present_window_size,past_window_size,threshold,row_len):
-        self.present_window = deque(
-            np.full((present_window_size, row_len), -threshold, dtype=object),
-            maxlen=present_window_size
+    def __init__(self, cw_size, pw_size, threshold, row_len):
+        self.c_window = deque(
+            np.full((cw_size, row_len), -threshold, dtype=object),
+            maxlen=cw_size
         )
-        self.past_window = deque(
-            np.full((past_window_size, row_len), -threshold, dtype=object),
-            maxlen=past_window_size
+        self.p_window = deque(
+            np.full((pw_size, row_len), -threshold, dtype=object),
+            maxlen=pw_size
         )
         self.threshold = threshold
 
     def update(self,row):
-        self.past_window.append(self.present_window.popleft())
-        self.present_window.append(np.array(row, dtype=object))
+        self.p_window.append(self.c_window.popleft())
+        self.c_window.append(np.array(row, dtype=object))
 
-    def fnum_present(self):
-        rcv_present = np.array(self.present_window)[:, 3].astype(int)
-        snd_present = np.array(self.present_window)[:, 4].astype(int)
-        extracted_present = rcv_present + snd_present
-        return extracted_present
+    def fnum_cw(self):
+        rcv_current = np.array(self.c_window)[:, 3].astype(int)
+        snd_current = np.array(self.c_window)[:, 4].astype(int)
+        extracted_current = rcv_current + snd_current
+        return extracted_current
 
-    def fnum_past(self):
-        rcv_past = np.array(self.past_window)[:, 3].astype(int)
-        snd_past = np.array(self.past_window)[:, 4].astype(int)
+    def fnum_pw(self):
+        rcv_past = np.array(self.p_window)[:, 3].astype(int)
+        snd_past = np.array(self.p_window)[:, 4].astype(int)
         extracted_past = rcv_past + snd_past
         return extracted_past
 
-def TTest(present_window,past_window,threshold):
+def call(method_code:int,c_window,p_window):
 
-    # debug
-    print(f"Present: {present_window}")
-    print(f"Past: {past_window}")
-    ave_fn_present = np.mean(present_window)
-    ave_fn_past = np.mean(past_window)
-    if abs(ave_fn_present - ave_fn_past) > threshold:
-        return True
-    return False
+    method_dict = {
+        0: independent_t_test,
+        1: paired_t_test,
+        2: welchs_t_test,
+        3: mann_whitney_u_test
+    }
 
-class KLDivergence:
-    def __init__(self):
-        print("KL Divergence Based Drift Detection")
+    method = method_dict.get(method_code)
+    if method is None:
+        raise ValueError(f"Invalid method_code: {method_code}")
+    return method(c_window, p_window)
 
+def independent_t_test(c_window, p_window, alpha=0.05):
+    """
+        前提条件：
+        c_windowとp_windowは正規分布に従う×
+        c_windowとp_windowの分散は等しい×
+        c_windowとp_windowは独立である×
+    """
+    t_stat, p_value = ttest_ind(c_window, p_window, equal_var=True)
+    return p_value < alpha
 
-class ADWIN:
-    def __init__(self):
-        print("AD Window Based Drift Detection")
+def paired_t_test(c_window, p_window, alpha=0.05):
+    """
+        前提条件：
+        c_windowとp_windowは正規分布に従う×
+        c_windowとp_windowは同一の対象である(独立でない)〇
+        c_windowとp_windowは同じ長さである×
+    """
+    t_stat, p_value = ttest_rel(c_window, p_window)
+    return p_value < alpha
 
-class DDM:
-    def __init__(self):
-        print("DDM Based Drift Detection")
+def welchs_t_test(c_window, p_window, alpha=0.3):
+    """
+        前提条件：
+        c_windowとp_windowは正規分布に従う×
+        c_windowとp_windowは独立である×
+    """
+    t_stat, p_value = ttest_ind(c_window, p_window, equal_var=False)
+    return p_value < alpha
 
-class Hoeffding:
-    def __init__(self):
-        print("Hoeffding Based Drift Detection")
+def mann_whitney_u_test(c_window, p_window, alpha=0.05):
+    """
+    Mann-Whitney U検定
 
-class KSTest:
-    def __init__(self):
-        print("KSTest Based Drift Detection")
+    Parameters:
+        c_window (list or np.ndarray): 現在のウィンドウデータ.
+        p_window (list or np.ndarray): 過去のウィンドウデータ.
+        alpha (float): 有意水準.
 
-class LeveneTest:
-    def __init__(self):
-        print("Levene Test Based Drift Detection")
-
-class Wasserstein:
-    def __init__(self):
-        print("Wasserstein Based Drift Detection")
-
-class LikelihoodRatioTest:
-    def __init__(self):
-        print("Likelihood Ratio Test Based Drift Detection")
-
-class Bhattacharyya:
-    def __init__(self):
-        print("Bhattacharyya Based Drift Detection")
+    Returns:
+        bool: 帰無仮説を棄却するか（True: 棄却, False: 棄却しない）.
+    """
+    u_stat, p_value = mannwhitneyu(c_window, p_window, alternative='two-sided')
+    return p_value < alpha
