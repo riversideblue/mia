@@ -11,8 +11,9 @@ class TerminateManager:
     def __init__(self,beginning_dtime,end_dtime,eval_unit_int,o_dir_path,epochs,batch_size):
         self.y_true = []
         self.y_pred = []
+        self.c_time = beginning_dtime
         self.beginning_dtime = beginning_dtime
-        self.b_filter = True
+        self.b_flag = True
         self.first_row_flag = True
         self.end_flag = False
         self.end_dtime = end_dtime
@@ -22,22 +23,24 @@ class TerminateManager:
         self.epochs = epochs
         self.batch_size = batch_size
 
-    def b_filtering(self,timestamp):
-        if self.first_row_flag:  # 最初の行のtimestamp
-            if timestamp > self.beginning_dtime:
+    def b_filtering(self, c_time):
+        if self.first_row_flag:
+            if c_time > self.beginning_dtime:
                 print("- error : beginning_daytime should be within datasets range")
                 sys.exit(1)
             else:
                 self.first_row_flag = False
-        elif timestamp > self.beginning_dtime:
-            self.b_filter = False
+        elif not c_time < self.beginning_dtime:
+            self.b_flag = False
             return False
         return True
 
-    def e_filter(self,timestamp):
-        if timestamp > self.end_dtime:  # timestampがend_daytimeを超えた時
+    def e_filtering(self, c_time):
+        if c_time > self.end_dtime:  # timestampがend_daytimeを超えた時
             print("- < detected end_daytime >")
             self.end_flag = True
+            return True
+        return False
 
     def call_eval(self,list_eval_results):
         print("--- evaluate model")
