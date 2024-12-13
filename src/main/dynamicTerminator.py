@@ -30,6 +30,7 @@ def main(
     else:
         print("dynamic - offline mode")
         dd = driftDetection
+        w = driftDetection.Window(present_w_size, past_w_size, threshold, row_len=18)
 
         for dataset_file in os.listdir(datasets_folder_path):
             if t.end_flag :
@@ -41,7 +42,6 @@ def main(
             with open(dataset_file_path, mode='r') as file:
                 reader = csv.reader(file)
                 headers = next(reader)  # 最初の行をヘッダーとして読み込む
-                w = driftDetection.Window(present_w_size, past_w_size, threshold, len(headers))
 
                 timestamp_index = headers.index("daytime")
                 label_index = headers.index("label")
