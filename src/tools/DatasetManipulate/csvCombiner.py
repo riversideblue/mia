@@ -7,7 +7,7 @@ import pandas as pd
 
 # --- 二つのデータセットを時系列順に結合するスクリプト ------------------------------------------------------------------------ #
 d1_folder_path: str = "/home/murasemaru/nids-cdd/src/main/traffic_data/csv/wt2022"
-d2_folder_path: str = "/home/murasemaru/nids-cdd/src/main/traffic_data/csv/wt2022-da-0808165007"
+d2_folder_path: str = "/home/murasemaru/nids-cdd/src/main/traffic_data/csv/empty"
 dataset_size = 3000
 # --- Create output directory
 output_dir_path: str = f"/home/murasemaru/nids-cdd/src/main/traffic_data/csv/{os.path.basename(d1_folder_path)}+{os.path.basename(d2_folder_path)}"
@@ -51,19 +51,25 @@ else:
 
 
 while True:
-    combined_row_count += 1
-    print(combined_row_count)
-    if combined_row_count > dataset_size:
-        output_file_count += 1
+    if d1_end_flag and d2_end_flag:
         combined_df = pd.DataFrame(combined_list)
-        combined_df.to_csv(f"results/{output_file_count:05d}.csv", index=False, header=d1_header)
-    elif d1_end_flag and d2_end_flag:
-        combined_df = pd.DataFrame(combined_list)
-        combined_df.to_csv(f"results/{output_file_count:05d}.csv", index=False, header=d1_header)
+        combined_df.to_csv(f"{output_dir_path}/{output_file_count:05d}.csv", index=False, header=d1_header)
         break
 
-    if d1_latest <= d2_latest:
-        combined_list.append(d1_row)
+    elif d1_latest <= d2_latest:
+        combined_row_count += 1
+        if combined_row_count > dataset_size:
+            print(f"output {output_file_count}")
+            output_file_count += 1
+            combined_df = pd.DataFrame(combined_list)
+            date_obj = datetime.strptime(combined_list[0][d1_ts_index], "%Y-%m-%d %H:%M:%S")
+            formatted_date = date_obj.strftime("%Y%m%d%H%M")
+            combined_df.to_csv(f"{output_dir_path}/{output_file_count:05d}_{formatted_date}.csv", index=False,
+                               header=d1_header)
+            combined_list = [d1_row]
+            combined_row_count = 0
+        else:
+            combined_list.append(d1_row)
         try:
             d1_row = next(d1_reader)
             d1_latest = datetime.strptime(d1_row[d1_ts_index], "%Y-%m-%d %H:%M:%S")
@@ -81,7 +87,18 @@ while True:
                 d1_end_flag = True
 
     else:
-        combined_list.append(d2_row)
+        combined_row_count += 1
+        if combined_row_count > dataset_size:
+            print(f"output {output_file_count}")
+            output_file_count += 1
+            combined_df = pd.DataFrame(combined_list)
+            date_obj = datetime.strptime(combined_list[0][d2_ts_index], "%Y-%m-%d %H:%M:%S")
+            formatted_date = date_obj.strftime("%Y%m%d%H%M")
+            combined_df.to_csv(f"{output_dir_path}/{output_file_count:05d}_{formatted_date}.csv", index=False, header=d1_header)
+            combined_list = [d2_row]
+            combined_row_count = 0
+        else:
+            combined_list.append(d2_row)
         try:
             d2_row = next(d2_reader)
             d2_latest = datetime.strptime(d2_row[d2_ts_index], "%Y-%m-%d %H:%M:%S")
