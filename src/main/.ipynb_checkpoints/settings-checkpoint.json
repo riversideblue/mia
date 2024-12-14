@@ -8,13 +8,13 @@
   "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/AusEast202201",
   "BEGINNING_DAYTIME": "2022-01-01 09:03:08",
   "TargetRange": {
-    "DAYS": 0,
-    "HOURS": 1,
+    "DAYS": 1,
+    "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },
   "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "dynamic",
+  "RETRAINING_MODE": "static",
   "STATIC_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {

@@ -10,9 +10,7 @@ import pandas as pd
 import pytz
 
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-
-from main import modelCreator, dynamicTerminator, staticTerminator, ntTerminator
-
+import modelCreator, dynamicTerminator, staticTerminator, ntTerminator
 
 def is_pass_exist(path):
     if not os.path.exists(path):  # error >> argument 1 name

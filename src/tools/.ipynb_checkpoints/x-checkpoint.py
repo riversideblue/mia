@@ -6,8 +6,8 @@ import pandas as pd
 
 
 # --- 二つのデータセットを時系列順に結合するスクリプト ------------------------------------------------------------------------ #
-d1_folder_path: str = "src/main/traffic_data/csv/2022-AusEast/0102/2"
-d2_folder_path: str = "src/main/traffic_data/csv/2022-AusEast/0102/3"
+d1_folder_path: str = "src/main/traffic_data/csv/AusEast202201"
+d2_folder_path: str = "src/main/traffic_data/csv/lab01"
 dataset_size = 3000
 # --- Create output directory
 output_dir_path: str = f"src/main/traffic_data/csv/{os.path.basename(d1_folder_path)}+{os.path.basename(d2_folder_path)}"

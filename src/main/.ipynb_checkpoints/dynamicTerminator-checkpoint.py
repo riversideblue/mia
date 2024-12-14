@@ -31,7 +31,7 @@ def main(
         print("dynamic - online mode")
     else:
         print("dynamic - offline mode")
-        for dataset_file in os.listdir(datasets_folder_path):
+        for dataset_file in sorted(os.listdir(datasets_folder_path)):
             if t.end_flag:break
 
             dataset_file_path: str = f"{datasets_folder_path}/{dataset_file}"
