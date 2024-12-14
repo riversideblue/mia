@@ -58,11 +58,11 @@ def main():
     static_interval: int = settings["STATIC_INTERVAL"]
     evaluate_unit_interval: int = settings["EVALUATE_UNIT_INTERVAL"]
 
-    cw_size = settings["DriftDetection"]["CW_SIZE"]
-    pw_size = settings["DriftDetection"]["PW_SIZE"]
-    method_code = settings["DriftDetection"]["METHOD_CODE"]
+    past_window_size = settings["DriftDetection"]["PAST_WINDOW_SIZE"]
+    present_window_size = settings["DriftDetection"]["PRESENT_WINDOW_SIZE"]
     threshold = settings["DriftDetection"]["THRESHOLD"]
 
+    scaler = StandardScaler()
     is_pass_exist(datasets_folder_path)
 
     # --- Create output directory
@@ -104,9 +104,8 @@ def main():
              epochs=epochs,
              batch_size=batch_size,
              eval_unit_int=evaluate_unit_interval,
-             cw_size=cw_size,
-             pw_size=pw_size,
-             method_code=method_code,
+             past_w_size=past_window_size,
+             present_w_size=present_window_size,
              threshold=threshold,
              rtr_results_list=training_results_list,
              eval_results_list=evaluate_results_list
@@ -149,7 +148,7 @@ def main():
     with open(f"{output_dir_path}/settings_log_edge.json", "w") as f:
         json.dump(settings, f, indent=1)  # type:
 
-    # --- Results processing
+    # --- Results processing 修正する！！！！
     additional_results_column = ["nmr_fn_rate", "nmr_benign_rate"]
     additional_results_list = []
 

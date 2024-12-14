@@ -291,7 +291,7 @@ class FlowManager:
             js = timezone(timedelta(hours=9))  # JSTのタイムゾーン
             frd_dtime_jst = frd_datetime.astimezone(js)  # JSTに変換
             self.first_row_dtime = frd_dtime_jst.strftime("%Y%m%d%H%M%S")  # フォーマット済み文字列を設定
-
+            
         addr,field = extract_features_from_packet(pkt, self.malicious_address_set,
                                                    self.benign_address_set)
         key = self.is_flow_exist(captured_time, src, dst)
@@ -313,6 +313,7 @@ def offline(file_path, manager, filter_offline):
     if os.path.getsize(file_path) == 0:
         print(os.path.basename(file_path) + ":no data")
     else:
+        
         sniff(offline=file_path, prn=manager.callback, store=False, filter=filter_offline)
         print(os.path.basename(file_path) + ":finish")
 
@@ -403,7 +404,7 @@ if __name__ == "__main__":
         with ProcessPoolExecutor(max_workers=max_worker) as executor:
             futures = [
                 executor.submit(process_pcap_file,
-                                pcap_file,
+                                pcap_file,  # フルパスを渡す
                                 outputs_path,
                                 ex_addr_list,
                                 malicious_address_set,
