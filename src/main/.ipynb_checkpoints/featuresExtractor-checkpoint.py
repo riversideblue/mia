@@ -215,6 +215,7 @@ class FlowManager:
         self.malicious_address_set = mas
         self.benign_address_set = bas
         self.flow_timeout = ft
+        self.first_row_dtime = None
         # flow_manager = {
         #     (Flow registered time(unix epoc time), "External_Address", "Internal_Address"): {
         #         1st seq: [Packet registered time(unix epoc time), direction, protocol, port, tcp_flag, length, label],
@@ -285,11 +286,15 @@ class FlowManager:
         captured_time = float(pkt.time)
         src = pkt[IP].src
         dst = pkt[IP].dst
-
+        if self.first_row_dtime == None:
+            frd_datetime = datetime.fromtimestamp(captured_time, timezone.utc)  # UTCのdatetimeオブジェクト
+            js = timezone(timedelta(hours=9))  # JSTのタイムゾーン
+            frd_dtime_jst = frd_datetime.astimezone(js)  # JSTに変換
+            self.first_row_dtime = frd_dtime_jst.strftime("%Y%m%d%H%M%S")  # フォーマット済み文字列を設定
+            
         addr,field = extract_features_from_packet(pkt, self.malicious_address_set,
                                                    self.benign_address_set)
         key = self.is_flow_exist(captured_time, src, dst)
-
         if field is not None:
             if key is None:
                 new_flow_key = (captured_time, addr[0], addr[1])
@@ -308,6 +313,7 @@ def offline(file_path, manager, filter_offline):
     if os.path.getsize(file_path) == 0:
         print(os.path.basename(file_path) + ":no data")
     else:
+        
         sniff(offline=file_path, prn=manager.callback, store=False, filter=filter_offline)
         print(os.path.basename(file_path) + ":finish")
 
@@ -324,7 +330,7 @@ def process_pcap_file(pcap_file_path, outputs_dir_path, external_addr_list, mali
     feature_matrix_column = manager.featured_flow_matrix[0]
     feature_matrix_row = manager.featured_flow_matrix[1:]
     feature_matrix = pd.DataFrame(feature_matrix_row, columns=feature_matrix_column)
-    feature_matrix.to_csv(f"{outputs_dir_path}/{count:05d}_{os.path.splitext(os.path.basename(pcap_file_path))[0]}.csv",
+    feature_matrix.to_csv(f"{outputs_dir_path}/{manager.first_row_dtime}.csv",
                           index=False)
     return count  # 処理が完了したカウント番号を返す
 
@@ -342,28 +348,31 @@ if __name__ == "__main__":
     init_time: str = datetime.now(jst).strftime("%Y%m%d%H%M%S")
 
     # --- Field
+    online_mode = settings["ONLINE_MODE"]
+    traffic_data_path = settings["TRAFFIC_DATA_PATH"]
 
-    online_mode = settings["FeatureExtract"]["ONLINE_MODE"]
-    traffic_data_path = settings["FeatureExtract"]["TRAFFIC_DATA_PATH"]
+    flow_timeout = settings["FLOW_TIMEOUT"]  # connection timeout [seconds]
+    capture_timeout = settings["CAPTURE_TIMEOUT"]
+    max_worker = settings["MAX_WORKER"]
 
-    flow_timeout = settings["FeatureExtract"]["FLOW_TIMEOUT"]  # connection timeout [seconds]
-    capture_timeout = settings["FeatureExtract"]["CAPTURE_TIMEOUT"]
-    max_worker = settings["FeatureExtract"]["MAX_WORKER"]
-
-    malicious_network_address_list = settings["FeatureExtract"]["NetworkAddress"][traffic_data_path]["MALICIOUS"]
+    malicious_network_address_list = settings["NetworkAddress"][traffic_data_path]["MALICIOUS"]
     malicious_address_set = set()
     for net in malicious_network_address_list:
         for malicious in ipaddress.ip_network(net):
             malicious_address_set.add(str(malicious))
 
-    benign_network_address_list = settings["FeatureExtract"]["NetworkAddress"][traffic_data_path]["BENIGN"]
+    benign_network_address_list = settings["NetworkAddress"][traffic_data_path]["BENIGN"]
     benign_address_set = set()
     for net in benign_network_address_list:
         for benign in ipaddress.ip_network(net):
             benign_address_set.add(str(benign))
 
-    ex_addr_list = settings["FeatureExtract"]["NetworkAddress"][traffic_data_path]["EXCEPTION"]
-    ex_addr_filter = " and ".join([f"not (ip src {ip} or ip dst {ip})" for ip in ex_addr_list])
+    ex_addr_list = settings["NetworkAddress"][traffic_data_path]["EXCEPTION"]
+    ex_addr_set = set()
+    for net in ex_addr_list:
+        for ex_addr in ipaddress.ip_network(net):
+            ex_addr_set.add(str(ex_addr))
+    ex_addr_filter = " and ".join([f"not (ip src {ip} or ip dst {ip})" for ip in ex_addr_set])
     filter_condition = f"ether proto 0x0800 and ({ex_addr_filter}) and (tcp or udp)"
 
     # --- Create output directory for csv
@@ -378,14 +387,24 @@ if __name__ == "__main__":
         online(flow_manager, filter_condition)
 
     # --- Offline mode
-    # --- データセット内のpcapファイルごとに特徴量抽出を行う
     elif os.path.isdir(traffic_data_path):
         print("offline mode sniffing ...")
-        pcap_files = os.listdir(traffic_data_path)
+
+        # 再帰的にpcapファイルを探索
+        pcap_files = []
+        for root, _, files in os.walk(traffic_data_path):
+            for file in files:
+                full_path = os.path.join(root, file)  # 正しいフルパスを生成
+                pcap_files.append(full_path)
+
+        # ファイル名をソートして時系列順に処理
+        pcap_files = sorted(pcap_files)
+        print(pcap_files)
+
         with ProcessPoolExecutor(max_workers=max_worker) as executor:
             futures = [
                 executor.submit(process_pcap_file,
-                                os.path.join(traffic_data_path, pcap_file),
+                                pcap_file,  # フルパスを渡す
                                 outputs_path,
                                 ex_addr_list,
                                 malicious_address_set,
@@ -396,5 +415,5 @@ if __name__ == "__main__":
                 for count, pcap_file in enumerate(pcap_files)
             ]
 
-            for count,future in enumerate(futures,start=1):
+            for count, future in enumerate(futures, start=1):
                 print(f"Completed processing {future.result()}/{len(pcap_files)}")

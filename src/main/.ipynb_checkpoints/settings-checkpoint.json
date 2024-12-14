@@ -5,11 +5,11 @@
     "CUDA_VISIBLE_DEVICES": "-1"
   },
   "FOUNDATION_MODEL_PATH": "",
-  "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/lab01",
-  "BEGINNING_DAYTIME": "2022-01-23 19:59:55",
+  "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/AusEast202201",
+  "BEGINNING_DAYTIME": "2022-01-01 09:03:08",
   "TargetRange": {
     "DAYS": 0,
-    "HOURS": 3,
+    "HOURS": 1,
     "MINUTES": 0,
     "SECONDS": 0
   },
