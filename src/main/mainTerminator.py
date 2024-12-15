@@ -20,7 +20,6 @@ def is_pass_exist(path):
 # ----- Main
 
 def main():
-
     # --- Load settings
     settings = json.load(open("src/main/settings.json", "r"))
     settings["Log"] = {}
