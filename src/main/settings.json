@@ -2,27 +2,30 @@
   "OS": {
     "TF_CPP_MIN_LOG_LEVEL": "3",
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
+
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "FOUNDATION_MODEL_PATH": "experiment/ex1/fm/model_weights/2022-01-03T08:03:08-weights.pickle",
-  "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/modified/AusEast202201+Lab01-fetch20220101",
-  "BEGINNING_DAYTIME": "2022-01-03 09:03:08",
+  "FOUNDATION_MODEL_PATH": "",
+  "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/AusEast202201",
+  "BEGINNING_DAYTIME": "2022-01-01 09:03:08",
   "TargetRange": {
-    "DAYS": 100,
+    "DAYS": 1,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },
   "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "",
+  "RETRAINING_MODE": "static",
   "STATIC_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
     "EPOCHS": 1,
-    "BATCH_SIZE": 64
+    "BATCH_SIZE": 256
   },
   "DriftDetection": {
-    "PAST_WINDOW_SIZE": 10,
+    "CW_SIZE": 25,
+    "PW_SIZE": 75,
+    "METHOD_CODE": 2,
     "PRESENT_WINDOW_SIZE": 5,
     "THRESHOLD": 400
   }
