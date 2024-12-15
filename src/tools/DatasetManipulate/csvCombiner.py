@@ -6,17 +6,17 @@ import pandas as pd
 
 
 # --- 二つのデータセットを時系列順に結合するスクリプト ------------------------------------------------------------------------ #
-d1_folder_path: str = "/home/murasemaru/nids-cdd/src/main/traffic_data/csv/wt2022"
-d2_folder_path: str = "/home/murasemaru/nids-cdd/src/main/traffic_data/csv/empty"
+d1_folder_path: str = "src/main/traffic_data/csv/unprocessed/AusEast202201"
+d2_folder_path: str = "src/main/traffic_data/csv/modified/Lab01-fetch20220101"
 dataset_size = 3000
 # --- Create output directory
-output_dir_path: str = f"/home/murasemaru/nids-cdd/src/main/traffic_data/csv/{os.path.basename(d1_folder_path)}+{os.path.basename(d2_folder_path)}"
+output_dir_path: str = f"src/main/traffic_data/csv/modified/{os.path.basename(d1_folder_path)}+{os.path.basename(d2_folder_path)}"
 os.makedirs(output_dir_path)
-# -------------------------------------------------------------------------------------------------------------------- #
+# ------------------------------------------------------------------------------------------------------------------------- #
 combined_row_count = 0
 output_file_count = 0
 
-d1_iter = iter(os.listdir(d1_folder_path))
+d1_iter = iter(sorted(os.listdir(d1_folder_path)))
 d1_file_path: str = f"{d1_folder_path}/{next(d1_iter)}"
 d1 = open(d1_file_path, mode='r')
 d1_reader = csv.reader(d1)
@@ -26,7 +26,7 @@ d1_row = next(d1_reader)
 d1_latest = datetime.strptime(d1_row[d1_ts_index], "%Y-%m-%d %H:%M:%S")
 d1_end_flag = False
 
-d2_iter = iter(os.listdir(d2_folder_path))
+d2_iter = iter(sorted(os.listdir(d2_folder_path)))
 d2_file_path: str = f"{d2_folder_path}/{next(d2_iter)}"
 d2 = open(d2_file_path, mode='r')
 d2_reader = csv.reader(d2)
@@ -114,3 +114,4 @@ while True:
             except StopIteration: # 次のファイルがないとき
                 combined_list = [d1_row]
                 d2_end_flag = True
+
