@@ -59,7 +59,7 @@ def main(
                 # --- Prediction
                 t.call_pred(model, feature=feature,target=target)
                 # --- DD & Retraining
-                if DD.call(method_code,w.fnum_cw(), w.fnum_pw()):
+                if DD.call(method_code,w.fnum_cw(), w.fnum_pw(),w.cum_test_static):
                     rtr_results_list = t.call_rtr(model, w.c_window, rtr_results_list)
             file.close()
 

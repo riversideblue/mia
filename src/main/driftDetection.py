@@ -1,7 +1,7 @@
 import numpy as np
 from collections import deque
 
-from scipy.stats import ttest_ind, ttest_rel, mannwhitneyu
+from scipy.stats import ttest_ind, ttest_rel, mannwhitneyu, wasserstein_distance, entropy
 
 
 class Window:
@@ -15,6 +15,7 @@ class Window:
             maxlen=pw_size
         )
         self.threshold = threshold
+        self.cum_test_static = 0
 
     def update(self,row):
         self.p_window.append(self.c_window.popleft())
@@ -32,7 +33,7 @@ class Window:
         extracted_past = rcv_past + snd_past
         return extracted_past
 
-def call(method_code:int,c_window,p_window):
+def call(method_code:int,c_window,p_window,cum_test_static):
 
     method_dict = {
         0: independent_t_test,
@@ -41,12 +42,13 @@ def call(method_code:int,c_window,p_window):
         3: mann_whitney_u_test
     }
 
+    # return True if DRIFT DETECTED
     method = method_dict.get(method_code)
     if method is None:
         raise ValueError(f"Invalid method_code: {method_code}")
-    return method(c_window, p_window)
+    return method(c_window, p_window,cum_test_static)
 
-def independent_t_test(c_window, p_window, alpha=0.05):
+def independent_t_test(c_window, p_window, cum_test_static, alpha=0.05):
     """
         前提条件：
         c_windowとp_windowは正規分布に従う×
@@ -56,7 +58,7 @@ def independent_t_test(c_window, p_window, alpha=0.05):
     t_stat, p_value = ttest_ind(c_window, p_window, equal_var=True)
     return p_value < alpha
 
-def paired_t_test(c_window, p_window, alpha=0.05):
+def paired_t_test(c_window, p_window, cum_test_static, alpha=0.05):
     """
         前提条件：
         c_windowとp_windowは正規分布に従う×
@@ -66,7 +68,7 @@ def paired_t_test(c_window, p_window, alpha=0.05):
     t_stat, p_value = ttest_rel(c_window, p_window)
     return p_value < alpha
 
-def welchs_t_test(c_window, p_window, alpha=0.3):
+def welchs_t_test(c_window, p_window, cum_test_static, alpha=0.3):
     """
         前提条件：
         c_windowとp_windowは正規分布に従う×
@@ -75,17 +77,40 @@ def welchs_t_test(c_window, p_window, alpha=0.3):
     t_stat, p_value = ttest_ind(c_window, p_window, equal_var=False)
     return p_value < alpha
 
-def mann_whitney_u_test(c_window, p_window, alpha=0.05):
-    """
-    Mann-Whitney U検定
+def mann_whitney_u_test(c_window, p_window, cum_test_static, alpha=0.05):
 
-    Parameters:
-        c_window (list or np.ndarray): 現在のウィンドウデータ.
-        p_window (list or np.ndarray): 過去のウィンドウデータ.
-        alpha (float): 有意水準.
-
-    Returns:
-        bool: 帰無仮説を棄却するか（True: 棄却, False: 棄却しない）.
-    """
     u_stat, p_value = mannwhitneyu(c_window, p_window, alternative='two-sided')
     return p_value < alpha
+
+def wasserstein_test(c_window, p_window, cum_test_static, alpha=0.05):
+
+    distance = wasserstein_distance(c_window, p_window)
+    cum_test_static += distance
+    return cum_test_static > alpha
+
+def kl_divergence_test(c_window, p_window, cum_test_static, alpha=0.05):
+    hist_c, bins_c = np.histogram(c_window, bins=50, density=True)
+    hist_p, bins_p = np.histogram(p_window, bins=50, density=True)
+    kl_div = entropy(hist_c + 1e-10, hist_p + 1e-10)  # 1e-10でゼロ割を防止
+    cum_test_static += kl_div
+    return cum_test_static > alpha
+
+def wasserstein_test_high_dim(c_window, p_window, cum_test_static, alpha=0.05):
+    distances = []
+    for i in range(c_window.shape[1]):  # 各特徴量についてWasserstein距離を計算
+        distance = wasserstein_distance(c_window[:, i], p_window[:, i])
+        distances.append(distance)
+    mean_distance = np.mean(distances)  # 距離の平均を使用
+    print(f"平均Wasserstein距離: {mean_distance}")
+    return cum_test_static > alpha
+
+def kl_divergence_test_high_dim(c_window, p_window, cum_test_static, alpha=0.05):
+    kl_values = []
+    for i in range(c_window.shape[1]):  # 各特徴量についてKLダイバージェンスを計算
+        hist_c, _ = np.histogram(c_window[:, i], bins=50, density=True)
+        hist_p, _ = np.histogram(p_window[:, i], bins=50, density=True)
+        kl_div = entropy(hist_c + 1e-10, hist_p + 1e-10)  # 1e-10でゼロ割を防止
+        kl_values.append(kl_div)
+    mean_kl = np.mean(kl_values)  # KLダイバージェンスの平均を使用
+    print(f"平均KLダイバージェンス: {mean_kl}")
+    return cum_test_static > alpha
