@@ -24,6 +24,10 @@
       "target": "/${containerWorkspaceFolder}/other"
     },{
       "type": "bind",
+      "source": "${localEnv:USERPROFILE}/nids-cdd/tools",
+      "target": "/${containerWorkspaceFolder}/src/main/tools"
+    },{
+      "type": "bind",
       "source": "${localEnv:USERPROFILE}/.git-credentials",
       "target": "/tmp/.git-credentials"
     }
