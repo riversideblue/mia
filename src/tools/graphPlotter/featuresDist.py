@@ -3,15 +3,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # --- データセットの各特徴量が遷移する様子を一定期間プロットするスクリプト --------------------------------------------------------------------- #
-beginning_dtime = "2022-01-01 09:03:08"
-end_dtime = "2022-01-01 09:03:08"
-target_dir_path = "src/main/traffic_data/csv/unprocessed/Lab01"
+beginning_dtime = "2022-08-03 16:51:38"
+end_dtime = "2022-08-03 18:51:38"
+target_dir_path = "/home/murasemaru/nids-cdd/src/main/traffic_data/csv/wt2022"
 """
 metrix overview
-"ex_address","in_address","daytime","rcv_packet_count","snd_packet_count","tcp_count","udp_count","most_port","port_count","rcv_max_interval","rcv_min_interval","rcv_max_length","rcv_min_length","snd_max_interval","snd_min_interval","snd_max_length","snd_min_length","label"
+"rcv_packet_count","snd_packet_count","tcp_count","udp_count","most_port","port_count","rcv_max_interval","rcv_min_interval","rcv_max_length","rcv_min_length","snd_max_interval","snd_min_interval","snd_max_length","snd_min_length","label"
 """
-metrix = ["ex_address","in_address","daytime","rcv_packet_count","snd_packet_count","tcp_count","udp_count","most_port","port_count","rcv_max_interval","rcv_min_interval","rcv_max_length","rcv_min_length","snd_max_interval","snd_min_interval","snd_max_length","snd_min_length","label"]
-output_path = "output/traffic_data_plot.png"  # グラフ保存先
+metrix = ["rcv_max_interval"]
+output_path = "outputs/traffic_data_plot.png"  # グラフ保存先
 # ---------------------------------------------------------------------------------------------------------------------------------- #
 
 # ディレクトリ内のすべてのCSVファイルをリスト化
@@ -26,18 +26,12 @@ filtered_data = []
 # 各CSVファイルを処理
 for file in csv_files:
     try:
-        # CSVファイルの読み込み
         df = pd.read_csv(file)
-        
-        # タイムスタンプ列をdatetime形式に変換
         df["daytime"] = pd.to_datetime(df["daytime"])
-        
-        # 条件に合うデータをフィルタリング
         filtered_df = df[(df["daytime"] >= beginning_dtime) & (df["daytime"] <= end_dtime)]
-        
-        # 条件に合うデータをリストに追加
         if not filtered_df.empty:
             filtered_data.append(filtered_df)
+
     except Exception as e:
         print(f"Error processing file {file}: {e}")
 
@@ -57,8 +51,11 @@ legend_size = 22
 
 # グラフを作成
 plt.figure(figsize=(12, 8))  # グラフ全体を少し大きく設定
+# タイムスタンプ列をdatetime形式に変換
+result_df["daytime"] = pd.to_datetime(result_df["daytime"])
 
 for y in metrix:
+    result_df[y] = pd.to_numeric(result_df[y])
     plt.plot(result_df['daytime'], result_df[y], label=y, linewidth=2)
 
 # 軸ラベルとタイトルの設定（文字サイズを調整）
