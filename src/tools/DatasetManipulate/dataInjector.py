@@ -4,6 +4,7 @@ import csv
 import shutil
 from datetime import datetime, timedelta
 from itertools import cycle
+import time
 
 # --- 設定 ----------------------------------------------------------------------- #
 target_dir_path: str = "src/main/traffic_data/csv/unprocessed/2201Lab01"
@@ -28,7 +29,6 @@ for s_csv_file in s_csv_files:
                 s_row_ts = datetime.strptime(s_row[s_ts_index], "%Y-%m-%d %H:%M:%S")
                 if first_time is None:
                     first_time = s_row_ts
-                    print(f"最初の時刻: {first_time}")
                 if not s_row_ts < first_time + timedelta(hours=1):
                     break
                 else:
@@ -37,33 +37,28 @@ for s_csv_file in s_csv_files:
                 break
 s_row_cycle = cycle(s_row_list)
 
-# 既存ディレクトリがあれば削除
 if os.path.exists(output_dir_path):
     print("delete dir")
     shutil.rmtree(output_dir_path)
 os.makedirs(output_dir_path, exist_ok=True)
 
 total_files = len(t_csv_files)
-
 for count, t_csv_file in enumerate(t_csv_files, start=1):
     t_file_path = os.path.join(target_dir_path, t_csv_file)
+    print(t_file_path)
     df = pd.read_csv(t_file_path)
     daytime_index = df.columns.get_loc("daytime")
-    
     new_data = []
     for _, row in df.iterrows():
-        s_row = next(s_row_cycle) 
-        s_row[daytime_index] = str(row["daytime"])  
-        new_data.append(row.tolist())  # 元の行
-        new_data.append(s_row)  # 注入する行
-
+        s_row = next(s_row_cycle)
+        t_row = row.copy()
+        s_row[daytime_index] = str(t_row["daytime"])
+        new_data.append(t_row.tolist())
+        new_data.append(s_row)
     new_df = pd.DataFrame(new_data, columns=df.columns)
-    output_file_path = os.path.join(output_dir_path, os.path.basename(t_csv_file))
-    new_df.to_csv(output_file_path, index=False)
+    new_df = new_df.sort_values(by="daytime")
+    print(new_df)
+    new_df.to_csv(f"{output_dir_path}/{t_csv_file}", index=False)
     print(f"{count}/{total_files} : complete")
 
 print("処理が完了しました")
-
-
-
-
