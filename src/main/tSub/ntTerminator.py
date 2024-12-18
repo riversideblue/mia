@@ -21,8 +21,8 @@ def main(
                 feature,target = t.row_converter(row)
                 if t.e_filtering(t.c_time):
                     break
-                elif t.b_flag:
-                    if t.b_filtering(t.c_time): continue
+                elif t.s_flag:
+                    if t.s_filtering(t.c_time): continue
 
                 # --- Evaluate
                 if t.c_time > t.next_eval_date:

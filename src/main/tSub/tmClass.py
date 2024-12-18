@@ -14,7 +14,7 @@ class TerminateManager:
         self.y_pred = []
         self.headers = []
         self.eval_list = []
-        self.b_flag = True
+        self.s_flag = True
         self.first_row_flag = True
         self.end_flag = False
 
@@ -44,12 +44,7 @@ class TerminateManager:
         target = int(row[self.headers.index("label")])
         return feature, target
 
-    # 最初の行の時刻が開始時刻より前 => 開始時刻まで何もしない return True
-    # 最初の行ではない行が開始時刻より前 => 開始時刻まで何もしない return True
-    # 最初の行ではない行が開始時刻より後 => 処理を開始 return False
-    # 最初の行の時刻が開始時刻より後 => 最初の行の時刻を開始時刻に合わせて処理を開始 return False
-
-    def b_filtering(self, c_time): # return False then start processing
+    def s_filtering(self, c_time): # return False then start processing
         if self.first_row_flag:
             self.first_row_flag = False
             if c_time > self.start_date:
@@ -58,18 +53,18 @@ class TerminateManager:
                 self.end_date += delta
                 self.next_rtr_date += delta
                 self.next_eval_date += delta
-                self.b_flag = False
+                self.s_flag = False
                 return False
             elif c_time == self.start_date:
-                self.b_flag = False
+                self.s_flag = False
                 return False
             elif c_time < self.start_date:
-                self.b_flag = True
+                self.s_flag = True
                 return True
         elif c_time < self.start_date:
             return True
         else:
-            self.b_flag = False
+            self.s_flag = False
             return False
 
     def e_filtering(self, c_time):# if False keep Processing

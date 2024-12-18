@@ -22,8 +22,8 @@ def main(
             for row in reader:
 
                 feature,target = t.row_converter(row)
-                if t.b_flag:
-                    if t.b_filtering(t.c_time): continue
+                if t.s_flag:
+                    if t.s_filtering(t.c_time): continue
                 elif t.e_filtering(t.c_time): break
 
                 # --- Evaluate
