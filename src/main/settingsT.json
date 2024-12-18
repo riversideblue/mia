@@ -4,11 +4,11 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "FOUNDATION_MODEL_PATH": "",
-  "DATASETS_DIR_PATH": "data/csv/modif/2201AusEast+0",
-  "START_DATE": "2022-01-01 00:00:00",
+  "FOUNDATION_MODEL_PATH": "exp/exp1-nt/2201AusEast-5dst/model_weights/2022-01-02T09:03:08-weights.pickle",
+  "DATASETS_DIR_PATH": "data/csv/modif/drift_obs/2201AusEast+0",
+  "START_DATE": "2021-01-02 10:03:08",
   "TargetRange": {
-    "DAYS": 5,
+    "DAYS": 200,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
