@@ -3,3 +3,4 @@ exp/
 *.pcap
 *.csv
 *.pickle
+**/.ipynb_checkpoints/
