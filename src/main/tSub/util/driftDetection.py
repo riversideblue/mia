@@ -2,6 +2,7 @@ import numpy as np
 from collections import deque
 
 from scipy.stats import ttest_ind, ttest_rel, mannwhitneyu, wasserstein_distance, entropy
+import pingouin as pg
 
 
 class Window:
@@ -14,7 +15,6 @@ class Window:
             np.full((pw_size, row_len), -threshold, dtype=object),
             maxlen=pw_size
         )
-        self.threshold = threshold
         self.cum_test_static = 0
 
     def update(self,row):
@@ -33,7 +33,7 @@ class Window:
         extracted_past = rcv_past + snd_past
         return extracted_past
 
-def call(method_code:int,c_window,p_window,cum_test_static):
+def call(method_code:int,c_window,p_window,cum_test_static,threshold):
 
     method_dict = {
         0: independent_t_test,
@@ -41,13 +41,14 @@ def call(method_code:int,c_window,p_window,cum_test_static):
         2: welchs_t_test,
         3: mann_whitney_u_test,
         4: wasserstein_test,
-        5: kl_divergence_test
+        5: kl_divergence_test,
+        6: hoteling_t2_test_with_library
     }
 
     method = method_dict.get(method_code)
     if method is None:
         raise ValueError(f"Invalid method_code: {method_code}")
-    return method(c_window, p_window,cum_test_static)
+    return method(c_window, p_window,cum_test_static,threshold)
 
 def independent_t_test(c_window, p_window, cum_test_static, alpha=2.0):
     """
@@ -86,12 +87,6 @@ def mann_whitney_u_test(c_window, p_window, cum_test_static, alpha=0.05):
     return cum_test_static < alpha
 
 def wasserstein_test(c_window, p_window, cum_test_static, alpha=0.05):
-
-    distance = wasserstein_distance(c_window, p_window)
-    cum_test_static += distance
-    return cum_test_static > alpha
-
-def wasserstein_test(c_window, p_window, cum_test_static, alpha=0.05):
     distances = []
     for i in range(c_window.shape[1]):  # 各特徴量についてWasserstein距離を計算
         distance = wasserstein_distance(c_window[:, i], p_window[:, i])
@@ -111,3 +106,16 @@ def kl_divergence_test(c_window, p_window, cum_test_static, alpha=0.05):
     mean_kl = np.mean(kl_values)  # KLダイバージェンスの平均を使用
     cum_test_static += mean_kl
     return cum_test_static > alpha
+
+def hoteling_t2_test_with_library(c_window, p_window, alpha=0.05):
+    # Pingouinを使用してHotelling's T-squared検定を実行
+    t2_result = pg.multivariate_ttest(c_window, p_window)
+
+    # 結果を取得
+    t2_stat = t2_result.loc['T2', 'stat']
+    p_value = t2_result.loc['T2', 'pval']
+
+    print(f"Hotelling's T-squared statistic: {t2_stat}")
+    print(f"p-value: {p_value}")
+
+    return p_value < alpha, t2_result
