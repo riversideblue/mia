@@ -1,123 +1,54 @@
-import csv
 import os
-import sys
-from datetime import datetime, timedelta
-
-import numpy as np
-import pandas as pd
-import modelTrainer, modelEvaluator
+from datetime import timedelta
+from .util import tmClass
 
 
 def main(
         online_mode,
-        datasets_folder_path,
-        output_dir_path,
-        beginning_daytime,
-        end_daytime,
+        d_dir_path,
+        o_dir_path,
+        start_date,
+        end_date,
         model,
         epochs,
         batch_size,
-        static_interval,
-        evaluate_unit_interval,
-        list_rtr_results,
-        list_eval_results
+        eval_unit_int,
+        rtr_int,
+        tr_results_list,
+        eval_results_list
 ):
 
-    y_true = []
-    y_pred = []
-    rt_features = []
+    t = tmClass.TerminateManager(d_dir_path,o_dir_path,start_date,
+                                 end_date,eval_unit_int,epochs,batch_size)
+
+    rtr_list = []
+    next_rtr_date = start_date + timedelta(seconds=rtr_int)
 
     if online_mode:
         print("- < static/online mode activate >")
     else:
         print("- < static/offline mode activate >")
+        for d_file in sorted(os.listdir(d_dir_path)):
+            if t.end_flag: break
+            f,reader = t.set_d_file(d_file)
+            for row in reader:
 
-        first_col_flag = True
-        first_training_flag = True
-        first_evaluate_flag = True
-        end_flag = False
-        next_retraining_daytime = beginning_daytime
-        next_evaluate_daytime = beginning_daytime
+                feature,target = t.row_converter(row)
+                if t.e_filtering(t.c_time):
+                    break
+                elif t.b_flag:
+                    if t.b_filtering(t.c_time): continue
 
-        for dataset_file in sorted(os.listdir(datasets_folder_path)):
-            if end_flag :
-                return list_rtr_results,list_eval_results,end_daytime
+                # --- Evaluate
+                if t.c_time > t.next_eval_date:
+                    eval_results_list = t.call_eval(eval_results_list)
+                # --- Prediction
+                t.call_pred(model, feature=feature, target=target)
+                # --- Retraining
+                if t.c_time > next_rtr_date:
+                    tr_results_list = t.call_tr(model, rtr_list, tr_results_list)
+                    next_rtr_date += timedelta(seconds=rtr_int)
+                rtr_list.append(row)
+            f.close()
 
-            dataset_file_path: str = f"{datasets_folder_path}/{dataset_file}"
-            print(f"- {dataset_file} set now")
-            with open(dataset_file_path, mode='r') as file:
-                reader = csv.reader(file)
-                headers = next(reader)  # 最初の行をヘッダーとして読み込む
-
-                timestamp_index = headers.index("daytime")
-                label_index = headers.index("label")
-
-                for row in reader:
-                    timestamp = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
-
-                    batch = np.array(row[3:-1], dtype=np.float32).reshape(1, -1)
-                    target = int(row[label_index])
-
-                    # --- Beginning and end filter
-                    if first_col_flag: # 最初の行
-                        if timestamp > beginning_daytime:
-                            print("- error : beginning_daytime should be within datasets range")
-                            sys.exit(1)
-                        else:
-                            first_col_flag = False
-                    elif timestamp < beginning_daytime: # beginning_daytime以前の行は読み飛ばす
-                        pass
-                    elif timestamp > end_daytime: # timestampがend_daytimeを超えた時
-                        print("- < detected end_daytime >")
-                        end_flag = True
-                        break
-
-                    else:
-                        # --- Evaluate
-                        if timestamp > next_evaluate_daytime:
-                            if not first_evaluate_flag:
-                                print("\n--- evaluate model")
-                                evaluate_daytime = next_evaluate_daytime - timedelta(seconds=evaluate_unit_interval / 2)
-                                evaluate_results_array = modelEvaluator.main(y_true, y_pred)
-                                evaluate_results_array = np.append([evaluate_daytime], evaluate_results_array)
-                                list_eval_results = np.vstack([list_eval_results, evaluate_results_array])
-
-                            y_true = []
-                            y_pred = []
-                            next_evaluate_daytime += timedelta(seconds=evaluate_unit_interval)
-                            first_evaluate_flag = False
-
-                        # --- Prediction
-                        y_pred.append(model.predict_on_batch(batch)[0][0])
-                        y_true.append(target)
-
-                        # --- Retraining
-                        if timestamp > next_retraining_daytime:
-                            if not first_training_flag:
-                                print("\n--- retraining model")
-                                df = pd.DataFrame(rt_features)
-                                features = df.iloc[:, 3:-1].astype(float)
-                                targets = df.iloc[:, -1].astype(int)
-                                model, arr_rtr_results = modelTrainer.main(
-                                    model=model,
-                                    features=features,
-                                    targets=targets,
-                                    output_dir_path=output_dir_path,
-                                    epochs=epochs,
-                                    batch_size=batch_size,
-                                    retraining_daytime=next_retraining_daytime
-                                )
-                                list_rtr_results = np.vstack([list_rtr_results, arr_rtr_results])
-
-                            rt_features = [row]
-                            next_retraining_daytime += timedelta(seconds=static_interval)
-                            first_training_flag = False
-
-                        else:
-                            rt_features.append(row)
-
-        # --- End static-offline processing
-        if not end_flag:
-            end_daytime = datetime.strptime(rt_features[-1][2], "%Y-%m-%d %H:%M:%S")
-
-    return list_rtr_results,list_eval_results,end_daytime
+    return tr_results_list,eval_results_list,t.start_date,t.c_time

@@ -39,16 +39,17 @@ def call(method_code:int,c_window,p_window,cum_test_static):
         0: independent_t_test,
         1: paired_t_test,
         2: welchs_t_test,
-        3: mann_whitney_u_test
+        3: mann_whitney_u_test,
+        4: wasserstein_test,
+        5: kl_divergence_test
     }
 
-    # return True if DRIFT DETECTED
     method = method_dict.get(method_code)
     if method is None:
         raise ValueError(f"Invalid method_code: {method_code}")
     return method(c_window, p_window,cum_test_static)
 
-def independent_t_test(c_window, p_window, cum_test_static, alpha=0.05):
+def independent_t_test(c_window, p_window, cum_test_static, alpha=2.0):
     """
         前提条件：
         c_windowとp_windowは正規分布に従う×
@@ -56,7 +57,8 @@ def independent_t_test(c_window, p_window, cum_test_static, alpha=0.05):
         c_windowとp_windowは独立である×
     """
     t_stat, p_value = ttest_ind(c_window, p_window, equal_var=True)
-    return p_value < alpha
+    cum_test_static += (1-p_value)
+    return cum_test_static > alpha
 
 def paired_t_test(c_window, p_window, cum_test_static, alpha=0.05):
     """
@@ -80,7 +82,8 @@ def welchs_t_test(c_window, p_window, cum_test_static, alpha=0.3):
 def mann_whitney_u_test(c_window, p_window, cum_test_static, alpha=0.05):
 
     u_stat, p_value = mannwhitneyu(c_window, p_window, alternative='two-sided')
-    return p_value < alpha
+    cum_test_static += p_value
+    return cum_test_static < alpha
 
 def wasserstein_test(c_window, p_window, cum_test_static, alpha=0.05):
 
@@ -88,23 +91,17 @@ def wasserstein_test(c_window, p_window, cum_test_static, alpha=0.05):
     cum_test_static += distance
     return cum_test_static > alpha
 
-def kl_divergence_test(c_window, p_window, cum_test_static, alpha=0.05):
-    hist_c, bins_c = np.histogram(c_window, bins=50, density=True)
-    hist_p, bins_p = np.histogram(p_window, bins=50, density=True)
-    kl_div = entropy(hist_c + 1e-10, hist_p + 1e-10)  # 1e-10でゼロ割を防止
-    cum_test_static += kl_div
-    return cum_test_static > alpha
-
-def wasserstein_test_high_dim(c_window, p_window, cum_test_static, alpha=0.05):
+def wasserstein_test(c_window, p_window, cum_test_static, alpha=0.05):
     distances = []
     for i in range(c_window.shape[1]):  # 各特徴量についてWasserstein距離を計算
         distance = wasserstein_distance(c_window[:, i], p_window[:, i])
         distances.append(distance)
     mean_distance = np.mean(distances)  # 距離の平均を使用
     print(f"平均Wasserstein距離: {mean_distance}")
+    cum_test_static += mean_distance
     return cum_test_static > alpha
 
-def kl_divergence_test_high_dim(c_window, p_window, cum_test_static, alpha=0.05):
+def kl_divergence_test(c_window, p_window, cum_test_static, alpha=0.05):
     kl_values = []
     for i in range(c_window.shape[1]):  # 各特徴量についてKLダイバージェンスを計算
         hist_c, _ = np.histogram(c_window[:, i], bins=50, density=True)
@@ -112,5 +109,5 @@ def kl_divergence_test_high_dim(c_window, p_window, cum_test_static, alpha=0.05)
         kl_div = entropy(hist_c + 1e-10, hist_p + 1e-10)  # 1e-10でゼロ割を防止
         kl_values.append(kl_div)
     mean_kl = np.mean(kl_values)  # KLダイバージェンスの平均を使用
-    print(f"平均KLダイバージェンス: {mean_kl}")
+    cum_test_static += mean_kl
     return cum_test_static > alpha

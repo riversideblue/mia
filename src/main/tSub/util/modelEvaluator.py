@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.metrics import confusion_matrix, recall_score, accuracy_score, precision_score, f1_score
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, f1_score
 import tensorflow as tf
 
 def main (y_true,y_pred):

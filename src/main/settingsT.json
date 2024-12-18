@@ -5,26 +5,26 @@
     "CUDA_VISIBLE_DEVICES": "-1"
   },
   "FOUNDATION_MODEL_PATH": "",
-  "DATASETS_FOLDER_PATH": "src/main/data/csv/modified/2201Lab01+1",
-  "BEGINNING_DAYTIME": "2021-12-28 03:25:16",
+  "DATASETS_DIR_PATH": "data/csv/20241212143509",
+  "START_DATE": "2022-08-03 15:50:07",
   "TargetRange": {
-    "DAYS": 5,
+    "DAYS": 1,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },
   "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "static",
-  "STATIC_INTERVAL": 3600,
+  "RETRAINING_MODE": "dynamic",
+  "RETRAINING_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
-    "EPOCHS": 10,
+    "EPOCHS": 1,
     "BATCH_SIZE": 256
   },
   "DriftDetection": {
-    "CW_SIZE": 25,
-    "PW_SIZE": 75,
-    "METHOD_CODE": 2,
+    "CURRENT_WIN_SIZE": 25,
+    "PAST_WIN_SIZE": 75,
+    "METHOD_CODE": 0,
     "THRESHOLD": 400
   }
 }

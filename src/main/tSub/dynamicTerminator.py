@@ -1,18 +1,12 @@
-import csv
 import os
-
-from datetime import datetime
-
-import numpy as np
-import driftDetection as DD
-import tmClass
+from .util import driftDetection as DD, tmClass
 
 def main(
         online_mode,
-        datasets_folder_path,
+        d_dir_path,
         o_dir_path,
-        beginning_dtime,
-        end_dtime,
+        start_date,
+        end_date,
         model,
         epochs,
         batch_size,
@@ -21,46 +15,37 @@ def main(
         pw_size,
         method_code,
         threshold,
-        rtr_results_list,
+        tr_results_list,
         eval_results_list
 ):
 
-    t = tmClass.TerminateManager(beginning_dtime, end_dtime, eval_unit_int, o_dir_path, epochs, batch_size)
+    t = tmClass.TerminateManager(d_dir_path, o_dir_path, start_date,
+                                 end_date, eval_unit_int, epochs, batch_size)
     w = DD.Window(cw_size, pw_size, threshold, row_len=18)
 
     if online_mode:
         print("dynamic - online mode")
     else:
         print("dynamic - offline mode")
-        for dataset_file in sorted(os.listdir(datasets_folder_path)):
+        for d_file in sorted(os.listdir(d_dir_path)):
             if t.end_flag: break
-
-            dataset_file_path: str = f"{datasets_folder_path}/{dataset_file}"
-            print(f"- {dataset_file} set now")
-            file = open(dataset_file_path, mode='r')
-            reader = csv.reader(file)
-            headers = next(reader)  # 最初の行をヘッダーとして読み込む
-            timestamp_index = headers.index("daytime")
-            label_index = headers.index("label")
-
+            f,reader = t.set_d_file(d_file)
             for row in reader:
-                t.c_time = datetime.strptime(row[timestamp_index], "%Y-%m-%d %H:%M:%S")
-                feature = np.array(row[3:-1], dtype=np.float32)
-                target = int(row[label_index])
 
+                feature,target = t.row_converter(row)
                 if t.e_filtering(t.c_time):break
                 elif t.b_flag:
                     if t.b_filtering(t.c_time):continue
 
-                w.update(row)
                 # --- Evaluate
-                if t.c_time > t.next_eval_dtime:
+                if t.c_time > t.next_eval_date:
                     eval_results_list = t.call_eval(eval_results_list)
                 # --- Prediction
                 t.call_pred(model, feature=feature,target=target)
                 # --- DD & Retraining
+                w.update(row)
                 if DD.call(method_code,w.fnum_cw(), w.fnum_pw(),w.cum_test_static):
-                    rtr_results_list = t.call_rtr(model, w.c_window, rtr_results_list)
-            file.close()
+                    tr_results_list = t.call_tr(model, w.c_window, tr_results_list)
+            f.close()
 
-    return rtr_results_list,eval_results_list,t.c_time
+    return tr_results_list,eval_results_list,t.start_date,t.c_time

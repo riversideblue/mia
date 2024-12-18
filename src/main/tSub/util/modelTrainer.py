@@ -5,7 +5,6 @@ import pickle
 
 import numpy as np
 
-
 def is_previous_model_exist(dir_name, file_format):
     file_list = sorted(glob.glob(os.path.join(dir_name, file_format)))
     previous_weight_file = None

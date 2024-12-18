@@ -16,16 +16,12 @@
       "target": "/${containerWorkspaceFolder}/data"
     },{
       "type": "bind",
-      "source": "${localEnv:USERPROFILE}/nids-cdd/ex",
-      "target": "/${containerWorkspaceFolder}/ex"
+      "source": "${localEnv:USERPROFILE}/nids-cdd/exp",
+      "target": "/${containerWorkspaceFolder}/exp"
     },{
       "type": "bind",
       "source": "${localEnv:USERPROFILE}/nids-cdd/other",
       "target": "/${containerWorkspaceFolder}/other"
-    },{
-      "type": "bind",
-      "source": "${localEnv:USERPROFILE}/nids-cdd/tool",
-      "target": "/${containerWorkspaceFolder}/src/tool"
     },{
       "type": "bind",
       "source": "${localEnv:USERPROFILE}/.git-credentials",
