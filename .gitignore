@@ -1,6 +1,5 @@
-src/main/output/
-src/main/data/
-experiment/
+data/
+exp/
 *.pcap
 *.csv
 *.pickle
