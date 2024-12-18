@@ -1,29 +1,19 @@
 import os
-from .util import tmClass
 
 
 def main(
+        t,
         online_mode,
-        d_dir_path,
-        o_dir_path,
-        start_date,
-        end_date,
         model,
-        epochs,
-        batch_size,
-        eval_unit_int,
         tr_results_list,
         eval_results_list
 ):
-
-    t = tmClass.TerminateManager(d_dir_path,o_dir_path,start_date,
-                                 end_date,eval_unit_int,epochs,batch_size)
 
     if online_mode:
         print("- < static/online mode activate >")
     else:
         print("- < static/offline mode activate >")
-        for d_file in sorted(os.listdir(d_dir_path)):
+        for d_file in sorted(os.listdir(t.d_dir_path)):
             if t.end_flag: break
             f,reader = t.set_d_file(d_file)
             for row in reader:

@@ -1,16 +1,10 @@
 import os
-from .util import driftDetection as DD, tmClass
+from .util import driftDetection as DD
 
 def main(
+        t,
         online_mode,
-        d_dir_path,
-        o_dir_path,
-        start_date,
-        end_date,
         model,
-        epochs,
-        batch_size,
-        eval_unit_int,
         cw_size,
         pw_size,
         method_code,
@@ -18,16 +12,12 @@ def main(
         tr_results_list,
         eval_results_list
 ):
-
-    t = tmClass.TerminateManager(d_dir_path, o_dir_path, start_date,
-                                 end_date, eval_unit_int, epochs, batch_size)
     w = DD.Window(cw_size, pw_size, threshold, row_len=18)
-
     if online_mode:
         print("dynamic - online mode")
     else:
         print("dynamic - offline mode")
-        for d_file in sorted(os.listdir(d_dir_path)):
+        for d_file in sorted(os.listdir(t.d_dir_path)):
             if t.end_flag: break
             f,reader = t.set_d_file(d_file)
             for row in reader:

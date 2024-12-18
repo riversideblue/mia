@@ -1,15 +1,14 @@
 import csv
-import sys
 from datetime import timedelta, datetime
 
 import numpy as np
 import pandas as pd
 
-from . import modelEvaluator,modelTrainer
+from .util import modelEvaluator,modelTrainer
 
 
 class TerminateManager:
-    def __init__(self,d_dir_path,o_dir_path,start_date,end_date,eval_unit_int,epochs,batch_size):
+    def __init__(self,d_dir_path,o_dir_path,start_date,end_date,rtr_int,eval_unit_int,epochs,batch_size):
 
         self.y_true = []
         self.y_pred = []
@@ -24,8 +23,10 @@ class TerminateManager:
         self.c_time = start_date
         self.start_date = start_date
         self.end_date = end_date
+        self.rtr_int = rtr_int
+        self.next_rtr_date = start_date + timedelta(seconds=rtr_int)
         self.eval_unit_int = eval_unit_int
-        self.next_eval_date = start_date + timedelta(seconds=self.eval_unit_int)
+        self.next_eval_date = start_date + timedelta(seconds=eval_unit_int)
         self.epochs = epochs
         self.batch_size = batch_size
 
@@ -48,17 +49,23 @@ class TerminateManager:
     # 最初の行ではない行が開始時刻より後 => 処理を開始 return False
     # 最初の行の時刻が開始時刻より後 => 最初の行の時刻を開始時刻に合わせて処理を開始 return False
 
-    def b_filtering(self, c_time): # if False keep Processing
+    def b_filtering(self, c_time): # return False then start processing
         if self.first_row_flag:
-            if c_time < self.start_date:
-                self.first_row_flag = False
-                return True
-            else:
-                while not c_time == self.start_date:
-                    self.start_date += timedelta(seconds=1)
-                self.first_row_flag = False
+            self.first_row_flag = False
+            if c_time > self.start_date:
+                delta = c_time - self.start_date
+                self.start_date = c_time
+                self.end_date += delta
+                self.next_rtr_date += delta
+                self.next_eval_date += delta
                 self.b_flag = False
                 return False
+            elif c_time == self.start_date:
+                self.b_flag = False
+                return False
+            elif c_time < self.start_date:
+                self.b_flag = True
+                return True
         elif c_time < self.start_date:
             return True
         else:
@@ -101,5 +108,6 @@ class TerminateManager:
             batch_size=self.batch_size,
             retraining_daytime=retraining_daytime
         )
+        self.next_rtr_date += timedelta(seconds=self.rtr_int)
         rtr_results_list = np.vstack([rtr_results_list, arr_rtr_results])
         return rtr_results_list

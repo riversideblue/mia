@@ -339,7 +339,7 @@ if __name__ == "__main__":
     start_time = time.time()  # 処理開始時刻
 
     # --- Load settings
-    settings = json.load(open('src/main/settingsFE.json', 'r'))
+    settings = json.load(open('src/main/FE_settings.json', 'r'))
 
     # --- Get current time in JST
     jst = pytz.timezone("Asia/Tokyo")
@@ -421,7 +421,7 @@ if __name__ == "__main__":
     start_time = time.time()  # 処理開始時刻
 
     # --- Load settings
-    settings = json.load(open('src/main/settingsFE.json', 'r'))
+    settings = json.load(open('src/main/FE_settings.json', 'r'))
 
     # --- Get current time in JST
     jst = pytz.timezone("Asia/Tokyo")

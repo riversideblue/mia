@@ -1,8 +1,9 @@
 import json
+import os
 import pickle
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -19,7 +20,7 @@ def is_pass_exist(path):
 def main():
 
     # --- Load settings
-    settings = json.load(open("src/main/settingsT.json", "r"))
+    settings = json.load(open("src/main/T_settings.json", "r"))
     settings["Log"] = {}
 
     # --- Get current time in JST
@@ -87,19 +88,13 @@ def main():
         sys.exit(1)
 
     process_start_date = time.time()
-
+    t = tmClass.TerminateManager(d_dir_path, o_dir_path, start_date,end_date, rtr_int, eval_unit_int, epochs, batch_size)
     # --- Terminate
     if rtr_mode == "dynamic":
          tr_results_list,eval_results_list,start_date,end_date = dynamicTerminator.main(
+             t=t,
              online_mode= online_mode,
-             d_dir_path=d_dir_path,
-             o_dir_path=o_dir_path,
-             start_date=start_date,
-             end_date=end_date,
              model=model,
-             epochs=epochs,
-             batch_size=batch_size,
-             eval_unit_int=eval_unit_int,
              cw_size=cw_size,
              pw_size=pw_size,
              method_code=method_code,
@@ -109,30 +104,18 @@ def main():
          )
     elif rtr_mode == "static":
         tr_results_list,eval_results_list,start_date,end_date = staticTerminator.main(
+            t=t,
             online_mode=online_mode,
-            d_dir_path=d_dir_path,
-            o_dir_path=o_dir_path,
-            start_date=start_date,
-            end_date=end_date,
             model=model,
-            epochs=epochs,
-            batch_size=batch_size,
-            eval_unit_int=eval_unit_int,
             rtr_int=rtr_int,
             tr_results_list=tr_results_list,
             eval_results_list=eval_results_list
         )
     elif rtr_mode == "non-training":
         tr_results_list,eval_results_list,start_date,end_date = ntTerminator.main(
+            t=t,
             online_mode=online_mode,
-            d_dir_path=d_dir_path,
-            o_dir_path=o_dir_path,
-            start_date=start_date,
-            end_date=end_date,
             model=model,
-            epochs=epochs,
-            batch_size=batch_size,
-            eval_unit_int=eval_unit_int,
             tr_results_list=tr_results_list,
             eval_results_list=eval_results_list
         )
