@@ -12,12 +12,12 @@
   "mounts": [
     {
       "type": "bind",
-      "source": "${localEnv:USERPROFILE}/nids-cdd/traffic_data",
-      "target": "/${containerWorkspaceFolder}/src/main/traffic_data"
+      "source": "${localEnv:USERPROFILE}/nids-cdd/data",
+      "target": "/${containerWorkspaceFolder}/src/main/data"
     },{
       "type": "bind",
-      "source": "${localEnv:USERPROFILE}/nids-cdd/experiment",
-      "target": "/${containerWorkspaceFolder}/experiment"
+      "source": "${localEnv:USERPROFILE}/nids-cdd/ex",
+      "target": "/${containerWorkspaceFolder}/ex"
     },{
       "type": "bind",
       "source": "${localEnv:USERPROFILE}/nids-cdd/other",
