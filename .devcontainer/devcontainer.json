@@ -13,7 +13,7 @@
     {
       "type": "bind",
       "source": "${localEnv:USERPROFILE}/nids-cdd/data",
-      "target": "/${containerWorkspaceFolder}/src/main/data"
+      "target": "/${containerWorkspaceFolder}/data"
     },{
       "type": "bind",
       "source": "${localEnv:USERPROFILE}/nids-cdd/ex",
@@ -24,8 +24,8 @@
       "target": "/${containerWorkspaceFolder}/other"
     },{
       "type": "bind",
-      "source": "${localEnv:USERPROFILE}/nids-cdd/tools",
-      "target": "/${containerWorkspaceFolder}/src/main/tools"
+      "source": "${localEnv:USERPROFILE}/nids-cdd/tool",
+      "target": "/${containerWorkspaceFolder}/src/tool"
     },{
       "type": "bind",
       "source": "${localEnv:USERPROFILE}/.git-credentials",
