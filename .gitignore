@@ -1,5 +1,5 @@
-src/main/outputs/
-src/main/traffic_data/
+src/main/output/
+src/main/data/
 experiment/
 *.pcap
 *.csv
