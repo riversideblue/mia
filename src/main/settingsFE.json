@@ -1,9 +1,9 @@
 {
     "ONLINE_MODE": 0,
-    "TRAFFIC_DATA_PATH": "data/pcap/202201/lab03",
+    "TRAFFIC_DATA_PATH": "data/pcap/202202/honeypot",
     "FLOW_TIMEOUT": 60,
     "CAPTURE_TIMEOUT" : 900,
-    "MAX_WORKER": 195,
+    "MAX_WORKER": 200,
     "NetworkAddress": {
         "wt":{
             "BENIGN": [

@@ -16,8 +16,6 @@ def is_pass_exist(path):
         print(f"Cannot find training dataset: {os.path.basename(path)}")
         sys.exit(1)
 
-# ----- Main
-
 def main():
 
     # --- Load settings

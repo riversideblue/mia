@@ -375,7 +375,7 @@ if __name__ == "__main__":
     filter_condition = f"ether proto 0x0800 and ({ex_addr_filter}) and (tcp or udp)"
 
     # --- Create output directory for csv
-    outputs_path: str = f"data/csv/{init_time}"
+    outputs_path: str = f"data/csv/unproc/{init_time}"
     os.makedirs(outputs_path)
     
     # --- build constructor
@@ -457,7 +457,7 @@ if __name__ == "__main__":
     filter_condition = f"ether proto 0x0800 and ({ex_addr_filter}) and (tcp or udp)"
 
     # --- Create output directory for csv
-    outputs_path: str = f"src/main/traffic_data/csv/{init_time}"
+    outputs_path: str = f"data/csv/modif/unproc/{init_time}"
     os.makedirs(outputs_path)
 
     # --- build constructor
