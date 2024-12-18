@@ -5,7 +5,7 @@
     "CUDA_VISIBLE_DEVICES": "-1"
   },
   "FOUNDATION_MODEL_PATH": "",
-  "DATASETS_FOLDER_PATH": "src/main/traffic_data/csv/modified/2201Lab01+1",
+  "DATASETS_FOLDER_PATH": "src/main/data/csv/modified/2201Lab01+1",
   "BEGINNING_DAYTIME": "2021-12-28 03:25:16",
   "TargetRange": {
     "DAYS": 5,
