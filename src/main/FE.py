@@ -333,6 +333,87 @@ def process_pcap_file(pcap_file_path, outputs_dir_path, external_addr_list, mali
                           index=False)
     return count  # 処理が完了したカウント番号を返す
 
+# 与えられたフォルダまたはファイルに含まれるトラヒックデータ（pcapファイル）から特徴量を抽出してcsvファイルに書き込む
+if __name__ == "__main__":
+
+    start_time = time.time()  # 処理開始時刻
+
+    # --- Load settings
+    settings = json.load(open('src/main/settingsFE.json', 'r'))
+
+    # --- Get current time in JST
+    jst = pytz.timezone("Asia/Tokyo")
+    init_time: str = datetime.now(jst).strftime("%Y%m%d%H%M%S")
+
+    # --- Field
+    online_mode = settings["ONLINE_MODE"]
+    traffic_data_path = settings["TRAFFIC_DATA_PATH"]
+    second_last_dir = os.path.basename(os.path.dirname(traffic_data_path))
+
+    flow_timeout = settings["FLOW_TIMEOUT"]  # connection timeout [seconds]
+    capture_timeout = settings["CAPTURE_TIMEOUT"]
+    max_worker = settings["MAX_WORKER"]
+
+    malicious_network_address_list = settings["NetworkAddress"][second_last_dir]["MALICIOUS"]
+    malicious_address_set = set()
+    for net in malicious_network_address_list:
+        for malicious in ipaddress.ip_network(net):
+            malicious_address_set.add(str(malicious))
+
+    benign_network_address_list = settings["NetworkAddress"][second_last_dir]["BENIGN"]
+    benign_address_set = set()
+    for net in benign_network_address_list:
+        for benign in ipaddress.ip_network(net):
+            benign_address_set.add(str(benign))
+
+    ex_addr_list = settings["NetworkAddress"][second_last_dir]["EXCEPTION"]
+    ex_addr_set = set()
+    for net in ex_addr_list:
+        for ex_addr in ipaddress.ip_network(net):
+            ex_addr_set.add(str(ex_addr))
+    ex_addr_filter = " and ".join([f"not (ip src {ip} or ip dst {ip})" for ip in ex_addr_set])
+    filter_condition = f"ether proto 0x0800 and ({ex_addr_filter}) and (tcp or udp)"
+
+    # --- Create output directory for csv
+    outputs_path: str = f"data/csv/{init_time}"
+    os.makedirs(outputs_path)
+    
+    # --- build constructor
+    flow_manager = FlowManager(ex_addr_list, malicious_address_set, benign_address_set, flow_timeout)
+    
+    # --- Online mode
+    if online_mode:
+        print("aa")
+        online(flow_manager, filter_condition)
+    # --- Offline mode
+    elif os.path.isdir(traffic_data_path):
+        print("offline mode sniffing ...")
+        pcap_files = []
+        for root, _, files in os.walk(traffic_data_path):
+            for file in files:
+                full_path = os.path.join(root, file)
+                pcap_files.append(full_path)
+        
+        pcap_files = sorted(pcap_files)
+        
+        with ProcessPoolExecutor(max_workers=max_worker) as executor:
+            futures = [
+                executor.submit(process_pcap_file,
+                                pcap_file,
+                                outputs_path,
+                                ex_addr_list,
+                                malicious_address_set,
+                                benign_address_set,
+                                flow_timeout,
+                                filter_condition,
+                                count)
+                for count, pcap_file in enumerate(pcap_files)
+            ]
+            for count, future in enumerate(futures, start=1):
+                try:
+                    print(f"Completed processing {future.result()}/{len(pcap_files)}")
+                except Exception as e:
+                    print(f"Error processing file {count}: {e}")
 
 # 与えられたフォルダまたはファイルに含まれるトラヒックデータ（pcapファイル）から特徴量を抽出してcsvファイルに書き込む
 if __name__ == "__main__":
@@ -349,24 +430,25 @@ if __name__ == "__main__":
     # --- Field
     online_mode = settings["ONLINE_MODE"]
     traffic_data_path = settings["TRAFFIC_DATA_PATH"]
+    second_last_dir = os.path.basename(os.path.dirname(traffic_data_path))
 
     flow_timeout = settings["FLOW_TIMEOUT"]  # connection timeout [seconds]
     capture_timeout = settings["CAPTURE_TIMEOUT"]
     max_worker = settings["MAX_WORKER"]
 
-    malicious_network_address_list = settings["NetworkAddress"][traffic_data_path]["MALICIOUS"]
+    malicious_network_address_list = settings["NetworkAddress"][second_last_dir]["MALICIOUS"]
     malicious_address_set = set()
     for net in malicious_network_address_list:
         for malicious in ipaddress.ip_network(net):
             malicious_address_set.add(str(malicious))
 
-    benign_network_address_list = settings["NetworkAddress"][traffic_data_path]["BENIGN"]
+    benign_network_address_list = settings["NetworkAddress"][second_last_dir]["BENIGN"]
     benign_address_set = set()
     for net in benign_network_address_list:
         for benign in ipaddress.ip_network(net):
             benign_address_set.add(str(benign))
 
-    ex_addr_list = settings["NetworkAddress"][traffic_data_path]["EXCEPTION"]
+    ex_addr_list = settings["NetworkAddress"][second_last_dir]["EXCEPTION"]
     ex_addr_set = set()
     for net in ex_addr_list:
         for ex_addr in ipaddress.ip_network(net):
@@ -411,4 +493,7 @@ if __name__ == "__main__":
             ]
 
             for count, future in enumerate(futures, start=1):
-                print(f"Completed processing {future.result()}/{len(pcap_files)}")
+                try:
+                    print(f"Completed processing {future.result()}/{len(pcap_files)}")
+                except Exception as e:
+                    print(f"Error processing file {count}: {e}")
