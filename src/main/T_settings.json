@@ -5,11 +5,11 @@
     "CUDA_VISIBLE_DEVICES": "-1"
   },
   "FOUNDATION_MODEL_PATH": "",
-  "DATASETS_DIR_PATH": "data/csv/wt2022+wt2022-da-0808165007",
-  "START_DATE": "2022-08-05 16:50:07",
+  "DATASETS_DIR_PATH": "data/csv/modif/drift_obs/2201BraSouth+0",
+  "START_DATE": "2000-01-01 00:00:00",
   "TargetRange": {
-    "DAYS": 0,
-    "HOURS": 3,
+    "DAYS": 5,
+    "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },
@@ -18,7 +18,7 @@
   "RETRAINING_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
-    "EPOCHS": 1,
+    "EPOCHS": 10,
     "BATCH_SIZE": 256
   },
   "DriftDetection": {

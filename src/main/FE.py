@@ -348,25 +348,25 @@ if __name__ == "__main__":
     # --- Field
     online_mode = settings["ONLINE_MODE"]
     traffic_data_path = settings["TRAFFIC_DATA_PATH"]
-    second_last_dir = os.path.basename(os.path.dirname(traffic_data_path))
+    second_dir = traffic_data_path.split("/")[2]
 
     flow_timeout = settings["FLOW_TIMEOUT"]  # connection timeout [seconds]
     capture_timeout = settings["CAPTURE_TIMEOUT"]
     max_worker = settings["MAX_WORKER"]
 
-    malicious_network_address_list = settings["NetworkAddress"][second_last_dir]["MALICIOUS"]
+    malicious_network_address_list = settings["NetworkAddress"][second_dir]["MALICIOUS"]
     malicious_address_set = set()
     for net in malicious_network_address_list:
         for malicious in ipaddress.ip_network(net):
             malicious_address_set.add(str(malicious))
 
-    benign_network_address_list = settings["NetworkAddress"][second_last_dir]["BENIGN"]
+    benign_network_address_list = settings["NetworkAddress"][second_dir]["BENIGN"]
     benign_address_set = set()
     for net in benign_network_address_list:
         for benign in ipaddress.ip_network(net):
             benign_address_set.add(str(benign))
 
-    ex_addr_list = settings["NetworkAddress"][second_last_dir]["EXCEPTION"]
+    ex_addr_list = settings["NetworkAddress"][second_dir]["EXCEPTION"]
     ex_addr_set = set()
     for net in ex_addr_list:
         for ex_addr in ipaddress.ip_network(net):
@@ -375,7 +375,7 @@ if __name__ == "__main__":
     filter_condition = f"ether proto 0x0800 and ({ex_addr_filter}) and (tcp or udp)"
 
     # --- Create output directory for csv
-    outputs_path: str = f"data/csv/unproc/{init_time}"
+    outputs_path: str = f"data/csv/unproc/{init_time}-{os.path.basename(traffic_data_path)}"
     os.makedirs(outputs_path)
     
     # --- build constructor
@@ -430,25 +430,25 @@ if __name__ == "__main__":
     # --- Field
     online_mode = settings["ONLINE_MODE"]
     traffic_data_path = settings["TRAFFIC_DATA_PATH"]
-    second_last_dir = os.path.basename(os.path.dirname(traffic_data_path))
+    second_dir = traffic_data_path.split("/")[2]
 
     flow_timeout = settings["FLOW_TIMEOUT"]  # connection timeout [seconds]
     capture_timeout = settings["CAPTURE_TIMEOUT"]
     max_worker = settings["MAX_WORKER"]
 
-    malicious_network_address_list = settings["NetworkAddress"][second_last_dir]["MALICIOUS"]
+    malicious_network_address_list = settings["NetworkAddress"][second_dir]["MALICIOUS"]
     malicious_address_set = set()
     for net in malicious_network_address_list:
         for malicious in ipaddress.ip_network(net):
             malicious_address_set.add(str(malicious))
 
-    benign_network_address_list = settings["NetworkAddress"][second_last_dir]["BENIGN"]
+    benign_network_address_list = settings["NetworkAddress"][second_dir]["BENIGN"]
     benign_address_set = set()
     for net in benign_network_address_list:
         for benign in ipaddress.ip_network(net):
             benign_address_set.add(str(benign))
 
-    ex_addr_list = settings["NetworkAddress"][second_last_dir]["EXCEPTION"]
+    ex_addr_list = settings["NetworkAddress"][second_dir]["EXCEPTION"]
     ex_addr_set = set()
     for net in ex_addr_list:
         for ex_addr in ipaddress.ip_network(net):
@@ -457,7 +457,7 @@ if __name__ == "__main__":
     filter_condition = f"ether proto 0x0800 and ({ex_addr_filter}) and (tcp or udp)"
 
     # --- Create output directory for csv
-    outputs_path: str = f"data/csv/modif/unproc/{init_time}"
+    outputs_path: str = f"data/csv/unproc/{init_time}-{os.path.dirname(traffic_data_path)}"
     os.makedirs(outputs_path)
 
     # --- build constructor
