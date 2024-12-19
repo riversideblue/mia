@@ -4,17 +4,17 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "FOUNDATION_MODEL_PATH": "",
+  "FOUNDATION_MODEL_PATH": "exp/exp1-DriftObservation/fm/2201UsEast+0_5dst/model_weights/2022-01-01T14:02:56-weights.pickle",
   "DATASETS_DIR_PATH": "data/csv/modif/drift_obs/2201UsEast+0",
-  "START_DATE": "2000-01-01 00:00:00",
+  "START_DATE": "2022-01-01 09:03:59",
   "TargetRange": {
-    "DAYS": 5,
+    "DAYS": 100,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },
   "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "st",
+  "RETRAINING_MODE": "nt",
   "RETRAINING_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
