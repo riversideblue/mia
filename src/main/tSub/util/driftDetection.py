@@ -24,16 +24,33 @@ class Window:
     def fnum_cw(self):
         rcv_current = np.array(self.c_window)[:, 3].astype(int)
         snd_current = np.array(self.c_window)[:, 4].astype(int)
-        extracted_current = rcv_current + snd_current
-        return extracted_current
+        extracted_cw = rcv_current + snd_current
+        return extracted_cw
 
     def fnum_pw(self):
         rcv_past = np.array(self.p_window)[:, 3].astype(int)
         snd_past = np.array(self.p_window)[:, 4].astype(int)
-        extracted_past = rcv_past + snd_past
-        return extracted_past
+        extracted_pw = rcv_past + snd_past
+        return extracted_pw
 
-def call(method_code:int,c_window,p_window,cum_test_static,threshold):
+    def v2_cw(self):
+        most_port = np.array(self.c_window)[:, 7].astype(int)
+        rcv_max_int = np.array(self.c_window)[:, 9].astype(float)
+        snd_max_int = np.array(self.c_window)[:, 13].astype(float)
+        snd_min_int = np.array(self.c_window)[:, 14].astype(float)
+        extracted_cw = np.array([[most_port[i], rcv_max_int[i], snd_max_int[i], snd_min_int[i]] for i in range(len(most_port))])
+        return extracted_cw
+
+    def v2_pw(self):
+        most_port = np.array(self.p_window)[:, 7].astype(int)
+        rcv_max_int = np.array(self.p_window)[:, 3].astype(float)
+        snd_max_int = np.array(self.p_window)[:, 3].astype(float)
+        snd_min_int = np.array(self.p_window)[:, 14].astype(float)
+
+        extracted_pw = np.array([[most_port[i], rcv_max_int[i], snd_max_int[i], snd_min_int[i]] for i in range(len(most_port))])
+        return extracted_pw
+
+def call(method_code:int,c_window,p_window):
 
     method_dict = {
         0: independent_t_test,
@@ -48,7 +65,7 @@ def call(method_code:int,c_window,p_window,cum_test_static,threshold):
     method = method_dict.get(method_code)
     if method is None:
         raise ValueError(f"Invalid method_code: {method_code}")
-    return method(c_window, p_window,cum_test_static,threshold)
+    return method(c_window, p_window)
 
 def independent_t_test(c_window, p_window, cum_test_static, alpha=2.0):
     """
@@ -61,7 +78,7 @@ def independent_t_test(c_window, p_window, cum_test_static, alpha=2.0):
     cum_test_static += (1-p_value)
     return cum_test_static > alpha
 
-def paired_t_test(c_window, p_window, cum_test_static, alpha=0.05):
+def paired_t_test(c_window, p_window, alpha=0.05):
     """
         前提条件：
         c_windowとp_windowは正規分布に従う×
@@ -71,7 +88,7 @@ def paired_t_test(c_window, p_window, cum_test_static, alpha=0.05):
     t_stat, p_value = ttest_rel(c_window, p_window)
     return p_value < alpha
 
-def welchs_t_test(c_window, p_window, cum_test_static, alpha=0.3):
+def welchs_t_test(c_window, p_window, alpha=0.3):
     """
         前提条件：
         c_windowとp_windowは正規分布に従う×
@@ -86,15 +103,14 @@ def mann_whitney_u_test(c_window, p_window, cum_test_static, alpha=0.05):
     cum_test_static += p_value
     return cum_test_static < alpha
 
-def wasserstein_test(c_window, p_window, cum_test_static, alpha=0.05):
+def wasserstein_test(c_window, p_window, cum_test_static, threshold):
     distances = []
     for i in range(c_window.shape[1]):  # 各特徴量についてWasserstein距離を計算
         distance = wasserstein_distance(c_window[:, i], p_window[:, i])
         distances.append(distance)
     mean_distance = np.mean(distances)  # 距離の平均を使用
-    print(f"平均Wasserstein距離: {mean_distance}")
     cum_test_static += mean_distance
-    return cum_test_static > alpha
+    return cum_test_static > threshold
 
 def kl_divergence_test(c_window, p_window, cum_test_static, alpha=0.05):
     kl_values = []
@@ -107,15 +123,15 @@ def kl_divergence_test(c_window, p_window, cum_test_static, alpha=0.05):
     cum_test_static += mean_kl
     return cum_test_static > alpha
 
-def hoteling_t2_test_with_library(c_window, p_window, alpha=0.05):
-    # Pingouinを使用してHotelling's T-squared検定を実行
+def hoteling_t2_test_with_library(c_window, p_window):
+    # Hotelling's T-squared検定の実行
     t2_result = pg.multivariate_ttest(c_window, p_window)
 
-    # 結果を取得
-    t2_stat = t2_result.loc['T2', 'stat']
-    p_value = t2_result.loc['T2', 'pval']
+    # 正しい列名を使用して値を取得
+    t2_stat = t2_result.loc['hotelling', 'T2']  # 'T2'列からT-squared統計量を取得
+    p_value = t2_result.loc['hotelling', 'pval']  # 'pval'列からp値を取得
 
     print(f"Hotelling's T-squared statistic: {t2_stat}")
     print(f"p-value: {p_value}")
 
-    return p_value < alpha, t2_result
+    return p_value

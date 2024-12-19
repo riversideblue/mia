@@ -23,9 +23,9 @@ def main(
             for row in reader:
 
                 feature,target = t.row_converter(row)
-                if t.e_filtering(t.c_time):break
-                elif t.s_flag:
-                    if t.s_filtering(t.c_time):continue
+                if t.s_flag:
+                    if t.s_filtering(t.c_time): continue
+                elif t.e_filtering(t.c_time): break
 
                 # --- Evaluate
                 if t.c_time > t.next_eval_date:
@@ -34,7 +34,8 @@ def main(
                 t.call_pred(model, feature=feature,target=target)
                 # --- DD & Retraining
                 w.update(row)
-                if DD.call(method_code,w.fnum_cw(), w.fnum_pw(),w.cum_test_static,threshold):
+                w.cum_test_static += DD.call(method_code, w.v2_cw(), w.v2_pw())
+                if w.cum_test_static > threshold:
                     tr_results_list = t.call_tr(model, w.c_window, tr_results_list)
             f.close()
 

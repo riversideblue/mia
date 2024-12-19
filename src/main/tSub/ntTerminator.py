@@ -19,10 +19,9 @@ def main(
             for row in reader:
 
                 feature,target = t.row_converter(row)
-                if t.e_filtering(t.c_time):
-                    break
-                elif t.s_flag:
+                if t.s_flag:
                     if t.s_filtering(t.c_time): continue
+                elif t.e_filtering(t.c_time): break
 
                 # --- Evaluate
                 if t.c_time > t.next_eval_date:
