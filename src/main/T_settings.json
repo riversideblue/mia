@@ -8,8 +8,8 @@
   "DATASETS_DIR_PATH": "data/csv/wt2022",
   "START_DATE": "2002-01-01 09:03:59",
   "TargetRange": {
-    "DAYS": 1,
-    "HOURS": 0,
+    "DAYS": 0,
+    "HOURS": 3,
     "MINUTES": 0,
     "SECONDS": 0
   },
@@ -19,12 +19,12 @@
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
     "EPOCHS": 1,
-    "BATCH_SIZE": 256
+    "BATCH_SIZE": 64
   },
   "DriftDetection": {
-    "CURRENT_WIN_SIZE": 1000,
-    "PAST_WIN_SIZE": 2000,
-    "METHOD_CODE": 6,
-    "THRESHOLD": 1
+    "CURRENT_WIN_SIZE": 10000,
+    "PAST_WIN_SIZE": 20000,
+    "METHOD_CODE": 4,
+    "THRESHOLD": 1000
   }
 }

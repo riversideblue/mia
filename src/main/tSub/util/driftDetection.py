@@ -1,25 +1,28 @@
+import time
+
 import numpy as np
 from collections import deque
 
+from joblib import Parallel, delayed
 from scipy.stats import ttest_ind, ttest_rel, mannwhitneyu, wasserstein_distance, entropy
 import pingouin as pg
 
 
 class Window:
-    def __init__(self, cw_size, pw_size, threshold, row_len):
+    def __init__(self, cw_size, pw_size, row_len):
         self.c_window = deque(
-            np.full((cw_size, row_len), -threshold, dtype=object),
+            np.full((cw_size, row_len), np.nan, dtype=float),
             maxlen=cw_size
         )
         self.p_window = deque(
-            np.full((pw_size, row_len), -threshold, dtype=object),
+            np.full((pw_size, row_len), np.nan, dtype=float),
             maxlen=pw_size
         )
         self.cum_test_static = 0
 
     def update(self,row):
         self.p_window.append(self.c_window.popleft())
-        self.c_window.append(np.array(row, dtype=object))
+        self.c_window.append(np.array(row, dtype=float))
 
     def fnum_cw(self):
         rcv_current = np.array(self.c_window)[:, 3].astype(int)
@@ -34,20 +37,13 @@ class Window:
         return extracted_pw
 
     def v2_cw(self):
-        most_port = np.array(self.c_window)[:, 7].astype(int)
-        rcv_max_int = np.array(self.c_window)[:, 9].astype(float)
-        snd_max_int = np.array(self.c_window)[:, 13].astype(float)
-        snd_min_int = np.array(self.c_window)[:, 14].astype(float)
-        extracted_cw = np.array([[most_port[i], rcv_max_int[i], snd_max_int[i], snd_min_int[i]] for i in range(len(most_port))])
+        c_window_array = np.nan_to_num(np.array(self.c_window), nan=0)
+        extracted_cw = c_window_array[:, [4, 6, 9, 10]].T
         return extracted_cw
 
     def v2_pw(self):
-        most_port = np.array(self.p_window)[:, 7].astype(int)
-        rcv_max_int = np.array(self.p_window)[:, 3].astype(float)
-        snd_max_int = np.array(self.p_window)[:, 3].astype(float)
-        snd_min_int = np.array(self.p_window)[:, 14].astype(float)
-
-        extracted_pw = np.array([[most_port[i], rcv_max_int[i], snd_max_int[i], snd_min_int[i]] for i in range(len(most_port))])
+        p_window_array = np.nan_to_num(np.array(self.p_window), nan=0)
+        extracted_pw = p_window_array[:, [4, 6, 9, 10]].T
         return extracted_pw
 
 def call(method_code:int,c_window,p_window):
@@ -103,14 +99,14 @@ def mann_whitney_u_test(c_window, p_window, cum_test_static, alpha=0.05):
     cum_test_static += p_value
     return cum_test_static < alpha
 
-def wasserstein_test(c_window, p_window, cum_test_static, threshold):
-    distances = []
-    for i in range(c_window.shape[1]):  # 各特徴量についてWasserstein距離を計算
-        distance = wasserstein_distance(c_window[:, i], p_window[:, i])
-        distances.append(distance)
+def wasserstein_test(c_window, p_window):
+    # 並列処理でWasserstein距離を計算
+    distances = Parallel(n_jobs=-1)(
+        delayed(wasserstein_distance)(c, p) for c, p in zip(c_window, p_window)
+    )
     mean_distance = np.mean(distances)  # 距離の平均を使用
-    cum_test_static += mean_distance
-    return cum_test_static > threshold
+    print(f"mean distance: {mean_distance}")
+    return mean_distance
 
 def kl_divergence_test(c_window, p_window, cum_test_static, alpha=0.05):
     kl_values = []

@@ -1,11 +1,11 @@
 import os
-from datetime import timedelta
+import numpy as np
+
 
 def main(
         t,
         online_mode,
         model,
-        rtr_int,
         tr_results_list,
         eval_results_list
 ):
@@ -34,7 +34,7 @@ def main(
                 # --- Retraining
                 if t.c_time > t.next_rtr_date:
                     tr_results_list = t.call_tr(model, rtr_list, tr_results_list)
-                rtr_list.append(row)
+                rtr_list.append(np.array(row[3:], dtype=float))
             f.close()
 
     return tr_results_list,eval_results_list,t.start_date,t.c_time

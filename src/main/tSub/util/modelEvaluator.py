@@ -24,4 +24,4 @@ def main (y_true,y_pred):
     benign_count = tn + fp
     benign_rate = benign_count / flow_num if flow_num > 0 else 0
 
-    return tp,fn,fp,tn,flow_num,tpr,fnr,fpr,tnr,accuracy,precision,f1,eval_loss,benign_rate
+    return [tp,fn,fp,tn,flow_num,tpr,fnr,fpr,tnr,accuracy,precision,f1,eval_loss,benign_rate]

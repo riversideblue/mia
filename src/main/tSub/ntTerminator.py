@@ -1,6 +1,4 @@
 import os
-
-
 def main(
         t,
         online_mode,

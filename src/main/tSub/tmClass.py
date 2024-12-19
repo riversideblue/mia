@@ -1,4 +1,5 @@
 import csv
+import time
 from datetime import timedelta, datetime
 
 import numpy as np
@@ -38,9 +39,9 @@ class TerminateManager:
         self.headers = next(reader)
         return f,reader
 
-    def row_converter(self,row):
-        self.c_time = datetime.strptime(row[self.headers.index("daytime")], "%Y-%m-%d %H:%M:%S")
-        feature = np.array(row[3:-1], dtype=np.float32)
+    def row_converter(self, row):
+        self.c_time = pd.to_datetime(row[self.headers.index("daytime")])
+        feature = np.array(row[3:-1], dtype=float)
         target = int(row[self.headers.index("label")])
         return feature, target
 
@@ -74,14 +75,13 @@ class TerminateManager:
             return True
         return False
 
-    def call_eval(self,list_eval_results):
+    def call_eval(self, list_eval_results):
         print("--- evaluate model")
         evaluate_daytime = self.next_eval_date - timedelta(seconds=self.eval_unit_int / 2)
-        eval_arr = modelEvaluator.main(self.y_true, self.y_pred)
-        eval_arr = np.append([evaluate_daytime], eval_arr)
+        eval_arr = [evaluate_daytime] + modelEvaluator.main(self.y_true, self.y_pred)
         list_eval_results = np.vstack([list_eval_results, eval_arr])
-        self.y_true = []
-        self.y_pred = []
+        self.y_true.clear()
+        self.y_pred.clear()
         self.next_eval_date += timedelta(seconds=self.eval_unit_int)
         return list_eval_results
 
@@ -90,10 +90,9 @@ class TerminateManager:
         self.y_true.append(target)
 
     def call_tr(self, model, rtr_list, rtr_results_list):
-        df = pd.DataFrame(np.array(rtr_list))
-        features = df.iloc[:, 3:-1].astype(float)
-        targets = df.iloc[:, -1].astype(int)
-        retraining_daytime = datetime.strptime(df.iloc[-1, 2], "%Y-%m-%d %H:%M:%S")
+        df = pd.DataFrame(rtr_list).dropna()
+        features, targets = df.iloc[:, :-1], df.iloc[:, -1]
+        retraining_daytime = pd.to_datetime(df.iloc[-1, 2])
         model, arr_rtr_results = modelTrainer.main(
             model=model,
             features=features,

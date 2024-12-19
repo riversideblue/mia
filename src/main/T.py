@@ -107,7 +107,6 @@ def main():
             t=t,
             online_mode=online_mode,
             model=model,
-            rtr_int=rtr_int,
             tr_results_list=tr_results_list,
             eval_results_list=eval_results_list
         )
