@@ -63,7 +63,7 @@ def main():
     is_pass_exist(d_dir_path)
 
     # --- Create output directory
-    o_dir_path: str = f"exp/{init_time}"
+    o_dir_path: str = f"exp/{init_time}_{os.path.basename(d_dir_path)}_{rtr_mode}"
     os.makedirs(o_dir_path)
     os.makedirs(f"{o_dir_path}/model_weights")
 
@@ -90,7 +90,7 @@ def main():
     process_start_date = time.time()
     t = tmClass.TerminateManager(d_dir_path, o_dir_path, start_date,end_date, rtr_int, eval_unit_int, epochs, batch_size)
     # --- Terminate
-    if rtr_mode == "dynamic":
+    if rtr_mode == "dy":
          tr_results_list,eval_results_list,start_date,end_date = dynamicTerminator.main(
              t=t,
              online_mode= online_mode,
@@ -102,7 +102,7 @@ def main():
              tr_results_list=tr_results_list,
              eval_results_list=eval_results_list
          )
-    elif rtr_mode == "static":
+    elif rtr_mode == "st":
         tr_results_list,eval_results_list,start_date,end_date = staticTerminator.main(
             t=t,
             online_mode=online_mode,
@@ -111,7 +111,7 @@ def main():
             tr_results_list=tr_results_list,
             eval_results_list=eval_results_list
         )
-    elif rtr_mode == "non-training":
+    elif rtr_mode == "nt":
         tr_results_list,eval_results_list,start_date,end_date = ntTerminator.main(
             t=t,
             online_mode=online_mode,

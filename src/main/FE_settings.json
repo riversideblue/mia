@@ -1,6 +1,6 @@
 {
     "ONLINE_MODE": 0,
-    "TRAFFIC_DATA_PATH": "data/pcap/202201/Lab04",
+    "TRAFFIC_DATA_PATH": "data/pcap/202202/Lab03",
     "FLOW_TIMEOUT": 60,
     "CAPTURE_TIMEOUT" : 900,
     "MAX_WORKER": 200,
