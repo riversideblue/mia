@@ -28,7 +28,7 @@ def main(
                     if t.s_filtering(t.c_time): continue
                 elif t.e_filtering(t.c_time): break
 
-                conter += 1
+                counter += 1
                 print(counter)
 
                 # --- Evaluate
@@ -38,13 +38,12 @@ def main(
                 t.call_pred(model, feature=feature,target=target)
                 # --- DD & Retraining
                 w.update(row[3:])
-                print(f"cum:{w.cum_test_static}")
                 w.cum_test_static += DD.call(method_code, w.v2_cw(), w.v2_pw())
+                print(f"cum:{w.cum_test_static}")
                 slope = w.cum_test_static/threshold
-                print(slope)
                 if slope > 1:
                     t.epochs = int(slope)
-                    tr_results_list = t.call_tr(model, w.c_window, tr_results_list)
+                    tr_results_list = t.call_tr(model, w.c_window, tr_results_list,t.c_time)
                     w.cum_test_static = w.cum_test_static%threshold
 
             f.close()

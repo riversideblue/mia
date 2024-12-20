@@ -33,7 +33,7 @@ def main(
                 t.call_pred(model, feature=feature, target=target)
                 # --- Retraining
                 if t.c_time > t.next_rtr_date:
-                    tr_results_list = t.call_tr(model, rtr_list, tr_results_list)
+                    tr_results_list = t.call_tr(model, rtr_list, tr_results_list,t.c_time)
                 rtr_list.append(np.array(row[3:], dtype=float))
             f.close()
 

@@ -1,42 +1,28 @@
-import glob
-import os
 import time
 import pickle
-
 import numpy as np
 
-def is_previous_model_exist(dir_name, file_format):
-    file_list = sorted(glob.glob(os.path.join(dir_name, file_format)))
-    previous_weight_file = None
-    if file_list:
-        previous_weight_file = file_list[-1]
-    return previous_weight_file
+def main(model, features, targets, output_dir_path, epochs, batch_size, rtr_date):
+    print("execute model_training ...")
 
-def main(model, features, targets, output_dir_path, epochs, batch_size, retraining_daytime):
-
-    # --- execute model training
-    print(f"execute model_training ...")
-    training_time_list = []
-
-    train_start_time = time.time()
+    # モデルのトレーニング
+    start_time = time.time()
     history = model.fit(features, targets, epochs=epochs, batch_size=batch_size)
-    train_end_time = time.time()
+    training_time = time.time() - start_time
+
+    # 結果の記録
     accuracy = history.history["accuracy"][-1]
     loss = history.history["loss"][-1]
+    str_rtr_date = rtr_date.strftime("%Y-%m-%dT%H:%M:%S")
 
-    training_time_list.append(train_end_time - train_start_time)
-    training_time = sum(training_time_list) / len(training_time_list)
+    # モデルの重みを保存
+    with open(f"{output_dir_path}/model_weights/{str_rtr_date}-weights.pickle", 'wb') as f:
+        pickle.dump(model.get_weights(), f)
 
-    str_retraining_daytime = retraining_daytime.strftime("%Y-%m-%dT%H:%M:%S")
-    with open(f"{output_dir_path}/model_weights/{str_retraining_daytime}-weights.pickle", 'wb') as f:
-        pickle.dump(model.get_weights(), f) # type: ignore
-
-    # --- count benign and malicious
+    # データの統計情報
     benign_count = np.sum(targets == 0)
     malicious_count = np.sum(targets == 1)
+    flow_num = len(targets)
 
-    # count training data number
+    return model, [rtr_date, accuracy, loss, training_time, benign_count, malicious_count, flow_num]
 
-    flow_num = targets.shape[0]
-
-    return model,[retraining_daytime, accuracy, loss, training_time, benign_count, malicious_count, flow_num]

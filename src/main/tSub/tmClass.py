@@ -1,6 +1,5 @@
 import csv
-import time
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 import numpy as np
 import pandas as pd
@@ -89,10 +88,9 @@ class TerminateManager:
         self.y_pred.append(model.predict_on_batch(feature.reshape(1, -1))[0][0])
         self.y_true.append(target)
 
-    def call_tr(self, model, rtr_list, rtr_results_list):
+    def call_tr(self, model, rtr_list, rtr_results_list,c_time):
         df = pd.DataFrame(rtr_list).dropna()
         features, targets = df.iloc[:, :-1], df.iloc[:, -1]
-        retraining_daytime = pd.to_datetime(df.iloc[-1, 2])
         model, arr_rtr_results = modelTrainer.main(
             model=model,
             features=features,
@@ -100,7 +98,7 @@ class TerminateManager:
             output_dir_path=self.o_dir_path,
             epochs=self.epochs,
             batch_size=self.batch_size,
-            retraining_daytime=retraining_daytime
+            rtr_date=c_time
         )
         self.next_rtr_date += timedelta(seconds=self.rtr_int)
         rtr_results_list = np.vstack([rtr_results_list, arr_rtr_results])

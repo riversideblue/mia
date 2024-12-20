@@ -5,11 +5,11 @@
     "CUDA_VISIBLE_DEVICES": "-1"
   },
   "FOUNDATION_MODEL_PATH": "",
-  "DATASETS_DIR_PATH": "data/csv/wt2022",
+  "DATASETS_DIR_PATH": "data/csv/wt2023",
   "START_DATE": "2002-01-01 09:03:59",
   "TargetRange": {
-    "DAYS": 0,
-    "HOURS": 3,
+    "DAYS": 3,
+    "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },
@@ -22,9 +22,9 @@
     "BATCH_SIZE": 64
   },
   "DriftDetection": {
-    "CURRENT_WIN_SIZE": 10000,
-    "PAST_WIN_SIZE": 20000,
-    "METHOD_CODE": 4,
-    "THRESHOLD": 1000
+    "CURRENT_WIN_SIZE": 10,
+    "PAST_WIN_SIZE": 20,
+    "METHOD_CODE": 7,
+    "THRESHOLD": 100
   }
 }

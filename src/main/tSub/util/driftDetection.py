@@ -1,10 +1,8 @@
-import time
-
 import numpy as np
 from collections import deque
 
 from joblib import Parallel, delayed
-from scipy.stats import ttest_ind, ttest_rel, mannwhitneyu, wasserstein_distance, entropy
+from scipy.stats import ttest_ind, mannwhitneyu, wasserstein_distance, entropy, ks_2samp
 import pingouin as pg
 
 
@@ -50,12 +48,14 @@ def call(method_code:int,c_window,p_window):
 
     method_dict = {
         0: independent_t_test,
-        1: paired_t_test,
-        2: welchs_t_test,
-        3: mann_whitney_u_test,
+        1: welchs_t_test,
+        2: mann_whitney_u_test,
+        3: ks_test,
         4: wasserstein_test,
         5: kl_divergence_test,
-        6: hoteling_t2_test_with_library
+        6: hoteling_t2_test_with_library,
+        7: bootstrap_test,
+        8: permutation_test
     }
 
     method = method_dict.get(method_code)
@@ -63,44 +63,55 @@ def call(method_code:int,c_window,p_window):
         raise ValueError(f"Invalid method_code: {method_code}")
     return method(c_window, p_window)
 
-def independent_t_test(c_window, p_window, cum_test_static, alpha=2.0):
-    """
-        前提条件：
-        c_windowとp_windowは正規分布に従う×
-        c_windowとp_windowの分散は等しい×
-        c_windowとp_windowは独立である×
-    """
-    t_stat, p_value = ttest_ind(c_window, p_window, equal_var=True)
-    cum_test_static += (1-p_value)
-    return cum_test_static > alpha
+def independent_t_test(c_window, p_window):
+    stats, p_values = ttest_ind(c_window, p_window, axis=1, equal_var=True)
+    mean_stats = np.nanmean(stats)
+    mean_p_values = np.nanmean(p_values)
+    if np.isnan(mean_stats):
+        mean_stats = 0
+    if np.isnan(mean_p_values):
+        mean_p_values = 0
+    print(mean_stats)
+    print(mean_p_values)
+    return 1-mean_p_values
 
-def paired_t_test(c_window, p_window, alpha=0.05):
-    """
-        前提条件：
-        c_windowとp_windowは正規分布に従う×
-        c_windowとp_windowは同一の対象である(独立でない)〇
-        c_windowとp_windowは同じ長さである×
-    """
-    t_stat, p_value = ttest_rel(c_window, p_window)
-    return p_value < alpha
+def welchs_t_test(c_window, p_window):
+    stats, p_values = ttest_ind(c_window, p_window, axis=1, equal_var=False)
+    mean_stats = np.nanmean(stats)
+    mean_p_values = np.nanmean(p_values)
+    if np.isnan(mean_stats):
+        mean_stats = 0
+    if np.isnan(mean_p_values):
+        mean_p_values = 0
+    print(mean_stats)
+    print(mean_p_values)
+    return 1-mean_p_values
 
-def welchs_t_test(c_window, p_window, alpha=0.3):
-    """
-        前提条件：
-        c_windowとp_windowは正規分布に従う×
-        c_windowとp_windowは独立である×
-    """
-    t_stat, p_value = ttest_ind(c_window, p_window, equal_var=False)
-    return p_value < alpha
+def mann_whitney_u_test(c_window, p_window):
+    stats, p_values = mannwhitneyu(c_window, p_window, axis=1, alternative='two-sided')
+    mean_stats = np.nanmean(stats)
+    mean_p_values = np.nanmean(p_values)
+    if np.isnan(mean_stats):
+        mean_stats = 0
+    if np.isnan(mean_p_values):
+        mean_p_values = 0
+    print(mean_stats)
+    print(mean_p_values)
+    return 1-mean_p_values
 
-def mann_whitney_u_test(c_window, p_window, cum_test_static, alpha=0.05):
-
-    u_stat, p_value = mannwhitneyu(c_window, p_window, alternative='two-sided')
-    cum_test_static += p_value
-    return cum_test_static < alpha
+def ks_test(c_window, p_window):
+    stats, p_values = ks_2samp(c_window, p_window, axis=1)
+    mean_stats = np.nanmean(stats)
+    mean_p_values = np.nanmean(p_values)
+    if np.isnan(mean_stats):
+        mean_stats = 0
+    if np.isnan(mean_p_values):
+        mean_p_values = 0
+    print(mean_stats)
+    print(mean_p_values)
+    return 1-mean_p_values
 
 def wasserstein_test(c_window, p_window):
-    # 並列処理でWasserstein距離を計算
     distances = Parallel(n_jobs=-1)(
         delayed(wasserstein_distance)(c, p) for c, p in zip(c_window, p_window)
     )
@@ -131,3 +142,42 @@ def hoteling_t2_test_with_library(c_window, p_window):
     print(f"p-value: {p_value}")
 
     return p_value
+
+def bootstrap_test(c_window, p_window, n_resamples=10000):
+    def single_bootstrap_test(c, p):
+        combined = np.concatenate([c, p])
+        observed_stat = np.mean(c) - np.mean(p)
+        bootstrap_stats = []
+        for _ in range(n_resamples):
+            resample_c = np.random.choice(combined, size=len(c), replace=True)
+            resample_p = np.random.choice(combined, size=len(p), replace=True)
+            bootstrap_stats.append(np.mean(resample_c) - np.mean(resample_p))
+        p_value = np.mean(np.abs(bootstrap_stats) >= np.abs(observed_stat))
+        return p_value
+
+    p_values = Parallel(n_jobs=-1)(
+        delayed(single_bootstrap_test)(c, p) for c, p in zip(c_window, p_window)
+    )
+    print(f"Bootstrap test p-values: {p_values}")
+    return 1-np.mean(p_values)
+
+def permutation_test(c_window, p_window, n_permutations=1000):
+    def single_permutation_test(c, p):
+        combined = np.concatenate([c, p])
+        print(combined)
+        observed_stat = np.mean(c) - np.mean(p)
+        perm_stats = []
+        for _ in range(n_permutations):
+            np.random.shuffle(combined)
+            perm_c = combined[:len(c)]
+            perm_p = combined[len(c):]
+            perm_stats.append(np.mean(perm_c) - np.mean(perm_p))
+        p_value = np.mean(np.abs(perm_stats) >= np.abs(observed_stat))
+        p_value-0.5
+        return p_value
+
+    p_values = Parallel(n_jobs=-1)(
+        delayed(single_permutation_test)(c, p) for c, p in zip(c_window, p_window)
+    )
+    print(f"Permutation test p-values: {p_values}")
+    return 1-np.mean(p_values)
