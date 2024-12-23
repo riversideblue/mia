@@ -44,31 +44,32 @@ class TerminateManager:
         target = int(row[self.headers.index("label")])
         return feature, target
 
-    def s_filtering(self, c_time): # return False then start processing
+    def s_filtering(self): # return False then start processing
         if self.first_row_flag:
-            self.first_row_flag = False
-            if c_time > self.start_date:
-                delta = c_time - self.start_date
-                self.start_date = c_time
-                self.end_date += delta
-                self.next_rtr_date += delta
-                self.next_eval_date += delta
+            self.first_row_flag=False
+            if self.c_time > self.start_date:
+                delta=self.c_time-self.start_date
+                self.start_date=self.c_time
+                self.end_date+=delta
+                self.next_rtr_date+=delta
+                self.next_eval_date+=delta
+                self.s_flag=False
+                return False
+            elif self.c_time == self.start_date:
                 self.s_flag = False
                 return False
-            elif c_time == self.start_date:
-                self.s_flag = False
-                return False
-            elif c_time < self.start_date:
+            elif self.c_time < self.start_date:
                 self.s_flag = True
                 return True
-        elif c_time < self.start_date:
+            else: pass
+        elif self.c_time < self.start_date:
             return True
         else:
             self.s_flag = False
             return False
 
-    def e_filtering(self, c_time):# if False keep Processing
-        if c_time > self.end_date:
+    def e_filtering(self):# if False keep Processing
+        if self.c_time > self.end_date:
             print("- < detected end_daytime >")
             self.end_flag = True
             return True

@@ -25,8 +25,8 @@ def main(
 
                 feature,target = t.row_converter(row)
                 if t.s_flag:
-                    if t.s_filtering(t.c_time): continue
-                elif t.e_filtering(t.c_time): break
+                    if t.s_filtering(): continue
+                elif t.e_filtering(): break
 
                 counter += 1
                 print(counter)
@@ -38,14 +38,11 @@ def main(
                 t.call_pred(model, feature=feature,target=target)
                 # --- DD & Retraining
                 w.update(row[3:])
-                w.cum_test_static += DD.call(method_code, w.v2_cw(), w.v2_pw())
+                w.cum_p_value*=DD.call(method_code, w.v2_cw(), w.v2_pw())
                 print(f"cum:{w.cum_test_static}")
-                slope = w.cum_test_static/threshold
-                if slope > 1:
-                    t.epochs = int(slope)
+                if w.cum_p_value < threshold:
                     tr_results_list = t.call_tr(model, w.c_window, tr_results_list,t.c_time)
-                    w.cum_test_static = w.cum_test_static%threshold
-
+                    w.cum_p_value=1
             f.close()
 
     return tr_results_list,eval_results_list,t.start_date,t.c_time

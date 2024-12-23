@@ -16,7 +16,7 @@ class Window:
             np.full((pw_size, row_len), np.nan, dtype=float),
             maxlen=pw_size
         )
-        self.cum_test_static = 0
+        self.cum_p_value = 1
 
     def update(self,row):
         self.p_window.append(self.c_window.popleft())
@@ -73,7 +73,7 @@ def independent_t_test(c_window, p_window):
         mean_p_values = 0
     print(mean_stats)
     print(mean_p_values)
-    return 1-mean_p_values
+    return mean_p_values
 
 def welchs_t_test(c_window, p_window):
     stats, p_values = ttest_ind(c_window, p_window, axis=1, equal_var=False)
@@ -83,9 +83,10 @@ def welchs_t_test(c_window, p_window):
         mean_stats = 0
     if np.isnan(mean_p_values):
         mean_p_values = 0
+    print("aaaa")
     print(mean_stats)
     print(mean_p_values)
-    return 1-mean_p_values
+    return mean_p_values
 
 def mann_whitney_u_test(c_window, p_window):
     stats, p_values = mannwhitneyu(c_window, p_window, axis=1, alternative='two-sided')

@@ -3,10 +3,10 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# CSVファイルを読み込む
-file_path = "exp/exp1-DriftObservation/terminated/2201UsEast+0_nt/results_evaluate.csv"  # CSVファイルのパスを指定
+# CSVファイルを読みこむ
+file_path = "exp/exp2-Eval/2201AusEast/results/accuracy.csv"  # CSVファイルのパスを指定
 data = pd.read_csv(file_path)
-metrix = ["f1_score"]
+metrix = ["accuracy","precision"]
 output_dir = f"{os.path.dirname(file_path)}/results_img"
 output_path = f"{output_dir}/{','.join(metrix)}.png"
 os.makedirs(output_dir, exist_ok=True)

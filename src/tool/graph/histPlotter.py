@@ -4,7 +4,7 @@ import os
 import numpy as np
 from datetime import datetime
 import pytz
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler,StandardScaler
 from scipy.stats import wasserstein_distance
 
 # JSTの現在時刻を基にした保存ディレクトリ名
@@ -49,7 +49,8 @@ before_data = []
 after_data = []
 
 # スケーラーの初期化
-scaler = MinMaxScaler()
+# scaler = MinMaxScaler()
+scaler = StandardScaler()
 
 # ディレクトリ内のCSVファイルを処理
 for filename in sorted(os.listdir(directory_path)):

@@ -1,29 +1,57 @@
 import pandas as pd
+import os
+import matplotlib.pyplot as plt
 
 # ファイルの読み込み
-csv1 = "/home/murasemaru/nids-cdd/experiment/ex2-fmda-nt/1-wt2022-dy/results_evaluate.csv"  # CSVファイル1のパス
-csv2 = "/home/murasemaru/nids-cdd/experiment/ex2-fmda-nt/1-wt2022-st/20241210043940/results_evaluate.csv"  # CSVファイル2のパス
+csv1 = "exp/exp2-Eval/2201AusEast/st/results_evaluate.csv"  # static
+csv2 = "exp/exp2-Eval/2201AusEast/dy2/results_evaluate.csv"  # dynamic
+common_path = os.path.commonpath([csv1, csv2])
+row_col_t = "daytime"
+row_col = "accuracy"  # CSV1から結合したい列
+label_size = 22
+ticks_size = 16
+legend_size = 22
 
 df1 = pd.read_csv(csv1)  # ファイル1をデータフレームに読み込み
 df2 = pd.read_csv(csv2)  # ファイル2をデータフレームに読み込み
 
-# 特定の行を指定
-row_index_t = 0
-row_index_1 = 10  # CSV1から結合したい行番号（0始まり）
-row_index_2 = 10  # CSV2から結合したい行番号（0始まり）
-row_index_3 = 16
-
-# 行を取得
-timestamp = df1.iloc[:,row_index_t]
-row1 = df1.iloc[:,row_index_1]  # CSV1の指定行
-row2 = df2.iloc[:,row_index_2]  # CSV2の指定行
-row3 = df2.iloc[:,row_index_3]  # CSV2の指定行
+# 列を取得
+timestamp = df1[row_col_t]
+row1 = df1[row_col]  # CSV1の指定列
+row2 = df2[row_col]  # CSV2の指定列
 
 # 水平方向に結合（DataFrameとして保存）
-combined_row = pd.concat([timestamp,row1, row2, row3], axis=1)
+combined_row = pd.DataFrame({
+    "daytime": timestamp,
+    "static_accuracy": row1,
+    "dynamic_accuracy": row2
+})
 
 # 結果を確認
 print(combined_row)
 
-# 結果をCSVとして保存する場合
-combined_row.to_csv("combined_row.csv", index=False, header=["daytime","dynamic_accuracy","static_accuracy","nmr_benign_rate"])
+# 保存ディレクトリの作成
+output_dir = f"{common_path}/results"
+os.makedirs(output_dir, exist_ok=True)
+
+# CSVとして保存
+output_csv_path = f"{output_dir}/combined_row.csv"
+combined_row.to_csv(output_csv_path, index=False)
+print(f"結合結果を保存しました: {output_csv_path}")
+
+# グラフのプロット
+plt.figure(figsize=(12, 8))
+plt.plot(timestamp, row1, label="Static Accuracy")
+plt.plot(timestamp, row2, label="Dynamic Accuracy")
+plt.xlabel("Daytime",fontsize=label_size, rotation=45)
+plt.ylabel("Accuracy",fontsize=label_size)
+plt.title("Static vs Dynamic Accuracy")
+
+plt.legend(fontsize=legend_size)
+plt.grid(True)
+
+# グラフの保存
+output_plot_path = f"{output_dir}/accuracy_plot.png"
+plt.savefig(output_plot_path,dpi=300)
+plt.show()
+print(f"グラフを保存しました: {output_plot_path}")

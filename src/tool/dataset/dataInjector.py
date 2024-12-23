@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 from itertools import cycle
 
 # --- 設定 ----------------------------------------------------------------------- #
-target_dir_path: str = "data/csv/unproc/2201JpnEast"
-source_dir_path: str = "data/csv/unproc/2201Lab01"
-output_dir_path: str = f"data/csv/modif/{os.path.basename(target_dir_path)}+0"
+target_dir_path: str = "data/csv/unproc/2202Lab04"
+source_dir_path: str = "data/csv/unproc/2201JpnEast"
+output_dir_path: str = f"data/csv/modif/{os.path.basename(target_dir_path)}+1"
 # -------------------------------------------------------------------------------- #
 
 # CSVファイルのリストを取得
