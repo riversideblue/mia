@@ -36,7 +36,9 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = settings["OS"]["CUDA_VISIBLE_DEVICES"]  # cpu : -1
 
     # --- Field
-    d_dir_path: str = settings["DATASETS_DIR_PATH"]
+    user_dir = settings["USER_DIR"]
+    d_dir_path:str = settings["DATASETS_DIR_PATH"]
+    d_dir_path: str = f"{user_dir}/{d_dir_path}"
     start_date = datetime.strptime(settings["START_DATE"], "%Y-%m-%d %H:%M:%S")
     days: int = settings["TargetRange"]["DAYS"]
     hours: int = settings["TargetRange"]["HOURS"]
@@ -65,7 +67,7 @@ def main():
     is_pass_exist(d_dir_path)
 
     # --- Create output directory
-    o_dir_path: str = f"exp/{init_time}_{os.path.basename(d_dir_path)}_{rtr_mode}"
+    o_dir_path: str = f"{user_dir}/exp/{init_time}_{os.path.basename(d_dir_path)}_{rtr_mode}"
     os.makedirs(o_dir_path)
     os.makedirs(f"{o_dir_path}/model_weights")
 
@@ -76,7 +78,8 @@ def main():
     eval_results_list = np.empty((0,len(eval_results_col)),dtype=object)
 
     # --- Foundation model setting
-    f_model_path = settings["FOUNDATION_MODEL_PATH"]
+    f_model_path:str = settings["FOUNDATION_MODEL_PATH"]
+    f_model_path:str = f"{user_dir}/{f_model_path}"
     model = modelCreator.main(tf)
     if f_model_path == "":
         print("- start with new model ...")

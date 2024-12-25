@@ -4,6 +4,7 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
+  "USER_DIR" : "/mnt/nas0/g005/murasemaru",
   "FOUNDATION_MODEL_PATH": "exp/exp_1_DriftObservation/fm/2202Lab03+1_st/model_weights/2022-01-31T07:50:56-weights.pickle",
   "DATASETS_DIR_PATH": "data/csv/modif/exp_1_DriftObservation/2202Lab03+1",
   "START_DATE": "2000-01-01 00:00:00",
