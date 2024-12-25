@@ -22,20 +22,16 @@ def main(
             if t.end_flag: break
             f,reader = t.set_d_file(d_file)
             for row in reader:
-
-                feature,target = t.row_converter(row)
+                t.c_time = datetime.strptime(row[t.headers.index("daytime")], "%Y-%m-%d %H:%M:%S")
                 if t.s_flag:
                     if t.s_filtering(): continue
                 elif t.e_filtering(): break
-
-                counter += 1
-                print(counter)
 
                 # --- Evaluate
                 if t.c_time > t.next_eval_date:
                     eval_results_list = t.call_eval(eval_results_list)
                 # --- Prediction
-                t.call_pred(model, feature=feature,target=target)
+                t.call_pred(model,row)
                 # --- DD & Retraining
                 w.update(row[3:])
                 w.cum_p_value*=DD.call(method_code, w.v2_cw(), w.v2_pw())

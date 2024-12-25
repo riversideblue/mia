@@ -20,20 +20,21 @@ def main(
             if t.end_flag: break
             f,reader = t.set_d_file(d_file)
             for row in reader:
-
-                feature,target = t.row_converter(row)
+                t.c_time = datetime.strptime(row[t.headers.index("daytime")], "%Y-%m-%d %H:%M:%S")
                 if t.s_flag:
                     if t.s_filtering(): continue
                 elif t.e_filtering(): break
 
                 # --- Evaluate
                 if t.c_time > t.next_eval_date:
-                    eval_results_list = t.call_eval(eval_results_list)
+                    with t.tf.device("/GPU:0"):
+                        eval_results_list = t.call_eval(eval_results_list)
                 # --- Prediction
-                t.call_pred(model, feature=feature, target=target)
+                t.call_pred(model,row)
                 # --- Retraining
                 if t.c_time > t.next_rtr_date:
-                    tr_results_list = t.call_tr(model, rtr_list, tr_results_list,t.c_time)
+                    with t.tf.device("/GPU:0"):
+                        tr_results_list = t.call_tr(model, rtr_list, tr_results_list,t.c_time)
                 rtr_list.append(np.array(row[3:], dtype=float))
             f.close()
 

@@ -1,12 +1,21 @@
 import numpy as np
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, f1_score
-import tensorflow as tf
 
-def main (y_true,y_pred):
+def main (y_true,y_pred,tf):
 
-    y_pred_bin =  [1 if x >= 0.5 else 0 for x in y_pred]
-    conf_matrix = confusion_matrix(y_true, y_pred_bin,labels=[0,1])
-    tn, fp, fn, tp = conf_matrix.ravel()
+    # TensorFlowのテンソルに変換
+    y_true = tf.convert_to_tensor(y_true, dtype=tf.float32)
+    y_pred = tf.convert_to_tensor(y_pred, dtype=tf.float32)
+    
+    # 二値化
+    y_pred_bin = tf.cast(y_pred >= 0.5, tf.float32)
+    
+    # 混同行列の計算
+    tp = tf.reduce_sum(tf.cast((y_true == 1) & (y_pred_bin == 1), tf.float32))
+    tn = tf.reduce_sum(tf.cast((y_true == 0) & (y_pred_bin == 0), tf.float32))
+    fp = tf.reduce_sum(tf.cast((y_true == 0) & (y_pred_bin == 1), tf.float32))
+    fn = tf.reduce_sum(tf.cast((y_true == 1) & (y_pred_bin == 0), tf.float32))
+    
     print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
     tpr = tp / (tp + fn) if (tp + fn) > 0 else 0  # 真陽性率
     fpr = fp / (fp + tn) if (fp + tn) > 0 else 0  # 偽陽性率

@@ -1,17 +1,16 @@
-import tensorflow as tf
-
 # ----- Define foundation model
-def main():
+def main(tf):
     # Sequentialモデルを定義
     model = tf.keras.Sequential([
-        # 入力層＋1層目の全結合レイヤー（ReLU活性化関数）
-        tf.keras.layers.Input(shape=(14,)),
+        # 入力層 (14次元の特徴量)
+        tf.keras.layers.Input(shape=(14,), dtype=tf.float32),
+        # 隠れ層1 (100ユニット, ReLU活性化)
         tf.keras.layers.Dense(100, activation='relu'),
-        # 2層目の全結合レイヤー（ReLU活性化関数）
+        # 隠れ層2 (50ユニット, ReLU活性化)
         tf.keras.layers.Dense(50, activation='relu'),
-        # 3層目の全結合レイヤー（ReLU活性化関数）
+        # 隠れ層3 (25ユニット, ReLU活性化)
         tf.keras.layers.Dense(25, activation='relu'),
-        # 出力層（Sigmoid活性化関数）
+        # 出力層 (1ユニット, Sigmoid活性化)
         tf.keras.layers.Dense(1, activation='sigmoid')
     ])
     # モデルのコンパイル

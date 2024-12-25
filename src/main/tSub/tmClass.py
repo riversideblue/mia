@@ -1,5 +1,5 @@
 import csv
-from datetime import timedelta
+from datetime import datetime,timedelta
 
 import numpy as np
 import pandas as pd
@@ -8,8 +8,9 @@ from .util import modelEvaluator,modelTrainer
 
 
 class TerminateManager:
-    def __init__(self,d_dir_path,o_dir_path,start_date,end_date,rtr_int,eval_unit_int,epochs,batch_size):
+    def __init__(self,tf,d_dir_path,o_dir_path,start_date,end_date,rtr_int,eval_unit_int,epochs,batch_size):
 
+        self.tf = tf
         self.y_true = []
         self.y_pred = []
         self.headers = []
@@ -37,12 +38,6 @@ class TerminateManager:
         reader = csv.reader(f)
         self.headers = next(reader)
         return f,reader
-
-    def row_converter(self, row):
-        self.c_time = pd.to_datetime(row[self.headers.index("daytime")])
-        feature = np.array(row[3:-1], dtype=float)
-        target = int(row[self.headers.index("label")])
-        return feature, target
 
     def s_filtering(self): # return False then start processing
         if self.first_row_flag:
@@ -78,16 +73,17 @@ class TerminateManager:
     def call_eval(self, list_eval_results):
         print("--- evaluate model")
         evaluate_daytime = self.next_eval_date - timedelta(seconds=self.eval_unit_int / 2)
-        eval_arr = [evaluate_daytime] + modelEvaluator.main(self.y_true, self.y_pred)
+        eval_arr = [evaluate_daytime] + modelEvaluator.main(self.y_true, self.y_pred, self.tf)
         list_eval_results = np.vstack([list_eval_results, eval_arr])
         self.y_true.clear()
         self.y_pred.clear()
         self.next_eval_date += timedelta(seconds=self.eval_unit_int)
         return list_eval_results
 
-    def call_pred(self,model,feature,target):
-        self.y_pred.append(model.predict_on_batch(feature.reshape(1, -1))[0][0])
-        self.y_true.append(target)
+    def call_pred(self,model,row):
+        tensor_input = self.tf.convert_to_tensor([list(map(float, row[3:-1]))], dtype=self.tf.float32)
+        self.y_pred.append(model(tensor_input,training=False)[0][0].numpy())
+        self.y_true.append(int(row[-1]))
 
     def call_tr(self, model, rtr_list, rtr_results_list,c_time):
         df = pd.DataFrame(rtr_list).dropna()

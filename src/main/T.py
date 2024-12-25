@@ -4,6 +4,7 @@ import pickle
 import sys
 import time
 from datetime import datetime, timedelta
+import tensorflow as tf
 
 import numpy as np
 import pandas as pd
@@ -11,6 +12,7 @@ import pytz
 
 from sklearn.preprocessing import MinMaxScaler
 from tSub import *
+
 
 def is_pass_exist(path):
     if not os.path.exists(path):  # error >> argument 1 name
@@ -75,7 +77,7 @@ def main():
 
     # --- Foundation model setting
     f_model_path = settings["FOUNDATION_MODEL_PATH"]
-    model = modelCreator.main()
+    model = modelCreator.main(tf)
     if f_model_path == "":
         print("- start with new model ...")
     elif os.path.exists(f_model_path):
@@ -88,12 +90,13 @@ def main():
         sys.exit(1)
 
     process_start_date = time.time()
-    t = tmClass.TerminateManager(d_dir_path, o_dir_path, start_date,end_date, rtr_int, eval_unit_int, epochs, batch_size)
+    t = tmClass.TerminateManager(tf, d_dir_path, o_dir_path, start_date,end_date, rtr_int, eval_unit_int, epochs, batch_size)
+    
     # --- Terminate
     if rtr_mode == "dy":
          tr_results_list,eval_results_list,start_date,end_date = dynamicTerminator.main(
              t=t,
-             online_mode= online_mode,
+             online_mode=online_mode,
              model=model,
              cw_size=cw_size,
              pw_size=pw_size,
