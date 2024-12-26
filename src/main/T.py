@@ -146,7 +146,7 @@ def main():
     # nmr_flow_num_ratio
     min_max_scaler = MinMaxScaler()
     fn_rate = eval_results_list[:, 5] / sum_fn
-    reshaped_fn_rate = fn_rate.reshape(-1, 1)
+    reshaped_fn_rate = fn_rate.numpy().reshape(-1, 1)
     scaled_fn_rate = min_max_scaler.fit_transform(reshaped_fn_rate)
     add_results_list.append(scaled_fn_rate.flatten())
 

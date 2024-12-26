@@ -9,7 +9,7 @@
   "DATASETS_DIR_PATH": "data/csv/wt2022+wt2022-da-0808165007",
   "START_DATE": "2000-01-01 00:00:00",
   "TargetRange": {
-    "DAYS": 1,
+    "DAYS": 2,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
@@ -26,6 +26,6 @@
     "CURRENT_WIN_SIZE": 120,
     "PAST_WIN_SIZE": 180,
     "METHOD_CODE": 1,
-    "THRESHOLD": 10
+    "THRESHOLD": 25
   }
 }
