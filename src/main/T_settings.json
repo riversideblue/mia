@@ -4,28 +4,28 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "USER_DIR" : "/mnt/nas0/g005/murasemaru",
-  "FOUNDATION_MODEL_PATH": "exp/exp_1_DriftObservation/fm/2202Lab03+1_st/model_weights/2022-01-31T07:50:56-weights.pickle",
-  "DATASETS_DIR_PATH": "data/csv/modif/exp_1_DriftObservation/2202Lab03+1",
+  "USER_DIR" : "/home/murasemaru/nids-cdd",
+  "FOUNDATION_MODEL_PATH": "",
+  "DATASETS_DIR_PATH": "data/csv/wt2022+wt2022-da-0808165007",
   "START_DATE": "2000-01-01 00:00:00",
   "TargetRange": {
-    "DAYS": 100,
+    "DAYS": 1,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },
   "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "nt",
+  "RETRAINING_MODE": "dy",
   "RETRAINING_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
-    "EPOCHS": 10,
+    "EPOCHS": 1,
     "BATCH_SIZE": 512
   },
   "DriftDetection": {
-    "CURRENT_WIN_SIZE": 500,
-    "PAST_WIN_SIZE": 750,
+    "CURRENT_WIN_SIZE": 120,
+    "PAST_WIN_SIZE": 180,
     "METHOD_CODE": 1,
-    "THRESHOLD": 0.05
+    "THRESHOLD": 10
   }
 }

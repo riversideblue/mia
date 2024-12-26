@@ -1,5 +1,8 @@
 import os
-from .util import driftDetection as DD
+from datetime import datetime
+
+from . import driftDetection as DD
+
 
 def main(
         t,
@@ -12,8 +15,10 @@ def main(
         tr_results_list,
         eval_results_list
 ):
-    w = DD.Window(cw_size, pw_size, row_len=15)
+
+    w = DD.Window()
     counter = 0
+
     if online_mode:
         print("dynamic - online mode")
     else:
@@ -23,6 +28,7 @@ def main(
             f,reader = t.set_d_file(d_file)
             for row in reader:
                 t.c_time = datetime.strptime(row[t.headers.index("daytime")], "%Y-%m-%d %H:%M:%S")
+
                 if t.s_flag:
                     if t.s_filtering(): continue
                 elif t.e_filtering(): break
@@ -33,12 +39,12 @@ def main(
                 # --- Prediction
                 t.call_pred(model,row)
                 # --- DD & Retraining
-                w.update(row[3:])
-                w.cum_p_value*=DD.call(method_code, w.v2_cw(), w.v2_pw())
-                print(f"cum:{w.cum_test_static}")
-                if w.cum_p_value < threshold:
-                    tr_results_list = t.call_tr(model, w.c_window, tr_results_list,t.c_time)
-                    w.cum_p_value=1
+                w.update(row[3:], t.c_time, cw_size, pw_size)
+                w.cum_statics+=DD.call(method_code, w.v2_cw(), w.v2_pw())
+                print(f"cum_statics: {w.cum_statics}")
+                while abs(w.cum_statics) > threshold:
+                    tr_results_list = t.call_tr(model, w.cw, tr_results_list, t.c_time)
+                    w.cum_statics -= threshold if w.cum_statics >= 0 else -threshold
             f.close()
 
     return tr_results_list,eval_results_list,t.start_date,t.c_time

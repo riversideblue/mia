@@ -1,47 +1,69 @@
 import numpy as np
-from collections import deque
-
 from joblib import Parallel, delayed
 from scipy.stats import ttest_ind, mannwhitneyu, wasserstein_distance, entropy, ks_2samp
 import pingouin as pg
 
+from collections import deque
+from datetime import datetime, timedelta
 
 class Window:
-    def __init__(self, cw_size, pw_size, row_len):
-        self.c_window = deque(
-            np.full((cw_size, row_len), np.nan, dtype=float),
-            maxlen=cw_size
-        )
-        self.p_window = deque(
-            np.full((pw_size, row_len), np.nan, dtype=float),
-            maxlen=pw_size
-        )
-        self.cum_p_value = 1
+    def __init__(self):
+        self.cw = deque()
+        self.cw_date_q = deque()  # datetime型を持つDeque
+        self.cw_end_date=None
+        self.pw = deque()
+        self.pw_date_q = deque()
+        self.pw_end_date=None
+        self.cum_statics: float = 0.0
 
-    def update(self,row):
-        self.p_window.append(self.c_window.popleft())
-        self.c_window.append(np.array(row, dtype=float))
+    def update(self, row, c_time, cw_size, pw_size):
+        self.cw.append(np.array(row, dtype=float))
+
+        if not self.cw_date_q:
+            self.cw_end_date = c_time-timedelta(seconds=cw_size)
+            self.pw_end_date = self.cw_end_date-timedelta(seconds=pw_size)
+        else:
+            delta = c_time - self.cw_date_q[-1]
+            self.cw_end_date+=delta
+            self.pw_end_date+=delta
+            while self.cw_date_q and self.cw_date_q[0] < self.cw_end_date:
+                self.pw.append(self.cw.popleft())
+                self.pw_date_q.append(self.cw_date_q.popleft())
+            while self.pw_date_q and self.pw_date_q[0] < self.pw_end_date:
+                self.pw.popleft()
+                self.pw_date_q.popleft()
+        self.cw_date_q.append(c_time)
 
     def fnum_cw(self):
-        rcv_current = np.array(self.c_window)[:, 3].astype(int)
-        snd_current = np.array(self.c_window)[:, 4].astype(int)
+        rcv_current = np.array(self.cw)[:, 3].astype(int)
+        snd_current = np.array(self.cw)[:, 4].astype(int)
         extracted_cw = rcv_current + snd_current
         return extracted_cw
 
     def fnum_pw(self):
-        rcv_past = np.array(self.p_window)[:, 3].astype(int)
-        snd_past = np.array(self.p_window)[:, 4].astype(int)
+        rcv_past = np.array(self.pw)[:, 3].astype(int)
+        snd_past = np.array(self.pw)[:, 4].astype(int)
         extracted_pw = rcv_past + snd_past
         return extracted_pw
 
     def v2_cw(self):
-        c_window_array = np.nan_to_num(np.array(self.c_window), nan=0)
-        extracted_cw = c_window_array[:, [4, 6, 9, 10]].T
+        cw_arr = np.array(self.cw)
+        if cw_arr.ndim == 1:
+            cw_arr = cw_arr.reshape(1, -1)
+        try:
+            extracted_cw = cw_arr[:, [4, 6, 9, 10]].T
+        except IndexError:
+            extracted_cw = np.zeros((4, cw_arr.shape[0]))
         return extracted_cw
 
     def v2_pw(self):
-        p_window_array = np.nan_to_num(np.array(self.p_window), nan=0)
-        extracted_pw = p_window_array[:, [4, 6, 9, 10]].T
+        pw_arr = np.array(self.pw)
+        if pw_arr.ndim == 1:
+            pw_arr = pw_arr.reshape(1, -1)
+        try:
+            extracted_pw = pw_arr[:, [4, 6, 9, 10]].T
+        except IndexError:
+            extracted_pw = np.zeros((4, pw_arr.shape[0]))
         return extracted_pw
 
 def call(method_code:int,c_window,p_window):
@@ -75,18 +97,12 @@ def independent_t_test(c_window, p_window):
     print(mean_p_values)
     return mean_p_values
 
-def welchs_t_test(c_window, p_window):
-    stats, p_values = ttest_ind(c_window, p_window, axis=1, equal_var=False)
-    mean_stats = np.nanmean(stats)
-    mean_p_values = np.nanmean(p_values)
-    if np.isnan(mean_stats):
-        mean_stats = 0
-    if np.isnan(mean_p_values):
-        mean_p_values = 0
-    print("aaaa")
-    print(mean_stats)
-    print(mean_p_values)
-    return mean_p_values
+def welchs_t_test(cw, pw):
+    stats, p_values = ttest_ind(cw, pw, axis=1, equal_var=False)
+    mean_stats = np.mean(stats)
+    if np.isnan(np.mean(stats)):
+        return 0.0
+    return mean_stats
 
 def mann_whitney_u_test(c_window, p_window):
     stats, p_values = mannwhitneyu(c_window, p_window, axis=1, alternative='two-sided')

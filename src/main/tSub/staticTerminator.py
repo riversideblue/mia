@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+
 import numpy as np
 
 
@@ -21,6 +23,7 @@ def main(
             f,reader = t.set_d_file(d_file)
             for row in reader:
                 t.c_time = datetime.strptime(row[t.headers.index("daytime")], "%Y-%m-%d %H:%M:%S")
+
                 if t.s_flag:
                     if t.s_filtering(): continue
                 elif t.e_filtering(): break

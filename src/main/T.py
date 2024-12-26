@@ -80,8 +80,8 @@ def main():
     # --- Foundation model setting
     f_model_path:str = settings["FOUNDATION_MODEL_PATH"]
     f_model_path:str = f"{user_dir}/{f_model_path}"
-    model = modelCreator.main(tf)
-    if f_model_path == "":
+    model = model_create(tf)
+    if f_model_path == f"{user_dir}/":
         print("- start with new model ...")
     elif os.path.exists(f_model_path):
         with open(f_model_path, 'rb') as f:
@@ -97,7 +97,7 @@ def main():
     
     # --- Terminate
     if rtr_mode == "dy":
-         tr_results_list,eval_results_list,start_date,end_date = dynamicTerminator.main(
+         tr_results_list,eval_results_list,start_date,end_date = dynamic_terminate(
              t=t,
              online_mode=online_mode,
              model=model,
@@ -109,7 +109,7 @@ def main():
              eval_results_list=eval_results_list
          )
     elif rtr_mode == "st":
-        tr_results_list,eval_results_list,start_date,end_date = staticTerminator.main(
+        tr_results_list,eval_results_list,start_date,end_date = static_terminate(
             t=t,
             online_mode=online_mode,
             model=model,
@@ -117,7 +117,7 @@ def main():
             eval_results_list=eval_results_list
         )
     elif rtr_mode == "nt":
-        tr_results_list,eval_results_list,start_date,end_date = ntTerminator.main(
+        tr_results_list,eval_results_list,start_date,end_date = nt_terminate(
             t=t,
             online_mode=online_mode,
             model=model,

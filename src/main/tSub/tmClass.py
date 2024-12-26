@@ -1,10 +1,10 @@
 import csv
-from datetime import datetime,timedelta
+from datetime import timedelta
 
 import numpy as np
 import pandas as pd
 
-from .util import modelEvaluator,modelTrainer
+from . import modelEvaluator, modelTrainer
 
 
 class TerminateManager:
