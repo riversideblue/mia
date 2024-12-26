@@ -35,7 +35,8 @@ def main(
 
                 # --- Evaluate
                 if t.c_time > t.next_eval_date:
-                    eval_results_list = t.call_eval(eval_results_list)
+                    with t.tf.device("/GPU:0"):
+                        eval_results_list = t.call_eval(eval_results_list)
                 # --- Prediction
                 t.call_pred(model,row)
                 # --- DD & Retraining

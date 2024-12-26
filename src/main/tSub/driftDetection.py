@@ -107,26 +107,15 @@ def welchs_t_test(cw, pw):
 def mann_whitney_u_test(c_window, p_window):
     stats, p_values = mannwhitneyu(c_window, p_window, axis=1, alternative='two-sided')
     mean_stats = np.nanmean(stats)
-    mean_p_values = np.nanmean(p_values)
-    if np.isnan(mean_stats):
-        mean_stats = 0
-    if np.isnan(mean_p_values):
-        mean_p_values = 0
-    print(mean_stats)
-    print(mean_p_values)
-    return 1-mean_p_values
+    if np.isnan(np.mean(stats)):
+        return 0.0
+    return mean_stats
 
 def ks_test(c_window, p_window):
     stats, p_values = ks_2samp(c_window, p_window, axis=1)
-    mean_stats = np.nanmean(stats)
-    mean_p_values = np.nanmean(p_values)
-    if np.isnan(mean_stats):
-        mean_stats = 0
-    if np.isnan(mean_p_values):
-        mean_p_values = 0
-    print(mean_stats)
-    print(mean_p_values)
-    return 1-mean_p_values
+    if np.isnan(np.mean(stats)):
+        return 0.0
+    return mean_stats
 
 def wasserstein_test(c_window, p_window):
     distances = Parallel(n_jobs=-1)(
