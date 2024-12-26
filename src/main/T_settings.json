@@ -6,7 +6,7 @@
   },
   "USER_DIR" : "/home/murasemaru/nids-cdd",
   "FOUNDATION_MODEL_PATH": "",
-  "DATASETS_DIR_PATH": "data/csv/wt2022+wt2022-da-0808165007",
+  "DATASETS_DIR_PATH": "data/csv/wt2022",
   "START_DATE": "2000-01-01 00:00:00",
   "TargetRange": {
     "DAYS": 2,
