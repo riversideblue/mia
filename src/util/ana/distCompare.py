@@ -30,12 +30,11 @@ def calculate_distributions(dir_path):
                     distributions[column].append(data[column].dropna().values)
     return distributions
 
-from scipy.stats import ks_2samp
-
 def compare_distributions(dist1, dist2):
     """二つの特徴量分布を比較してWasserstein距離、KLダイバージェンス、KS統計量を計算する"""
     comparison_results = {}
     all_columns = set(dist1.keys()).union(set(dist2.keys()))
+    print(all_columns)
 
     for column in all_columns:
         comparison_results[column] = {

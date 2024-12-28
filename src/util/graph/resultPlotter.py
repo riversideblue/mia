@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # CSVファイルを読みこむ
-file_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/2201AusEast/terminated/nt/results_evaluate.csv"  # CSVファイルのパスを指定
+file_path = "/mnt/nas0/g005/murasemaru/exp/other/obs/2201AusEast/drift_obs.csv"  # CSVファイルのパスを指定
 data = pd.read_csv(file_path)
 metrix = ["f1_score"]
 output_dir = f"{os.path.dirname(file_path)}/results_img"
