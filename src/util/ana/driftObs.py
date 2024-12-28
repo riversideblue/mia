@@ -1,11 +1,12 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+from concurrent.futures import ThreadPoolExecutor
 
 # --- データセットの各特徴量が遷移する様子を一定期間プロットするスクリプト --------------------------------------------------------------------- #
 beginning_dtime = "2021-11-11  14:14:00"
 end_dtime = "2022-1-25  11:07:43"
-target_dir_path = "/mnt/nas0/g005/murasemaru/data/csv/modif/2201LabAll+2201AusEast"
+target_dir_path = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201BraSouth"
 """
 metrix overview
 "rcv_packet_count","snd_packet_count","tcp_count","udp_count","most_port","port_count","rcv_max_interval","rcv_min_interval","rcv_max_length","rcv_min_length","snd_max_interval","snd_min_interval","snd_max_length","snd_min_length","label"
@@ -20,7 +21,8 @@ csv_files = [os.path.join(target_dir_path, file) for file in sorted(os.listdir(t
 beginning_dtime = pd.to_datetime(beginning_dtime)
 end_dtime = pd.to_datetime(end_dtime)
 
-for feature in features:
+# グラフ生成を並列処理する関数
+def process_feature(feature):
     # 条件に合うデータを格納するリスト
     filtered_data = []
     
@@ -40,11 +42,11 @@ for feature in features:
     if filtered_data:
         result_df = pd.concat(filtered_data, ignore_index=True)
     else:
-        print("No data matched the given time range.")
-        exit()
+        print(f"No data matched the given time range for feature {feature}.")
+        return
     
     # グラフ保存先ディレクトリを作成
-    os.makedirs(os.path.dirname(output_dir), exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
     
     label_size = 22
     ticks_size = 16
@@ -71,6 +73,11 @@ for feature in features:
     
     # グラフを表示と保存
     plt.tight_layout()  # レイアウト調整
-    plt.savefig(f"{output_dir}/{feature}.png", dpi=300)  # 高解像度で保存
-    plt.show()
-    print(f"end processing: {feature}")
+    output_path = f"{output_dir}/{feature}_driftobs.png"
+    plt.savefig(output_path, dpi=300)  # 高解像度で保存
+    plt.close()  # メモリを解放
+    print(f"end processing: {feature}, saved to {output_path}")
+
+# 並列処理の実行
+with ThreadPoolExecutor() as executor:
+    executor.map(process_feature, features)

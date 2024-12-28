@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 from scipy.stats import wasserstein_distance
 
 # --- データセットの特徴量の分布がどのように遷移しているかを調査 --------------------------------------------------------------------- #
-dir_path = "/home/murasemaru/nids-cdd/data/csv/wt2022"
+dir_path = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201L/04"
 """
 metrix overview
 "rcv_packet_count","snd_packet_count","tcp_count","udp_count",
@@ -22,8 +22,8 @@ features = ["rcv_packet_count", "snd_packet_count", "tcp_count", "udp_count", "m
             "snd_min_interval", "snd_max_length", "snd_min_length", "label"]
 data_sec_size = 1 # データ区間の長さ
 unit_time = 1 # 評価単位時間
-# output_dir = f"/mnt/nas0/g005/murasemaru/exp/other/data_obs/{os.path.basename(dir_path)}/distDrift"  # グラフ保存先
-output_dir = "a"
+output_dir = f"/mnt/nas0/g005/murasemaru/exp/other/obs/{os.path.basename(dir_path)}"  # グラフ保存先
+
 # ---------------------------------------------------------------------------------------------------------------------------------- #
 
 class Window:
@@ -95,8 +95,6 @@ for d_file in sorted(os.listdir(dir_path)):
             except IndexError:
                 extracted_pw = np.zeros((4, cw_arr.shape[0]))
 
-            print(pw_arr)
-
             # 距離計算
             distances = Parallel(n_jobs=-1)(
                 delayed(wasserstein_distance)(c, p) for c, p in zip(extracted_cw, extracted_pw)
@@ -110,6 +108,8 @@ for d_file in sorted(os.listdir(dir_path)):
             eval_arr = [evaluate_daytime] + distances + [mean_distance]
             eval_results_list = np.vstack([eval_results_list, eval_arr])
 
+            print(eval_arr)
+
             next_eval_date+=timedelta(hours=unit_time)
 
         w.update(row[3:], c_time, data_sec_size)
@@ -118,4 +118,4 @@ for d_file in sorted(os.listdir(dir_path)):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     eval_results = pd.DataFrame(eval_results_list, columns=eval_results_col)
-    eval_results.to_csv(os.path.join(output_dir, "results.csv"), index=False)
+    eval_results.to_csv(os.path.join(output_dir, "drift_obs.csv"), index=False)
