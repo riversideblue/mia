@@ -70,25 +70,25 @@ class TerminateManager:
             return True
         return False
 
-    def call_eval(self, list_eval_results):
+    def call_eval(self, eval_res_li):
         print("--- evaluate model")
         evaluate_daytime = self.next_eval_date - timedelta(seconds=self.eval_unit_int / 2)
         eval_arr = [evaluate_daytime] + modelEvaluator.main(self.y_true, self.y_pred, self.tf)
-        list_eval_results = np.vstack([list_eval_results, eval_arr])
+        eval_res_li = np.vstack([eval_res_li, eval_arr])
         self.y_true.clear()
         self.y_pred.clear()
         self.next_eval_date += timedelta(seconds=self.eval_unit_int)
-        return list_eval_results
+        return eval_res_li
 
     def call_pred(self,model,row):
         tensor_input = self.tf.convert_to_tensor([list(map(float, row[3:-1]))], dtype=self.tf.float32)
         self.y_pred.append(model(tensor_input,training=False)[0][0].numpy())
         self.y_true.append(int(row[-1]))
 
-    def call_tr(self, model, rtr_list, rtr_results_list,c_time):
+    def call_tr(self, model, rtr_list, rtr_res_li, c_time):
         df = pd.DataFrame(rtr_list).dropna()
         features, targets = df.iloc[:, :-1], df.iloc[:, -1]
-        model, arr_rtr_results = modelTrainer.main(
+        model, rtr_res_arr = modelTrainer.main(
             model=model,
             features=features,
             targets=targets,
@@ -98,5 +98,5 @@ class TerminateManager:
             rtr_date=c_time
         )
         self.next_rtr_date += timedelta(seconds=self.rtr_int)
-        rtr_results_list = np.vstack([rtr_results_list, arr_rtr_results])
-        return rtr_results_list
+        rtr_res_li = np.vstack([rtr_res_li, rtr_res_arr])
+        return rtr_res_li

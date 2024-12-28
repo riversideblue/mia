@@ -17,7 +17,6 @@ def main(
 ):
 
     w = DD.Window()
-    counter = 0
 
     if online_mode:
         print("dynamic - online mode")
