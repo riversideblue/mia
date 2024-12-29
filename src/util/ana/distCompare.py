@@ -34,7 +34,6 @@ def compare_distributions(dist1, dist2):
     """二つの特徴量分布を比較してWasserstein距離、KLダイバージェンス、KS統計量を計算する"""
     comparison_results = {}
     all_columns = set(dist1.keys()).union(set(dist2.keys()))
-    print(all_columns)
 
     for column in all_columns:
         comparison_results[column] = {
@@ -66,9 +65,26 @@ def compare_distributions(dist1, dist2):
     return comparison_results
 
 
+"""
+all_dir/ <-- input
+├── sub_dir1/
+|   ├── data1.csv
+│   ├── data2.csv
+│   └── data3.csv
+├── sub_dir2/
+|   ├── data1.csv
+│   ├── data2.csv
+│   └── data3.csv
+├── sub_dir3/
+    ├── data1.csv
+    ├── data2.csv
+    └── data3.csv
+"""
+
+
 if __name__ == "__main__":
-    all_dir_path = input("分布を解析したいすべてのディレクトリが格納されたディレクトリパスを入力してください: ")
-    output_dir = f"/mnt/nas0/g005/murasemaru/exp/other/{os.path.basename(all_dir_path)}"
+    all_dir_path = input("分布間の相関を解析したいすべてのディレクトリが格納されたディレクトリパスを入力してください: ")
+    output_dir = f"/mnt/nas0/g005/murasemaru/exp/0_DataAnalytics/corr_dist/{os.path.basename(all_dir_path)}"
     
     # 全ディレクトリの特徴量分布を計算（並列化）
     dir_paths = [os.path.join(all_dir_path, dir_name) for dir_name in sorted(os.listdir(all_dir_path)) if os.path.isdir(os.path.join(all_dir_path, dir_name))]
@@ -78,12 +94,13 @@ if __name__ == "__main__":
     
     print("特徴量分布計算完了")
 
+
     # サブディレクトリ名を取得
     subdirs = [os.path.basename(path) for path in dir_paths]
     
     # 特徴量のリスト
     features = [
-        "ex_address", "in_address", "daytime", "rcv_packet_count", "snd_packet_count", "tcp_count",
+        "rcv_packet_count", "snd_packet_count", "tcp_count",
         "udp_count", "most_port", "port_count", "rcv_max_interval", "rcv_min_interval",
         "rcv_max_length", "rcv_min_length", "snd_max_interval", "snd_min_interval",
         "snd_max_length", "snd_min_length"
@@ -91,31 +108,30 @@ if __name__ == "__main__":
 
     w_dfs = []
     kl_dfs = []
-
-    # 結果を保存するための追加
     ks_dfs = []
 
     for feature in features:
         w_df = pd.DataFrame(index=subdirs, columns=subdirs)
         kl_df = pd.DataFrame(index=subdirs, columns=subdirs)
         ks_df = pd.DataFrame(index=subdirs, columns=subdirs)
-
+    
         # 比較処理を並列化
         with ProcessPoolExecutor() as executor:
             args = [(all_dir_dist[i], all_dir_dist[j]) for i in range(len(all_dir_dist)) for j in range(len(all_dir_dist))]
             results = list(executor.map(process_comparison, args))
-
+    
         # 結果をデータフレームに格納
         for idx, (i, j) in enumerate([(i, j) for i in range(len(all_dir_dist)) for j in range(len(all_dir_dist))]):
-            metrics = results[idx]
-            for column, metric_values in metrics.items():
-                if metric_values['wasserstein'] is not None:
-                    w_df.iloc[i, j] = metric_values['wasserstein']
-                if metric_values['kl_divergence'] is not None:
-                    kl_df.iloc[i, j] = metric_values['kl_divergence']
-                if metric_values['ks_statistic'] is not None:
-                    ks_df.iloc[i, j] = metric_values['ks_statistic']
-
+            metrics = results[idx].get(feature, {})
+            if 'wasserstein' in metrics:
+                w_df.iloc[i, j] = metrics['wasserstein']
+            if 'kl_divergence' in metrics:
+                kl_df.iloc[i, j] = metrics['kl_divergence']
+            if 'ks_statistic' in metrics:
+                ks_df.iloc[i, j] = metrics['ks_statistic']
+    
+        print(w_df)
+    
         # 結果を保存
         w_dfs.append(w_df)
         kl_dfs.append(kl_df)
@@ -126,17 +142,19 @@ if __name__ == "__main__":
         ks_df.to_csv(f"{output_dir}/{feature}_ks.csv")
         print(f"csvファイルを保存しました: {feature}")
 
+
+
     # 平均化して保存
     w_concatenated = pd.concat(w_dfs, keys=features)
     w_averaged_df = w_concatenated.groupby(level=1).mean()
-    w_averaged_df.to_csv(f"{output_dir}/averaged_w.csv")
+    w_averaged_df.to_csv(f"{output_dir}/ave_w.csv")
 
     kl_concatenated = pd.concat(kl_dfs, keys=features)
     kl_averaged_df = kl_concatenated.groupby(level=1).mean()
-    kl_averaged_df.to_csv(f"{output_dir}/averaged_kl.csv")
+    kl_averaged_df.to_csv(f"{output_dir}/ave_kl.csv")
 
     ks_concatenated = pd.concat(ks_dfs, keys=features)
     ks_averaged_df = ks_concatenated.groupby(level=1).mean()
-    ks_averaged_df.to_csv(f"{output_dir}/averaged_ks.csv")
+    ks_averaged_df.to_csv(f"{output_dir}/ave_ks.csv")
 
     print("全ての処理が完了しました．")

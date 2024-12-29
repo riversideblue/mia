@@ -6,10 +6,10 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from scipy.stats import wasserstein_distance
+from scipy.stats import entropy, ks_2samp, wasserstein_distance
 
 # --- データセットの特徴量の分布がどのように遷移しているかを調査 --------------------------------------------------------------------- #
-dir_path = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201L/04"
+dir_path = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201AusEast"
 """
 metrix overview
 "rcv_packet_count","snd_packet_count","tcp_count","udp_count",
@@ -20,9 +20,9 @@ metrix overview
 features = ["rcv_packet_count", "snd_packet_count", "tcp_count", "udp_count", "most_port", "port_count",
             "rcv_max_interval", "rcv_min_interval", "rcv_max_length", "rcv_min_length", "snd_max_interval",
             "snd_min_interval", "snd_max_length", "snd_min_length", "label"]
-data_sec_size = 1 # データ区間の長さ
-unit_time = 1 # 評価単位時間
-output_dir = f"/mnt/nas0/g005/murasemaru/exp/other/obs/{os.path.basename(dir_path)}"  # グラフ保存先
+data_sec_size = 1 # データ区間の長さ(hours)
+unit_time = 1 # 評価単位時間(hours)
+output_dir = f"/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/{os.path.basename(dir_path)}"  # グラフ保存先
 
 # ---------------------------------------------------------------------------------------------------------------------------------- #
 
@@ -57,7 +57,9 @@ w = Window()
 first_row_flag = True
 start_date = None
 next_eval_date = None
-eval_results_col = ["daytime", "rcv_pkt_ct", "snd_pkt_ct", "tcp_ct", "udp_ct", "most_port", "port_ct", "rcv_max_int", "rcv_min_int", "rcv_max_len", "rcv_min_len", "snd_max_int", "snd_min_int", "snd_max_len", "snd_min_len","label","mean_dis"]
+eval_results_col = ["daytime", "rcv_pkt_ct", "snd_pkt_ct", "tcp_ct", "udp_ct", "most_port", "port_ct", 
+                    "rcv_max_int", "rcv_min_int", "rcv_max_len", "rcv_min_len", "snd_max_int", 
+                    "snd_min_int", "snd_max_len", "snd_min_len", "label", "mean_dis", "kl_div", "ks_dist"]
 eval_results_list = np.empty((0,len(eval_results_col)),dtype=object)
 
 for d_file in sorted(os.listdir(dir_path)):
@@ -100,12 +102,23 @@ for d_file in sorted(os.listdir(dir_path)):
                 delayed(wasserstein_distance)(c, p) for c, p in zip(extracted_cw, extracted_pw)
             )
 
+            kl_divs = Parallel(n_jobs=-1)(
+                delayed(entropy)(c, p) for c, p in zip(extracted_cw, extracted_pw) if np.all(p > 0)
+            )
+
+            ks_dists = Parallel(n_jobs=-1)(
+                delayed(lambda c, p: ks_2samp(c, p).statistic)(c, p) for c, p in zip(extracted_cw, extracted_pw)
+            )
+
             # 空の場合にデフォルト値を設定
             if len(distances) == 0:
-                distances = [0] * (len(eval_results_col) - 2)  # カラム数に合わせてゼロ埋め
+                distances = [0] * (len(eval_results_col) - 3)  # カラム数に合わせてゼロ埋め
             mean_distance = np.mean(distances) if len(distances) > 0 else 0
+            mean_kl_div = np.mean(kl_divs) if len(kl_divs) > 0 else 0
+            mean_ks_dist = np.mean(ks_dists) if len(ks_dists) > 0 else 0
+
             evaluate_daytime = next_eval_date
-            eval_arr = [evaluate_daytime] + distances + [mean_distance]
+            eval_arr = [evaluate_daytime] + distances + [mean_distance, mean_kl_div, mean_ks_dist]
             eval_results_list = np.vstack([eval_results_list, eval_arr])
 
             print(eval_arr)
