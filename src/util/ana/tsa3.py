@@ -14,7 +14,6 @@ dir_path = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201AusEast"
 data_sec_size = 1  # データ区間の長さ(hours)
 unit_time = 100  # 評価単位時間(hours)
 output_dir = f"/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/{os.path.basename(dir_path)}"  # グラフ保存先
-
 # ---------------------------------------------------------------------------------------------------------------------------------- #
 
 features = ["rcv_packet_count", "snd_packet_count", "tcp_count", "udp_count", "most_port", "port_count",
@@ -65,7 +64,7 @@ eval_res_col = ["daytime","w_rcv_pkt_ct", "ks_rcv_pkt_ct", "w_snd_pkt_ct", "ks_s
                     "w_rcv_max_int", "ks_rcv_max_int", "w_rcv_min_int", "ks_rcv_min_int", "w_rcv_max_len", "ks_rcv_max_len", 
                     "w_rcv_min_len", "ks_rcv_min_len", "w_snd_max_int", "ks_snd_max_int", 
                     "w_snd_min_int", "ks_snd_min_int", "w_snd_max_len", "ks_snd_max_len", "w_snd_min_len", "ks_snd_min_len", 
-                    "w_label", "ks_label", "w_mean_dis", "ks_mean_dist", "mean_dist"]
+                    "w_label", "ks_label", "w_mean_dis", "ks_mean_dist"]
 
 eval_res_li = np.empty((0, len(eval_res_col)), dtype=object)
 
@@ -117,10 +116,9 @@ for d_file in sorted(os.listdir(dir_path)):
             # 空の場合にデフォルト値を設定
             w_mean_dist = np.mean(w_dists) if len(w_dists) > 0 else 0
             ks_mean_dist = np.mean(ks_dists) if len(ks_dists) > 0 else 0
-            mean_dist = (w_mean_dist+ks_mean_dist)/2 if w_mean_dist!=0 and ks_mean_dist!=0 else 0
 
             eval_daytime = next_eval_date
-            eval_arr = [eval_daytime] + dists + [w_mean_dist, ks_mean_dist, mean_dist]
+            eval_arr = [eval_daytime] + dists + [w_mean_dist, ks_mean_dist]
             eval_res_li = np.vstack([eval_res_li, eval_arr])
             next_eval_date += timedelta(hours=unit_time)
             print(eval_arr)
@@ -160,5 +158,5 @@ add_res = pd.DataFrame(add_res_li, columns=add_res_col)
 
 # Combine evaluate_results with additional_results
 eval_res = pd.concat([eval_res, add_res], axis=1)
-eval_res.to_csv(os.path.join(output_dir, "drift_obs_with_population.csv"), index=False)
+eval_res.to_csv(os.path.join(output_dir, f"with_population_{data_sec_size}H.csv"), index=False)
 print(f"output: {output_dir}/drift_obs_with_population.csv")
