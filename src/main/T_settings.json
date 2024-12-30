@@ -5,17 +5,18 @@
     "CUDA_VISIBLE_DEVICES": "-1"
   },
   "USER_DIR" : "/mnt/nas0/g005/murasemaru",
-  "FOUNDATION_MODEL_PATH": "exp/5_Eval/2201AusEast/fm2/model_weights/2022-01-17T10:03:10-weights.pickle",
-  "DATASETS_DIR_PATH": "data/csv/modif/2201LabAll+2201AusEast",
-  "START_DATE": "2022-01-17 10:03:10",
+  "MODEL_CODE" : 0,
+  "FOUNDATION_MODEL_PATH": "",
+  "DATASETS_DIR_PATH": "data/csv/modif/2201UsEast+2201LabAll",
+  "START_DATE": "2022-01-15 00:00:00",
   "TargetRange": {
-    "DAYS": 3,
+    "DAYS": 5,
     "HOURS": 0,
     "MINUTES": 0,
     "SECONDS": 0
   },
   "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "dy",
+  "RETRAINING_MODE": "nt",
   "RETRAINING_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {

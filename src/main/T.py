@@ -78,9 +78,17 @@ def main():
     eval_results_list = np.empty((0,len(eval_results_col)),dtype=object)
 
     # --- Foundation model setting
-    f_model_path:str = settings["FOUNDATION_MODEL_PATH"]
-    f_model_path:str = f"{user_dir}/{f_model_path}"
-    model = model_create(tf)
+    m_dict = {
+        0: nn_create,
+        1: rf_create,
+    }
+    m_code = settings["MODEL_CODE"]
+    f_model_path: str = f"{user_dir}/{settings['FOUNDATION_MODEL_PATH']}"
+    m_create = m_dict.get(m_code)
+    if m_create is None:
+        raise ValueError(f"Invalid model_code: {m_code}")
+        
+    model = m_create(tf)
     if f_model_path == f"{user_dir}/":
         print("- start with new model ...")
     elif os.path.exists(f_model_path):
@@ -89,7 +97,7 @@ def main():
             init_weights = pickle.load(f)
             model.set_weights(init_weights)
     else:
-        print("- invalid path")
+        print("- fm invalid path")
         sys.exit(1)
 
     process_start_date = time.time()
@@ -142,6 +150,8 @@ def main():
     add_results_list = []
 
     sum_fn = np.sum(eval_results_list[:, 5])
+
+    print("AAAAAAAAAAAAAAAA")
 
     # nmr_flow_num_ratio
     min_max_scaler = MinMaxScaler()
