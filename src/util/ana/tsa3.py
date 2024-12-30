@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 # --- データセットの各特徴量の分布がどのように遷移しているかを調査 Time Series Analysis --------------------------------------------------- #
 dir_path = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201Lab03"
 data_sec_size = 32  # データ区間の長さ(hours)
-unit_time = 100  # 評価単位時間(hours)
+unit_time = 0.1# 評価単位時間(hours)
 output_dir = f"/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/{os.path.basename(dir_path)}"  # グラフ保存先
 # ---------------------------------------------------------------------------------------------------------------------------------- #
 
@@ -104,7 +104,7 @@ for d_file in sorted(os.listdir(dir_path)):
                 delayed(lambda c, p: ks_2samp(c, p).statistic)(c, p) for c, p in zip(ex_cw, population_data)
             )
             eval_daytime = next_eval_date
-            eval_arr = [eval_daytime,row_ct] + w_dis + ks_dis
+            eval_arr = [eval_daytime,cw_arr.shape[0]] + w_dis + ks_dis
             eval_res_li = np.vstack([eval_res_li, eval_arr])
             next_eval_date += timedelta(hours=unit_time)
             row_ct=0
