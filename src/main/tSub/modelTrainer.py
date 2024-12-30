@@ -3,20 +3,16 @@ import pickle
 import numpy as np
 
 def main(model, features, targets, output_dir_path, epochs, batch_size, rtr_date):
-    print("execute model_training ...")
 
-    # モデルのトレーニング
     start_time = time.time()
     history = model.fit(features, targets, epochs=epochs, batch_size=batch_size)
     training_time = time.time() - start_time
 
-    # 結果の記録
     accuracy = history.history["accuracy"][-1]
     loss = history.history["loss"][-1]
     str_rtr_date = rtr_date.strftime("%Y-%m-%dT%H:%M:%S")
 
-    # モデルの重みを保存
-    with open(f"{output_dir_path}/model_weights/{str_rtr_date}-weights.pickle", 'wb') as f:
+    with open(f"{output_dir_path}/wts/{str_rtr_date}.pickle", 'wb') as f:
         pickle.dump(model.get_weights(), f)
 
     # データの統計情報

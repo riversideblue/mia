@@ -2,7 +2,6 @@ import os
 import pandas as pd
 import numpy as np
 from scipy.stats import wasserstein_distance, entropy, ks_2samp
-import matplotlib.pyplot as plt
 from concurrent.futures import ProcessPoolExecutor
 
 def process_directory(dir_path):
@@ -141,8 +140,6 @@ if __name__ == "__main__":
         kl_df.to_csv(f"{output_dir}/{feature}_kl.csv")
         ks_df.to_csv(f"{output_dir}/{feature}_ks.csv")
         print(f"csvファイルを保存しました: {feature}")
-
-
 
     # 平均化して保存
     w_concatenated = pd.concat(w_dfs, keys=features)

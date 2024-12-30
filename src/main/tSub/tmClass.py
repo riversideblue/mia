@@ -6,7 +6,6 @@ import pandas as pd
 
 from . import modelEvaluator, modelTrainer
 
-
 class TerminateManager:
     def __init__(self,tf,d_dir_path,o_dir_path,start_date,end_date,rtr_int,eval_unit_int,epochs,batch_size):
 

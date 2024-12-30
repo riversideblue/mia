@@ -5,6 +5,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 import tensorflow as tf
+import tensorflow_decision_forests as tfdf
 
 import numpy as np
 import pandas as pd
@@ -51,6 +52,7 @@ def main():
         seconds=seconds
     )
     end_date: datetime = start_date + target_range
+    m_code = settings["MODEL_CODE"]
     epochs: int = settings["TrainingDefine"]["EPOCHS"]
     batch_size: int = settings["TrainingDefine"]["BATCH_SIZE"]
 
@@ -67,9 +69,9 @@ def main():
     is_pass_exist(d_dir_path)
 
     # --- Create output directory
-    o_dir_path: str = f"{user_dir}/exp/{init_time}_{os.path.basename(d_dir_path)}_{rtr_mode}"
+    o_dir_path: str = f"{user_dir}/exp/{init_time}_{os.path.basename(d_dir_path)}_{rtr_mode}_{m_code}"
     os.makedirs(o_dir_path)
-    os.makedirs(f"{o_dir_path}/model_weights")
+    os.makedirs(f"{o_dir_path}/wts")
 
     # --- Set results
     t_results_col = ["daytime", "accuracy", "loss", "training_time", "benign_count", "malicious_count", "flow_num"]
@@ -79,16 +81,24 @@ def main():
 
     # --- Foundation model setting
     m_dict = {
-        0: nn_create,
-        1: rf_create,
+        0: dnn,
+        1: rnn,
+        2: autoencoder,
+        3: svm,
+        4: logistic_regression,
+        5: lstm,
+        6: random_forest,
+        7: gradient_boosting
     }
-    m_code = settings["MODEL_CODE"]
+
     f_model_path: str = f"{user_dir}/{settings['FOUNDATION_MODEL_PATH']}"
     m_create = m_dict.get(m_code)
     if m_create is None:
         raise ValueError(f"Invalid model_code: {m_code}")
-        
-    model = m_create(tf)
+    if m_code == 6 or m_code == 7:
+        model = m_create(tfdf)
+    else:
+        model = m_create(tf)
     if f_model_path == f"{user_dir}/":
         print("- start with new model ...")
     elif os.path.exists(f_model_path):
@@ -142,7 +152,7 @@ def main():
     settings["Log"]["START_DAYTIME"] = start_date.isoformat()
     settings["Log"]["END_DAYTIME"] = end_date.isoformat()
     settings["Log"]["Processing_TIME"] = process_time
-    with open(f"{o_dir_path}/settings_log_edge.json", "w") as f:
+    with open(f"{o_dir_path}/settings_log.json", "w") as f:
         json.dump(settings, f, indent=1)  # type:
 
     # --- Results processing
@@ -168,7 +178,7 @@ def main():
 
     # training results
     tr_results = pd.DataFrame(tr_results_list, columns=t_results_col)
-    tr_results.to_csv(os.path.join(o_dir_path, "results_training.csv"), index=False)
+    tr_results.to_csv(os.path.join(o_dir_path, "tr_res.csv"), index=False)
 
     # evaluate results
     eval_results = pd.DataFrame(eval_results_list, columns=eval_results_col)
@@ -176,7 +186,7 @@ def main():
 
     # Combine evaluate_results with additional_results
     eval_results = pd.concat([eval_results, add_results], axis=1)
-    eval_results.to_csv(os.path.join(o_dir_path, "results_evaluate.csv"), index=False)
+    eval_results.to_csv(os.path.join(o_dir_path, "eval_res.csv"), index=False)
 
     print("\n")
     model.summary()

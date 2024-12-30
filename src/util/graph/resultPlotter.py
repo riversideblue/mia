@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 file_path = "/mnt/nas0/g005/murasemaru/exp/other/obs/2201AusEast/drift_obs.csv"  # CSVファイルのパスを指定
 data = pd.read_csv(file_path)
 metrix = ["f1_score"]
-output_dir = f"{os.path.dirname(file_path)}/results_img"
+output_dir = f"{os.path.dirname(file_path)}/img"
 output_path = f"{output_dir}/{','.join(metrix)}.png"
 os.makedirs(output_dir, exist_ok=True)
 
