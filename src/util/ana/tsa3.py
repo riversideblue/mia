@@ -122,10 +122,6 @@ add_res_li = []
 scaler = StandardScaler()
 eval_res_li_scaled = scaler.fit_transform(eval_res_li[:,2:])
 
-print(eval_res_li_scaled)
-print(eval_res_li_scaled[0,0:14])
-print(eval_res_li_scaled[0,15:-1])
-
 w_mean_dis = np.mean(eval_res_li_scaled[:,0:14], axis=1)
 add_res_li.append(w_mean_dis)
 
