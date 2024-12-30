@@ -151,8 +151,6 @@ def main():
 
     sum_fn = np.sum(eval_results_list[:, 5])
 
-    print("AAAAAAAAAAAAAAAA")
-
     # nmr_flow_num_ratio
     min_max_scaler = MinMaxScaler()
     fn_rate = eval_results_list[:, 5]/sum_fn
