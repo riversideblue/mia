@@ -36,7 +36,7 @@ print(population_data)
 class Window:
     def __init__(self):
         self.cw = deque()
-        self.cw_date_q = deque()  # datetime型を持つDeque
+        self.cw_date_q = deque()
         self.cw_end_date = None
 
     def update(self, row, c_time, data_sec_size):
@@ -82,13 +82,13 @@ for d_file in sorted(os.listdir(dir_path)):
             start_date = c_time
             first_row_flag = False
 
-        if c_time < start_date + timedelta(hours=unit_time):
-            next_eval_date = c_time
+        if c_time < start_date+timedelta(hours=unit_time):
+            next_eval_date=c_time
             w.update(row[3:], c_time, data_sec_size)
             continue
 
         if c_time > next_eval_date:
-            cw_arr = np.array(w.cw)
+            cw_arr=np.array(w.cw)
             if cw_arr.ndim == 1:
                 cw_arr = cw_arr.reshape(1, -1)
             try:
@@ -122,10 +122,14 @@ add_res_li = []
 scaler = StandardScaler()
 eval_res_li_scaled = scaler.fit_transform(eval_res_li[:,2:])
 
-w_mean_dis = np.mean(eval_res_li_scaled[:,2:16], axis=1)
+print(eval_res_li_scaled)
+print(eval_res_li_scaled[0,0:14])
+print(eval_res_li_scaled[0,15:-1])
+
+w_mean_dis = np.mean(eval_res_li_scaled[:,0:14], axis=1)
 add_res_li.append(w_mean_dis)
 
-ks_mean_dis = np.mean(eval_res_li_scaled[:,17:], axis=1)
+ks_mean_dis = np.mean(eval_res_li_scaled[:,15:-1], axis=1)
 add_res_li.append(ks_mean_dis)
 
 mean_dis_li = (w_mean_dis+ks_mean_dis)/2
