@@ -44,7 +44,6 @@ def main(
                 print(f"cum_statics: {w.cum_statics}")
                 while abs(w.cum_statics) > threshold:
                     tr_results_list = t.call_tr(model, w.cw, tr_results_list, t.c_time)
-                    # w.cum_statics -= threshold if w.cum_statics >= 0 else -threshold
             f.close()
 
     return tr_results_list,eval_results_list,t.start_date,t.c_time
