@@ -4,8 +4,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 drift_dir_path = "/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift"
-file_name = "mean_dist"
-metrix = ["w_mean_dis","ks_mean_dis","mean_dis"]
+file_name = "ks_all"
+metrix = ["ks_rcv_pkt_ct", "ks_snd_pkt_ct", "ks_tcp_ct", "ks_udp_ct", 
+                "ks_most_port", "ks_port_ct", "ks_rcv_max_int", "ks_rcv_min_int", 
+                "ks_rcv_max_len", "ks_rcv_min_len", "ks_snd_max_int", 
+                "ks_snd_min_int", "ks_snd_max_len", "ks_snd_min_len"]
 label_size = 22
 ticks_size = 16
 legend_size = 22

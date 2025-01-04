@@ -5,17 +5,16 @@ import matplotlib.pyplot as plt
 
 #-------------------------------------------------------------------#
 # 定数定義
-metrix = "f1_score"
-nt_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/2201AusEast/terminated/nt"
-st_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/2201AusEast/terminated/st"
+metrix = "accuracy"
+nt_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/2201AusEast/1/nt"
+st_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/2201AusEast/1/st"
 st_epochs = 30
-dy_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/2201AusEast/terminated/dy_th100_cw600_pw1200"
+dy_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/2201AusEast/1/dy_th100_cw600_pw1200"
 dy_epochs = 30
 #-------------------------------------------------------------------#
 
 # 出力先ディレクトリの設定
-common_path = os.path.commonpath([nt_dir_path, st_dir_path, dy_dir_path])
-output_dir = f"{os.path.dirname(common_path)}/img_{os.path.basename(st_dir_path)}_{os.path.basename(dy_dir_path)}"
+output_dir = f"{dy_dir_path}/res_img"
 os.makedirs(output_dir, exist_ok=True)
 output_path = f"{output_dir}/STvsDY_{metrix}.png"
 
@@ -70,8 +69,8 @@ def plot_accuracy_and_cost(eval_data, output_path, label_size, ticks_size, legen
 
     # 左側の軸に精度をプロット
     line1, = ax1.plot(eval_data['daytime'], eval_data["nt"], label="再学習なし", linewidth=2, color="#7F7F7F")
-    line2, = ax1.plot(eval_data['daytime'], eval_data["static"], label="従来手法", linewidth=2, color="blue")
-    line3, = ax1.plot(eval_data['daytime'], eval_data["dynamic"], label="提案手法", linewidth=2, color='red')
+    line2, = ax1.plot(eval_data['daytime'], eval_data["static"], label="従来手法", linewidth=2, color="#377eb8")
+    line3, = ax1.plot(eval_data['daytime'], eval_data["dynamic"], label="提案手法", linewidth=2, color='#e41a1c')
     ax1.set_ylabel(f'{metrix}', fontsize=label_size, color='black')
     ax1.tick_params(axis='y', labelsize=ticks_size)
     ax1.tick_params(axis='x', labelsize=ticks_size, rotation=45)
@@ -80,10 +79,10 @@ def plot_accuracy_and_cost(eval_data, output_path, label_size, ticks_size, legen
     # 右側の軸に学習コストをプロット
     ax2 = ax1.twinx()
     line4, = ax2.plot(eval_data['daytime'], eval_data['st_tr_cost'], label='従来手法による学習コスト',
-                      linewidth=2, linestyle='--', color='#1F77B4', marker='o')
+                      linewidth=2, linestyle='--', color='#984ea3', marker='o')
     line5, = ax2.plot(eval_data['daytime'], eval_data['dy_tr_cost'], label='提案手法による学習コスト',
-                      linewidth=2, linestyle='--', color='#FF7F0E', marker='s')
-    ax2.set_ylabel('Training Cost', fontsize=label_size, color='black')
+                      linewidth=2, linestyle='--', color='#ff7f00', marker='s')
+    ax2.set_ylabel('Training Cost[回数]', fontsize=label_size, color='black')
     ax2.tick_params(axis='y', labelsize=ticks_size)
 
     # 凡例
@@ -98,3 +97,4 @@ def plot_accuracy_and_cost(eval_data, output_path, label_size, ticks_size, legen
 
 # プロット実行
 plot_accuracy_and_cost(eval_data, output_path, label_size=24, ticks_size=18, legend_size=24)
+print(output_path)

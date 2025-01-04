@@ -4,12 +4,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # CSVファイルを読みこむ
-file_path = "/mnt/nas0/g005/murasemaru/exp/other/obs/2201AusEast/drift_obs.csv"  # CSVファイルのパスを指定
-data = pd.read_csv(file_path)
-metrix = ["f1_score"]
-output_dir = f"{os.path.dirname(file_path)}/img"
-output_path = f"{output_dir}/{','.join(metrix)}.png"
+file_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/2201UsEast/nt/results_evaluate.csv"  # CSVファイルのパスを指定
+metrix = ["TP_rate","accuracy","precision","f1_score"]
+y_label_name = ""
+file_name = "eval_metrix"
+output_dir = f"{os.path.dirname(file_path)}/results_img"
+output_path = f"{output_dir}/{file_name}.png"
 os.makedirs(output_dir, exist_ok=True)
+data = pd.read_csv(file_path)
 
 label_size = 22
 ticks_size = 16
@@ -25,8 +27,7 @@ for y in metrix:
     plt.plot(data['daytime'], data[y], label=y, linewidth=2)
 
 # 軸ラベルとタイトルの設定（文字サイズを調整）
-plt.xlabel('daytime', fontsize=label_size)
-plt.ylabel(",".join(metrix), fontsize=label_size)
+plt.ylabel(y_label_name, fontsize=label_size)
 
 # 軸目盛りの文字サイズを調整
 plt.xticks(fontsize=ticks_size, rotation=45)  # 横軸ラベルを回転
