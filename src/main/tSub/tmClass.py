@@ -30,7 +30,8 @@ class TerminateManager:
         self.next_eval_date = start_date + timedelta(seconds=eval_unit_int)
         self.epochs = epochs
         self.batch_size = batch_size
-        self.sclaer = StandardScaler()
+        self.scaler = StandardScaler()
+        self.scaled_flag = False
 
     def set_d_file(self, d_file):
         d_file_path: str = f"{self.d_dir_path}/{d_file}"
@@ -89,10 +90,10 @@ class TerminateManager:
     def call_tr(self, model, rtr_list, rtr_res_li, c_time):
         df = pd.DataFrame(rtr_list).dropna()
         features, targets = df.iloc[:, :-1], df.iloc[:, -1]
-        scaled_features = = self.scaler.fit_transform(features)
+        # scaled_features = self.scaler.fit_transform(features)
         model, rtr_res_arr = modelTrainer.main(
             model=model,
-            features=scaled_features,
+            features=features,
             targets=targets,
             output_dir_path=self.o_dir_path,
             epochs=self.epochs,
