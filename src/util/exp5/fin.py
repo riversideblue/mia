@@ -71,7 +71,7 @@ def plot_accuracy_and_cost(eval_data, output_path, label_size, ticks_size, legen
     line1, = ax1.plot(eval_data['daytime'], eval_data["nt"], label="再学習なし", linewidth=2, color="#7F7F7F")
     line2, = ax1.plot(eval_data['daytime'], eval_data["static"], label="従来手法", linewidth=2, color="#377eb8")
     line3, = ax1.plot(eval_data['daytime'], eval_data["dynamic"], label="提案手法", linewidth=2, color='#e41a1c')
-    ax1.set_ylabel(f'{metrix}', fontsize=label_size, color='black')
+    ax1.set_ylabel(f'Accuracy', fontsize=label_size, color='black')
     ax1.tick_params(axis='y', labelsize=ticks_size)
     ax1.tick_params(axis='x', labelsize=ticks_size, rotation=45)
     ax1.grid(True)
@@ -82,13 +82,13 @@ def plot_accuracy_and_cost(eval_data, output_path, label_size, ticks_size, legen
                       linewidth=2, linestyle='--', color='#984ea3', marker='o')
     line5, = ax2.plot(eval_data['daytime'], eval_data['dy_tr_cost'], label='提案手法による学習コスト',
                       linewidth=2, linestyle='--', color='#ff7f00', marker='s')
-    ax2.set_ylabel('Training Cost[回数]', fontsize=label_size, color='black')
+    ax2.set_ylabel(r'Training cost [$10^{7}$]', fontsize=label_size, color='black')
     ax2.tick_params(axis='y', labelsize=ticks_size)
 
     # 凡例
     lines = [line1, line2, line3, line4, line5]
     labels = [line.get_label() for line in lines]
-    fig.legend(lines, labels, loc='center left', fontsize=legend_size, bbox_to_anchor=(0.08, 0.65), ncol=1)
+    fig.legend(lines, labels, loc='center left', fontsize=legend_size, bbox_to_anchor=(0.08, 0.40), ncol=1)
 
     # 保存と表示
     fig.tight_layout()

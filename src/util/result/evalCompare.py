@@ -2,60 +2,63 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 
-# 複数のresults_evaluate.csvの特定の指標を比較
-csv1 = "exp/exp2-Eval/2201AusEast/st/results_evaluate.csv"  # file1
-csv2 = "exp/exp2-Eval/2201AusEast/dy2/results_evaluate.csv"  # file2
-csv3 = "exp/exp2-Eval/2201AusEast/st/results_evaluate.csv"  # file1
-csv4 = "exp/exp2-Eval/2201AusEast/dy2/results_evaluate.csv"  # file2
-csv5 = "exp/exp2-Eval/2201AusEast/st/results_evaluate.csv"  # file1
-csv6 = "exp/exp2-Eval/2201AusEast/dy2/results_evaluate.csv"  # file2
-common_path = os.path.commonpath([csv1, csv2])
-row_col_t = "daytime"
-row_col = "accuracy"  # CSV1から結合したい列
+all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/2201UsEast/st"
+file_name = "eval_metrixes"
+metrix = "f1_score"  # metrix を文字列に変更
 label_size = 22
 ticks_size = 16
 legend_size = 22
+first_reading_flag = True
 
-df1 = pd.read_csv(csv1)  # ファイル1をデータフレームに読み込み
-df2 = pd.read_csv(csv2)  # ファイル2をデータフレームに読み込み
-
-# 列を取得
-timestamp = df1[row_col_t]
-row1 = df1[row_col]  # CSV1の指定列
-row2 = df2[row_col]  # CSV2の指定列
-
-# 水平方向に結合（DataFrameとして保存）
-combined_row = pd.DataFrame({
-    "daytime": timestamp,
-    "static_accuracy": row1,
-    "dynamic_accuracy": row2
-})
+dfs = pd.DataFrame()  # 空のDataFrameで初期化
+for di in os.listdir(all_dir_path):
+    print(di)
+    file_path = f"{all_dir_path}/{di}/eval_res.csv"
+    df = pd.read_csv(file_path)
+    
+    # daytimeをdatetime型に変換
+    df['daytime'] = pd.to_datetime(df['daytime'])
+    
+    # metrix の列名を `di` に基づいて変更
+    new_column_name = f"{di}_{metrix}"  # 新しい列名を作成
+    df = df.rename(columns={metrix: new_column_name})  # 列名を変更
+    
+    # 必要な列のみ抽出
+    selected_columns = ['daytime', new_column_name]
+    df = df[selected_columns]
+    
+    # DataFrameを結合
+    if dfs.empty:
+        dfs = df
+    else:
+        dfs = pd.concat([dfs, df], ignore_index=True)
 
 # 結果を確認
-print(combined_row)
+print(dfs)
 
 # 保存ディレクトリの作成
-output_dir = f"{common_path}/results"
-os.makedirs(output_dir, exist_ok=True)
+output_dir_path = os.path.join(all_dir_path, "res_img")
+os.makedirs(output_dir_path, exist_ok=True)  # ループの外で1回だけ実行
 
-# CSVとして保存
-output_csv_path = f"{output_dir}/combined_row.csv"
-combined_row.to_csv(output_csv_path, index=False)
-print(f"結合結果を保存しました: {output_csv_path}")
-
-# グラフのプロット
+# プロットの設定
 plt.figure(figsize=(12, 8))
-plt.plot(timestamp, row1, label="Static Accuracy")
-plt.plot(timestamp, row2, label="Dynamic Accuracy")
-plt.xlabel("Daytime",fontsize=label_size, rotation=45)
-plt.ylabel("Accuracy",fontsize=label_size)
-plt.title("Static vs Dynamic Accuracy")
 
-plt.legend(fontsize=legend_size)
+# 各列をプロット
+for column in dfs.columns:
+    if column != "daytime":  # daytime列はX軸に使用するため除外
+        plt.plot(dfs["daytime"], dfs[column], label=column)
+
+# グラフの詳細設定
+plt.xlabel("Daytime", fontsize=14)
+plt.ylabel("F1 Score", fontsize=14)
+plt.title("F1 Scores Over Time", fontsize=16)
+plt.xticks(rotation=45, fontsize=10)
+plt.yticks(fontsize=10)
+plt.legend(fontsize=10, title="Metrics")
 plt.grid(True)
 
 # グラフの保存
-output_plot_path = f"{output_dir}/accuracy_plot.png"
-plt.savefig(output_plot_path,dpi=300)
+output_plot_path = f"{output_dir_path}/{metrix}_compare.png"
+plt.savefig(output_plot_path, dpi=300)
 plt.show()
 print(f"グラフを保存しました: {output_plot_path}")
