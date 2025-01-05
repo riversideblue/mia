@@ -10,10 +10,11 @@ from scipy.stats import ks_2samp, wasserstein_distance
 from sklearn.preprocessing import StandardScaler
 
 # --- データセットの各特徴量の分布がどのように遷移しているかを調査 Time Series Analysis --------------------------------------------------- #
-dir_path = "/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220110-20220114/2201AusEast"
+dir_path = "/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220117-20220121/2201UkSouth"
+population_dir_path = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201UkSouth"
 data_sec_size = 32  # データ区間の長さ(hours)
 unit_time = 0.5 # 評価単位時間(hours)
-output_dir = f"/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/filtered_20220110-20220114/{os.path.basename(dir_path)}"  # グラフ保存先
+output_dir = f"/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/filtered_20220117-20220121/{os.path.basename(dir_path)}"  # グラフ保存先
 # ---------------------------------------------------------------------------------------------------------------------------------- #
 
 features = ["rcv_packet_count", "snd_packet_count", "tcp_count", "udp_count", "most_port", "port_count",
@@ -21,8 +22,8 @@ features = ["rcv_packet_count", "snd_packet_count", "tcp_count", "udp_count", "m
             "snd_min_interval", "snd_max_length", "snd_min_length", "label"]
 
 population_data = []
-for d_file in sorted(os.listdir(dir_path)):
-    d_file_path: str = f"{dir_path}/{d_file}"
+for d_file in sorted(os.listdir(population_dir_path)):
+    d_file_path: str = f"{population_dir_path}/{d_file}"
     with open(d_file_path, mode='r') as f:
         reader = csv.reader(f)
         headers = next(reader)

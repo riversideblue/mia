@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-drift_dir_path = "/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift"
+drift_dir_path = "/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/filtered_20220110-20220114"
 file_name = "ks_all"
 metrix = ["ks_rcv_pkt_ct", "ks_snd_pkt_ct", "ks_tcp_ct", "ks_udp_ct", 
                 "ks_most_port", "ks_port_ct", "ks_rcv_max_int", "ks_rcv_min_int", 

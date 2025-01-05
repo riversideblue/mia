@@ -3,9 +3,9 @@ import pandas as pd
 from datetime import datetime
 
 # 設定
-input_folder = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201UsEast"  # 元のCSVフォルダ
-time_range_start = "2022-01-10 00:00:00"  # 開始日時（例）
-time_range_end = "2022-01-14 00:00:00"    # 終了日時（例）
+input_folder = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201Lab04"  # 元のCSVフォルダ
+time_range_start = "2022-01-17 00:00:00"  # 開始日時（例）
+time_range_end = "2022-01-21 00:00:00"    # 終了日時（例）
 
 # フィルタ条件を含む出力フォルダ名
 time_range_str = f"{time_range_start[:10].replace('-', '')}-{time_range_end[:10].replace('-', '')}"
