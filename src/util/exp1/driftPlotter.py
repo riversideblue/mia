@@ -4,11 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 drift_dir_path = "/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/filtered_20220110-20220114"
-file_name = "ks_all"
-metrix = ["ks_rcv_pkt_ct", "ks_snd_pkt_ct", "ks_tcp_ct", "ks_udp_ct", 
-                "ks_most_port", "ks_port_ct", "ks_rcv_max_int", "ks_rcv_min_int", 
-                "ks_rcv_max_len", "ks_rcv_min_len", "ks_snd_max_int", 
-                "ks_snd_min_int", "ks_snd_max_len", "ks_snd_min_len"]
+file_name = "mean"
+metrix = ["w_mean_dis", "ks_mean_dis", "mean_dis"]
 label_size = 22
 ticks_size = 16
 legend_size = 22
@@ -25,7 +22,7 @@ for di in os.listdir(drift_dir_path):
             
             data = pd.read_csv(fi_path)
             ex_val = fi.replace("with_population_", "").replace(".csv", "")
-            output_path = f"{output_dir_path}/{file_name}_{ex_val}.png"
+            output_path = f"{output_dir_path}/{file_name}_{ex_val}.jpg"
             
             data['date'] = pd.to_datetime(data['date'])
             plt.figure(figsize=(12, 8))
@@ -41,5 +38,5 @@ for di in os.listdir(drift_dir_path):
             plt.grid(True)
             
             plt.tight_layout()
-            plt.savefig(output_path, dpi=300)
+            plt.savefig(output_path, dpi=150, format='jpeg')  # フォーマットをJPEGに変更
             plt.close()

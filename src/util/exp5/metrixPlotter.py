@@ -3,9 +3,11 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/2201UsEast"
+# --- 指定した親ディレクトリに含まれるサブディレクトリの結果をサブディレクトリごとにグラフにまとめて出力
+# -------------------------------------------------------------------------------#
+all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/fm"
 file_name = "eval_metrixes"
-metrix = ["TP_rate","accuracy","precision","f1_score"]
+metrix = ["f1_score"]
 label_size = 22
 ticks_size = 16
 legend_size = 22
@@ -15,7 +17,7 @@ for di in os.listdir(all_dir_path):
     output_dir_path = os.path.join(os.path.dirname(di_path), "res_img")
     os.makedirs(output_dir_path, exist_ok=True)  # ループの外で1回だけ実行
 
-    fi=os.path.join(di_path,"results_evaluate.csv")
+    fi=os.path.join(di_path,"eval_res.csv")
     fi_path = os.path.join(di_path, fi)
     print(f"Processing file: {fi_path}")
     

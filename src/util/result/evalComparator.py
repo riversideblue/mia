@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 
-all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/2201UsEast/st"
+all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast"
 file_name = "eval_metrixes"
 metrix = "f1_score"  # metrix を文字列に変更
 label_size = 22
