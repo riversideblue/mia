@@ -10,9 +10,9 @@ from scipy.stats import ks_2samp, wasserstein_distance
 from sklearn.preprocessing import StandardScaler
 
 # --- データセットの各特徴量の分布がどのように遷移しているかを調査 Time Series Analysis --------------------------------------------------- #
-dir_path = "/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220117-20220121/2201UkSouth"
-population_dir_path = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201UkSouth"
-data_sec_size = 32  # データ区間の長さ(hours)
+dir_path = "/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220117-20220121/2201Lab02"
+population_dir_path = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201Lab02"
+data_sec_size = 0.5  # データ区間の長さ(hours)
 unit_time = 0.5 # 評価単位時間(hours)
 output_dir = f"/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/filtered_20220117-20220121/{os.path.basename(dir_path)}"  # グラフ保存先
 # ---------------------------------------------------------------------------------------------------------------------------------- #
