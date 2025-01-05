@@ -5,10 +5,10 @@
     "CUDA_VISIBLE_DEVICES": "-1"
   },
   "USER_DIR" : "/mnt/nas0/g005/murasemaru",
-  "MODEL_CODE" : 6,
+  "MODEL_CODE" : 0,
   "FOUNDATION_MODEL_PATH": "",
-  "DATASETS_DIR_PATH": "data/csv/modif/2201UsEast+2201LabAll",
-  "START_DATE": "2022-01-16 00:00:00",
+  "DATASETS_DIR_PATH": "data/csv/modif/filtered_20220117-20220121/2201UkSouth+2201Lab02",
+  "START_DATE": "2022-01-10 00:00:00",
   "TargetRange": {
     "DAYS": 1,
     "HOURS": 0,
