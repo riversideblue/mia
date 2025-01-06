@@ -40,8 +40,8 @@ def main(
                 t.call_pred(model,row)
                 # --- DD & Retraining
                 w.update(row[3:], t.c_time, cw_size, pw_size)
-                w.cum_statics+=DD.call(method_code, w.v2_cw(), w.v2_pw())
-                print(f"cum_statics: {w.cum_statics} in {t.c_time}")
+                w.cum_statics+=DD.call(method_code, w.ex_cw(), w.ex_pw())
+                print(f"{t.c_time} cum_statics: {w.cum_statics}")
                 while abs(w.cum_statics) > threshold:
                     tr_results_list = t.call_tr(model, w.cw, tr_results_list, t.c_time)
                     w.cum_statics = 0

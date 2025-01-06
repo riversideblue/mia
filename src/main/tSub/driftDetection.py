@@ -34,37 +34,25 @@ class Window:
                 self.pw_date_q.popleft()
         self.cw_date_q.append(c_time)
 
-    def fnum_cw(self):
-        rcv_current = np.array(self.cw)[:, 3].astype(int)
-        snd_current = np.array(self.cw)[:, 4].astype(int)
-        extracted_cw = rcv_current + snd_current
-        return extracted_cw
-
-    def fnum_pw(self):
-        rcv_past = np.array(self.pw)[:, 3].astype(int)
-        snd_past = np.array(self.pw)[:, 4].astype(int)
-        extracted_pw = rcv_past + snd_past
-        return extracted_pw
-
-    def v2_cw(self):
+    def ex_cw(self):
         cw_arr = np.array(self.cw)
         if cw_arr.ndim == 1:
             cw_arr = cw_arr.reshape(1, -1)
         try:
-            extracted_cw = cw_arr[:, [4, 6, 9, 10]].T
+            ex_cw = cw_arr[:, [4, 6, 7, 9, 10]].T
         except IndexError:
-            extracted_cw = np.zeros((4, cw_arr.shape[0]))
-        return extracted_cw
+            ex_cw = np.zeros((5, cw_arr.shape[0]))
+        return ex_cw
 
-    def v2_pw(self):
+    def ex_pw(self):
         pw_arr = np.array(self.pw)
         if pw_arr.ndim == 1:
             pw_arr = pw_arr.reshape(1, -1)
         try:
-            extracted_pw = pw_arr[:, [4, 6, 9, 10]].T
+            ex_pw = pw_arr[:, [4, 6, 7, 9, 10]].T
         except IndexError:
-            extracted_pw = np.zeros((4, pw_arr.shape[0]))
-        return extracted_pw
+            ex_pw = np.zeros((5, pw_arr.shape[0]))
+        return ex_pw
 
 def call(method_code:int,c_window,p_window):
 

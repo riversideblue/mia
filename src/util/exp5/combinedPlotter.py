@@ -3,12 +3,12 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/2/st"
-file_name = "combined_eval_metrixes"
-metrix = ["f1_score"]
+all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/dy/dnn_e30b10/c600p600"
+metrix = "f1_score"
 label_size = 22
 ticks_size = 16
 legend_size = 22
+file_name = f"compare_{metrix}"
 
 # 出力ディレクトリを設定
 output_dir_path = os.path.join(all_dir_path, "res_img")
@@ -16,6 +16,7 @@ os.makedirs(output_dir_path, exist_ok=True)
 
 # 全てのグラフを1つの図にまとめる
 plt.figure(figsize=(12, 8))
+plt.title(f"{os.path.basename(all_dir_path)}:{metrix}")
 
 # 各ディレクトリのデータを同じプロットに追加
 for di in os.listdir(all_dir_path):
@@ -30,12 +31,11 @@ for di in os.listdir(all_dir_path):
         data['daytime'] = pd.to_datetime(data['daytime'])
 
         # 各ディレクトリごとに異なる色でプロット
-        for y in metrix:
-            plt.plot(data['daytime'], data[y], label=f"{di}_{y}", linewidth=2)
+        plt.plot(data['daytime'], data[metrix], label=f"{di}", linewidth=2)
 
 # グラフの装飾
 plt.xlabel('daytime', fontsize=label_size)
-plt.ylabel('Metric Value', fontsize=label_size)
+plt.ylabel(f"{metrix}", fontsize=label_size)
 plt.xticks(fontsize=ticks_size, rotation=45)
 plt.yticks(fontsize=ticks_size)
 plt.legend(fontsize=legend_size)
