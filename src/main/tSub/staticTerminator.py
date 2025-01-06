@@ -37,6 +37,7 @@ def main(
                 if t.c_time > t.next_rtr_date:
                     with t.tf.device("/GPU:0"):
                         tr_results_list = t.call_tr(model, rtr_list, tr_results_list,t.c_time)
+                        rtr_list = []
                 rtr_list.append(np.array(row[3:], dtype=float))
             f.close()
 

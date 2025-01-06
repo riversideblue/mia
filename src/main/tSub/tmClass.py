@@ -89,7 +89,8 @@ class TerminateManager:
 
     def call_tr(self, model, rtr_list, rtr_res_li, c_time):
         df = pd.DataFrame(rtr_list).dropna()
-        features, targets = df.iloc[:, :-1], df.iloc[:, -1]
+        features = df.iloc[:, :-1]
+        targets = df.iloc[:, -1]
         # scaled_features = self.scaler.fit_transform(features)
         model, rtr_res_arr = modelTrainer.main(
             model=model,
