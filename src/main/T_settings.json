@@ -21,11 +21,11 @@
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
     "EPOCHS": 30,
-    "BATCH_SIZE": 10
+    "BATCH_SIZE": 512
   },
   "DriftDetection": {
-    "CURRENT_WIN_SIZE": 600,
-    "PAST_WIN_SIZE": 600,
+    "CURRENT_WIN_SIZE": 1200,
+    "PAST_WIN_SIZE": 2400,
     "METHOD_CODE": 1,
     "THRESHOLD": 500
   }

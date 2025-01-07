@@ -42,15 +42,14 @@ for fi in os.listdir(drift_dir_path):
         ex_val = fi.replace("with_population_", "").replace(".csv", "")
         output_path = f"{output_dir_path}/{file_name}_{ex_val}.png"
         kde_output_path = f"{output_dir_path}/{file_name}_kde_{ex_val}.png"
-        
+
+        # --- 時系列プロット
         if not filtered_data.empty:  # フィルタ後にデータが存在する場合のみプロット
-            # --- 時系列プロット
             fig, ax = plt.subplots(figsize=(8.57, 7.35))
             ax.plot(filtered_data['date'], filtered_data[metrix], label="データ特性", linewidth=2, color="#377eb8")
             
             # 目盛りを消す
             ax.tick_params(axis='both', which='both', bottom=False, top=False, left=False, right=False, labelleft=False, labelbottom=False)
-            # x軸に「経過時間」というラベルを設定
             ax.set_xlabel("Time", fontsize=label_size, color='black')
             
             # ハイライト部分を追加（背景色）
@@ -74,11 +73,11 @@ for fi in os.listdir(drift_dir_path):
             plt.grid(True)
             
             plt.tight_layout()
-            plt.savefig(output_path, dpi=150, format='png')  # フォーマットをJPEGに変更
+            plt.savefig(output_path, dpi=300, format="png")  # 高画質PNGに保存
             plt.close()
         else:
             print(f"No data in the range {start_date} to {end_date} for file: {fi_path}")
-        
+
         # --- KDEプロット
         past_data = data[(data['date'] >= highlight_green_start) & (data['date'] <= highlight_green_end)]
         current_data = data[(data['date'] >= highlight_yellow_start) & (data['date'] <= highlight_yellow_end)]
@@ -100,7 +99,7 @@ for fi in os.listdir(drift_dir_path):
             
             # レイアウトを調整して保存
             plt.tight_layout()
-            plt.savefig(kde_output_path, dpi=150, format='png')
+            plt.savefig(kde_output_path, dpi=300, format="png")  # KDE用に保存
             plt.close()
         else:
             print(f"Not enough data for KDE plot in file: {fi_path}")

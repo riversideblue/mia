@@ -66,7 +66,7 @@ eval_data = eval_data.reset_index()
 start_time = eval_data['daytime'].min()
 eval_data['elapsed_hours'] = (eval_data['daytime'] - start_time).dt.total_seconds() / 3600  # 経過時間を時間単位に変換
 # プロット関数の修正
-def plot_accuracy_and_cost_with_elapsed_hours(eval_data, output_path, label_size, ticks_size, legend_size):
+def plot_accuracy_and_cost_with_elapsed_hours(eval_data, dy_tr_data, output_path, label_size, ticks_size, legend_size):
     fig, ax1 = plt.subplots(figsize=(14, 10))
 
     # 左側の軸に精度をプロット
@@ -77,6 +77,11 @@ def plot_accuracy_and_cost_with_elapsed_hours(eval_data, output_path, label_size
     ax1.tick_params(axis='x', labelsize=ticks_size)
     ax1.set_xlabel('Elapsed time [h]', fontsize=label_size, color='black')  # 横軸ラベルを変更
     ax1.grid(True)
+
+    # dy_tr_dataの日付を破線でプロット
+    for timestamp in dy_tr_data["daytime"]:
+        elapsed_hour = (timestamp - eval_data['daytime'].min()).total_seconds() / 3600  # 経過時間を計算
+        ax1.axvline(x=elapsed_hour, color='gray', linestyle='--', linewidth=1, alpha=0.6)
 
     # 右側の軸に学習コストをプロット
     ax2 = ax1.twinx()
@@ -98,5 +103,4 @@ def plot_accuracy_and_cost_with_elapsed_hours(eval_data, output_path, label_size
     plt.savefig(output_path, dpi=300)
     plt.show()
 
-# プロット実行
-plot_accuracy_and_cost_with_elapsed_hours(eval_data, output_path, label_size=24, ticks_size=18, legend_size=24)
+plot_accuracy_and_cost_with_elapsed_hours(eval_data, dy_tr_data, output_path, label_size=24, ticks_size=18, legend_size=24)
