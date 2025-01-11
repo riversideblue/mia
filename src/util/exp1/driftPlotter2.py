@@ -10,8 +10,8 @@ import seaborn as sns
 drift_dir_path = "/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/filtered_20220110-20220114/2201UkSouth+2201Lab02"
 file_name = "feature_drift"
 metrix = "mean_dis"
-label_size = 22
-legend_size = 26
+label_size = 14
+legend_size = 16
 
 output_dir_path = os.path.join(drift_dir_path, "res_img")
 os.makedirs(output_dir_path, exist_ok=True)  # ループの外で1回だけ実行
@@ -45,7 +45,7 @@ for fi in os.listdir(drift_dir_path):
 
         # --- 時系列プロット
         if not filtered_data.empty:  # フィルタ後にデータが存在する場合のみプロット
-            fig, ax = plt.subplots(figsize=(8.57, 7.35))
+            fig, ax = plt.subplots(figsize=(8.56, 4.28))
             ax.plot(filtered_data['date'], filtered_data[metrix], label="データ特性", linewidth=2, color="#377eb8")
             
             # 目盛りを消す

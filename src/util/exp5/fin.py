@@ -6,7 +6,7 @@ from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 #-------------------------------------------------------------------#
 # 定数定義
-metrix = "f1_score"
+metrix = "TN_rate"
 nt_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/nt/dnn_e30b10"
 st_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/st/dnn_e30b10"
 st_epochs = 30
