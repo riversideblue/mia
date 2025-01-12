@@ -3,11 +3,11 @@ import os
 from datetime import datetime
 import pandas as pd
 # --- 二つのデータセットを時系列順に結合するスクリプト ------------------------------------------------------------------------ #
-d1_folder_path: str = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201UkSouth"
-d2_folder_path: str = "/mnt/nas0/g005/murasemaru/data/csv/unproc/2201Lab02"
+d1_folder_path: str = "/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220110-20220114/2201UkSouth"
+d2_folder_path: str = "/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220110-20220114/2201Lab02"
 dataset_size = 3000
 # --- Create output directory
-output_dir_path: str = f"/mnt/nas0/g005/murasemaru/data/csv/modif/{os.path.basename(d1_folder_path)}+{os.path.basename(d2_folder_path)}"
+output_dir_path: str = f"/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220110-20220114/{os.path.basename(d1_folder_path)}+{os.path.basename(d2_folder_path)}"
 # ------------------------------------------------------------------------------------------------------------------------- #
 combined_row_count = 0
 output_file_count = 0
