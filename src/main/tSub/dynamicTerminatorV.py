@@ -40,8 +40,8 @@ def main(
                         eval_results_list = t.call_eval(eval_results_list)
                 # --- Prediction
                 t.call_pred(model,row)
-                # --- DD & Retraining
                 
+                # --- DD & Retraining
                 if t.c_time > next_dd_date:
                     print(f'call_dd : {t.c_time}')
                     if DD.call_v(w.ex_cw_v(), w.ex_pw_v(), threshold):

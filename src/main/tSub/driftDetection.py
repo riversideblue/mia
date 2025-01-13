@@ -100,13 +100,8 @@ def call_v(c_window, p_window, threshold):
     
     similarity_matrix = cosine_similarity(c_window, p_window)
     max_similarity_list = np.max(similarity_matrix, axis=1)
-
-    # 平均と最小値を計算
     mean_similarity = np.mean(max_similarity_list)
-    # min_similarity = np.min(max_similarity_list)
-
     print(f'mean:{mean_similarity}')
-    # print(f'min:{min_similarity}')
 
     return mean_similarity < threshold
 
