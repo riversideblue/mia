@@ -6,7 +6,7 @@
   },
   "USER_DIR" : "/mnt/nas0/g005/murasemaru",
   "MODEL_CODE" : 0,
- "FOUNDATION_MODEL_PATH": "",
+ "FOUNDATION_MODEL_PATH": "exp/5_Eval/20220110-20220114_UsEast/fm/dnn_e30b10/wts/2022-01-11T02:00:04.pickle",
  "DATASETS_DIR_PATH": "data/csv/modif/filtered_20220110-20220114/2201UkSouth+2201Lab02",
  "START_DATE": "2022-01-11 03:00:00",
  "TargetRange": {
@@ -19,14 +19,15 @@
   "RETRAINING_MODE": "dy",
   "RETRAINING_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
+  "DRIFT_DETECTION_UNIT_INTERVAL" : 60,
   "TrainingDefine": {
     "EPOCHS": 30,
-    "BATCH_SIZE": 512
+    "BATCH_SIZE": 10
   },
   "DriftDetection": {
-    "CURRENT_WIN_SIZE": 1200,
-    "PAST_WIN_SIZE": 2400,
+    "CURRENT_WIN_SIZE": 600,
+    "PAST_WIN_SIZE": 1200,
     "METHOD_CODE": 1,
-    "THRESHOLD": 500
+    "THRESHOLD": 0.99
   }
 }

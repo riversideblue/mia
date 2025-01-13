@@ -6,6 +6,9 @@ import pingouin as pg
 from collections import deque
 from datetime import datetime, timedelta
 
+from joblib import Parallel, delayed
+from sklearn.metrics.pairwise import cosine_similarity
+
 class Window:
     def __init__(self):
         self.cw = deque()
@@ -54,6 +57,26 @@ class Window:
             ex_pw = np.zeros((5, pw_arr.shape[0]))
         return ex_pw
 
+    def ex_cw_v(self):
+        cw_arr = np.array(self.cw)
+        if cw_arr.ndim == 1:
+            cw_arr = cw_arr.reshape(1, -1)
+        try:
+            ex_cw = cw_arr[:, 0:-1]
+        except IndexError:
+            ex_cw = np.zeros((cw_arr.shape[0], 14))
+        return ex_cw
+
+    def ex_pw_v(self):
+        pw_arr = np.array(self.pw)
+        if pw_arr.ndim == 1:
+            pw_arr = pw_arr.reshape(1, -1)
+        try:
+            ex_pw = pw_arr[:, 0:-1]
+        except IndexError:
+            ex_pw = np.zeros((pw_arr.shape[0], 14))
+        return ex_pw
+
 def call(method_code:int,c_window,p_window):
 
     method_dict = {
@@ -72,6 +95,20 @@ def call(method_code:int,c_window,p_window):
     if method is None:
         raise ValueError(f"Invalid method_code: {method_code}")
     return method(c_window, p_window)
+
+def call_v(c_window, p_window, threshold):
+    
+    similarity_matrix = cosine_similarity(c_window, p_window)
+    max_similarity_list = np.max(similarity_matrix, axis=1)
+
+    # 平均と最小値を計算
+    mean_similarity = np.mean(max_similarity_list)
+    # min_similarity = np.min(max_similarity_list)
+
+    print(f'mean:{mean_similarity}')
+    # print(f'min:{min_similarity}')
+
+    return mean_similarity < threshold
 
 def independent_t_test(c_window, p_window):
     stats, p_values = ttest_ind(c_window, p_window, axis=1, equal_var=True)

@@ -60,6 +60,7 @@ def main():
     rtr_mode = settings["RETRAINING_MODE"]
     rtr_int: int = settings["RETRAINING_INTERVAL"]
     eval_unit_int: int = settings["EVALUATE_UNIT_INTERVAL"]
+    dd_unit_int: int = settings["DRIFT_DETECTION_UNIT_INTERVAL"]
 
     cw_size = settings["DriftDetection"]["CURRENT_WIN_SIZE"]
     pw_size = settings["DriftDetection"]["PAST_WIN_SIZE"]
@@ -111,7 +112,7 @@ def main():
         sys.exit(1)
 
     process_start_date = time.time()
-    t = tmClass.TerminateManager(tf, d_dir_path, o_dir_path, start_date,end_date, rtr_int, eval_unit_int, epochs, batch_size)
+    t = tmClass.TerminateManager(tf,d_dir_path,o_dir_path,start_date,end_date,rtr_int,eval_unit_int,epochs,batch_size)
     
     # --- Terminate
     if rtr_mode == "dy":
@@ -119,6 +120,7 @@ def main():
              t=t,
              online_mode=online_mode,
              model=model,
+             dd_unit_int=dd_unit_int,
              cw_size=cw_size,
              pw_size=pw_size,
              method_code=method_code,
