@@ -2,6 +2,7 @@ import numpy as np
 from joblib import Parallel, delayed
 from scipy.spatial.distance import cdist
 import pingouin as pg
+import faiss
 
 from collections import deque
 from datetime import datetime, timedelta
@@ -148,8 +149,8 @@ def cos_similarity(c_window: np.ndarray, p_window: np.ndarray, threshold: float,
     mean_similarity = np.mean(top_n_similarities) 
     print(f'mean:{mean_similarity}')
     return mean_similarity,mean_similarity<threshold
-
-def euc_distance(c_window: np.ndarray, p_window: np.ndarray, threshold: float,  k: int) -> bool:
+    
+def euc_distance(c_window: np.ndarray, p_window: np.ndarray, threshold: float, k: int):
     """
     ユークリッド距離行列を計算し，行ごとの上位N個の平均ユークリッド距離を求める．
     平均類似度が閾値以下であるかを判定する．
@@ -158,19 +159,23 @@ def euc_distance(c_window: np.ndarray, p_window: np.ndarray, threshold: float,  
         c_window (np.ndarray): 比較するウィンドウ（2次元配列）．
         p_window (np.ndarray): 比較対象のウィンドウ（2次元配列）．
         threshold (float): 閾値．
-        N (int): 上位N個の類似度を考慮する．
+        k (int): 上位k個の類似度を考慮する．
 
     Returns:
-        bool: 平均類似度が閾値以下なら`True`，それ以外は`False`．
+        tuple: 平均距離 (`mean_distance`) と閾値を超えているかの判定結果 (`True`/`False`)．
     """
     c_window = w_scaler(c_window)
     p_window = w_scaler(p_window)
-    distance_matrix = cdist(c_window, p_window, metric='euclidean')
-    min_distance_list = np.min(distance_matrix, axis=1)
-    top_n_similarities = np.sort(distance_matrix, axis=1)[:, 0:k]
+    
+    d = p_window.shape[1]
+    index = faiss.IndexFlatL2(d)
+    index.add(p_window.astype(np.float32))
+    distances, indices = index.search(c_window.astype(np.float32), k)
+    min_distance_list = distances[:, 0]
     mean_distance = np.mean(min_distance_list)
-    print(f'mean:{mean_distance}')
-    return mean_distance,mean_distance>threshold
+    print(f"mean: {mean_distance}")
+
+    return mean_distance, mean_distance > threshold
 
 
 
