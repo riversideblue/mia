@@ -1,11 +1,11 @@
 import numpy as np
 from joblib import Parallel, delayed
-from scipy.stats import ttest_ind, mannwhitneyu, wasserstein_distance, entropy, ks_2samp
+from scipy.spatial.distance import cdist
 import pingouin as pg
 
 from collections import deque
 from datetime import datetime, timedelta
-
+import csv
 from joblib import Parallel, delayed
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -77,133 +77,101 @@ class Window:
             ex_pw = np.zeros((pw_arr.shape[0], 14))
         return ex_pw
 
-def call(method_code:int,c_window,p_window):
+def w_scaler(w: np.ndarray):
+    
+    # rcv_pkt_ct, snd_pkt_ct, tcp_ct, udp_ct, port_ct
+    w[:,0:4] = w[:,0:4]/1000 #0から1000の間で最大最小値正規化
+    w[:,0:4] = np.log1p(w[:,0:4]) #対数正規化
+    w[:,5] = w[:,5]/1000 #0から1000の間で最大最小値正規化
+    w[:,5] = np.log1p(w[:,5]) #対数正規化
 
+    # most_port（ポート番号のスケーリング: ウェルノウン、登録済み、動的の範囲ごとに分類）
+    w[:,4] = np.where((w[:,4] >= 0) & (w[:,4] <= 1023), 0,  # ウェルノウンポート
+                    np.where((w[:,4] >= 1024) & (w[:,4] <= 49151), 0.5,  # 登録済みポート
+                             1))  # 動的ポート
+    
+    # rcv_max_int, rcv_min_int, snd_max_int, snd_min_int
+    w[:,[6,7,10,11]] = w[:,[6,7,10,11]]/60 # 0から60の間で正規化
+
+    # rcv_max_len, rcv_min_len, snd_max_len, snd_min_len
+    w[:,[8,9,12,13]] = w[:,[8,9,12,13]]/10000 # 0から10000の間で正規化
+
+    return w
+
+def call(method_code:int,c_window,p_window, threshold,k):
     method_dict = {
-        0: independent_t_test,
-        1: welchs_t_test,
-        2: mann_whitney_u_test,
-        3: ks_test,
-        4: wasserstein_test,
-        5: kl_divergence_test,
-        6: hoteling_t2_test_with_library,
-        7: bootstrap_test,
-        8: permutation_test
+        0: cos_similarity,
+        1: euc_distance
     }
-
     method = method_dict.get(method_code)
     if method is None:
         raise ValueError(f"Invalid method_code: {method_code}")
-    return method(c_window, p_window)
+    return method(c_window, p_window, threshold,k)[1]
 
-def call_v(c_window, p_window, threshold):
+def call_obs(method_code:int, c_window: np.ndarray, p_window: np.ndarray, threshold: float, c_time, o_dir_path, k : int) -> bool:
+    output_csv_path = f'{o_dir_path}/dd_res.csv'
+    method_dict = {
+        0: cos_similarity,
+        1: euc_distance
+    }
+    method = method_dict.get(method_code)
+    if method is None:
+        raise ValueError(f"Invalid method_code: {method_code}")
+    dd = method(c_window, p_window, threshold, k)
     
+    with open(output_csv_path, mode='a', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        if file.tell() == 0:
+            writer.writerow(["date", "math", "res"])
+        writer.writerow([c_time, dd[0], dd[1]])
+
+    return False
+
+def cos_similarity(c_window: np.ndarray, p_window: np.ndarray, threshold: float, k: int) -> bool:
+    """
+    コサイン類似度行列を計算し，行ごとの上位N個の平均類似度を求める．
+    平均類似度が閾値以下であるかを判定する．
+
+    Args:
+        c_window (np.ndarray): 比較するウィンドウ（2次元配列）．
+        p_window (np.ndarray): 比較対象のウィンドウ（2次元配列）．
+        threshold (float): 閾値．
+        N (int): 上位N個の類似度を考慮する．
+
+    Returns:
+        bool: 平均類似度が閾値以下なら`True`，それ以外は`False`．
+    """
+    c_window = w_scaler(c_window)
+    p_window = w_scaler(p_window)
     similarity_matrix = cosine_similarity(c_window, p_window)
-    max_similarity_list = np.max(similarity_matrix, axis=1)
-    mean_similarity = np.mean(max_similarity_list)
+    top_n_similarities = np.sort(similarity_matrix, axis=1)[:, -k:]  # 上位N個を直接取得
+    mean_similarity = np.mean(top_n_similarities) 
     print(f'mean:{mean_similarity}')
+    return mean_similarity,mean_similarity<threshold
 
-    return mean_similarity < threshold
+def euc_distance(c_window: np.ndarray, p_window: np.ndarray, threshold: float,  k: int) -> bool:
+    """
+    ユークリッド距離行列を計算し，行ごとの上位N個の平均ユークリッド距離を求める．
+    平均類似度が閾値以下であるかを判定する．
 
-def independent_t_test(c_window, p_window):
-    stats, p_values = ttest_ind(c_window, p_window, axis=1, equal_var=True)
-    mean_stats = np.nanmean(stats)
-    mean_p_values = np.nanmean(p_values)
-    if np.isnan(mean_stats):
-        mean_stats = 0
-    if np.isnan(mean_p_values):
-        mean_p_values = 0
-    print(mean_stats)
-    print(mean_p_values)
-    return mean_p_values
+    Args:
+        c_window (np.ndarray): 比較するウィンドウ（2次元配列）．
+        p_window (np.ndarray): 比較対象のウィンドウ（2次元配列）．
+        threshold (float): 閾値．
+        N (int): 上位N個の類似度を考慮する．
 
-def welchs_t_test(cw, pw):
-    stats, p_values = ttest_ind(cw, pw, axis=1, equal_var=False)
-    mean_stats = np.mean(stats)
-    if np.isnan(np.mean(stats)):
-        return 0.0
-    return mean_stats
+    Returns:
+        bool: 平均類似度が閾値以下なら`True`，それ以外は`False`．
+    """
+    c_window = w_scaler(c_window)
+    p_window = w_scaler(p_window)
+    distance_matrix = cdist(c_window, p_window, metric='euclidean')
+    min_distance_list = np.min(distance_matrix, axis=1)
+    top_n_similarities = np.sort(distance_matrix, axis=1)[:, 0:k]
+    mean_distance = np.mean(min_distance_list)
+    print(f'mean:{mean_distance}')
+    return mean_distance,mean_distance>threshold
 
-def mann_whitney_u_test(c_window, p_window):
-    stats, p_values = mannwhitneyu(c_window, p_window, axis=1, alternative='two-sided')
-    mean_stats = np.nanmean(stats)
-    if np.isnan(np.mean(stats)):
-        return 0.0
-    return mean_stats
 
-def ks_test(c_window, p_window):
-    stats, p_values = ks_2samp(c_window, p_window, axis=1)
-    if np.isnan(np.mean(stats)):
-        return 0.0
-    return mean_stats
 
-def wasserstein_test(c_window, p_window):
-    distances = Parallel(n_jobs=-1)(
-        delayed(wasserstein_distance)(c, p) for c, p in zip(c_window, p_window)
-    )
-    mean_distance = np.mean(distances)  # 距離の平均を使用
-    print(f"mean distance: {mean_distance}")
-    return mean_distance
-
-def kl_divergence_test(c_window, p_window, cum_test_static, alpha=0.05):
-    kl_values = []
-    for i in range(c_window.shape[1]):  # 各特徴量についてKLダイバージェンスを計算
-        hist_c, _ = np.histogram(c_window[:, i], bins=50, density=True)
-        hist_p, _ = np.histogram(p_window[:, i], bins=50, density=True)
-        kl_div = entropy(hist_c + 1e-10, hist_p + 1e-10)  # 1e-10でゼロ割を防止
-        kl_values.append(kl_div)
-    mean_kl = np.mean(kl_values)  # KLダイバージェンスの平均を使用
-    cum_test_static += mean_kl
-    return cum_test_static > alpha
-
-def hoteling_t2_test_with_library(c_window, p_window):
-    # Hotelling's T-squared検定の実行
-    t2_result = pg.multivariate_ttest(c_window, p_window)
-
-    # 正しい列名を使用して値を取得
-    t2_stat = t2_result.loc['hotelling', 'T2']  # 'T2'列からT-squared統計量を取得
-    p_value = t2_result.loc['hotelling', 'pval']  # 'pval'列からp値を取得
-
-    print(f"Hotelling's T-squared statistic: {t2_stat}")
-    print(f"p-value: {p_value}")
-
-    return p_value
-
-def bootstrap_test(c_window, p_window, n_resamples=10000):
-    def single_bootstrap_test(c, p):
-        combined = np.concatenate([c, p])
-        observed_stat = np.mean(c) - np.mean(p)
-        bootstrap_stats = []
-        for _ in range(n_resamples):
-            resample_c = np.random.choice(combined, size=len(c), replace=True)
-            resample_p = np.random.choice(combined, size=len(p), replace=True)
-            bootstrap_stats.append(np.mean(resample_c) - np.mean(resample_p))
-        p_value = np.mean(np.abs(bootstrap_stats) >= np.abs(observed_stat))
-        return p_value
-
-    p_values = Parallel(n_jobs=-1)(
-        delayed(single_bootstrap_test)(c, p) for c, p in zip(c_window, p_window)
-    )
-    print(f"Bootstrap test p-values: {p_values}")
-    return 1-np.mean(p_values)
-
-def permutation_test(c_window, p_window, n_permutations=1000):
-    def single_permutation_test(c, p):
-        combined = np.concatenate([c, p])
-        print(combined)
-        observed_stat = np.mean(c) - np.mean(p)
-        perm_stats = []
-        for _ in range(n_permutations):
-            np.random.shuffle(combined)
-            perm_c = combined[:len(c)]
-            perm_p = combined[len(c):]
-            perm_stats.append(np.mean(perm_c) - np.mean(perm_p))
-        p_value = np.mean(np.abs(perm_stats) >= np.abs(observed_stat))
-        p_value-0.5
-        return p_value
-
-    p_values = Parallel(n_jobs=-1)(
-        delayed(single_permutation_test)(c, p) for c, p in zip(c_window, p_window)
-    )
-    print(f"Permutation test p-values: {p_values}")
-    return 1-np.mean(p_values)
+    

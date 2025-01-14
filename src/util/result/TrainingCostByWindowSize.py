@@ -3,8 +3,8 @@ import os
 import matplotlib.pyplot as plt
 
 # --- 基本設定
-all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/dy/dnn_v_e30b10/c00150"
-target = "th0.99"
+all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/dy/dnn/euc/e30b10/c01200"
+target = "th0.1"
 output_dir_path = os.path.join(all_dir_path, "res_img")
 os.makedirs(output_dir_path, exist_ok=True)
 epochs = 30  # 学習エポック数を指定
@@ -34,7 +34,10 @@ def calculate_training_cost(di, tr_data, eval_times, epochs, window_minutes=30):
 dfs = pd.DataFrame()
 
 for di in sorted(os.listdir(all_dir_path)):
-    dir_path = os.path.join(all_dir_path, di, target)
+    if di == 'st':
+        dir_path = os.path.join(all_dir_path, di)
+    else:
+        dir_path = os.path.join(all_dir_path, di, target)
     tr_file_path = os.path.join(dir_path, "tr_res.csv")
     eval_file_path = os.path.join(dir_path, "eval_res.csv")
     

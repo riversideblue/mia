@@ -5,10 +5,9 @@ import matplotlib.pyplot as plt
 
 # CSVファイルを読みこむ
 file_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/2201UsEast/nt/results_evaluate.csv"  # CSVファイルのパスを指定
-metrix = ["TP_rate","accuracy","precision","f1_score"]
-y_label_name = ""
-file_name = "eval_metrix"
-output_dir = f"{os.path.dirname(file_path)}/results_img"
+metrix = ["math"]
+file_name = "dd"
+output_dir = f"{os.path.dirname(file_path)}/res_img"
 output_path = f"{output_dir}/{file_name}.png"
 os.makedirs(output_dir, exist_ok=True)
 data = pd.read_csv(file_path)

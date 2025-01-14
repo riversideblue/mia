@@ -62,9 +62,11 @@ def main():
     eval_unit_int: int = settings["EVALUATE_UNIT_INTERVAL"]
     dd_unit_int: int = settings["DRIFT_DETECTION_UNIT_INTERVAL"]
 
+    obs_mode = settings["DriftDetection"]["OBS_MODE"]
     cw_size = settings["DriftDetection"]["CURRENT_WIN_SIZE"]
     pw_size = settings["DriftDetection"]["PAST_WIN_SIZE"]
     method_code = settings["DriftDetection"]["METHOD_CODE"]
+    k = settings["DriftDetection"]["K"]
     threshold = settings["DriftDetection"]["THRESHOLD"]
 
     is_pass_exist(d_dir_path)
@@ -119,11 +121,13 @@ def main():
          tr_results_list,eval_results_list,start_date,end_date = dynamic_terminate(
              t=t,
              online_mode=online_mode,
+             obs_mode=obs_mode,
              model=model,
              dd_unit_int=dd_unit_int,
              cw_size=cw_size,
              pw_size=pw_size,
              method_code=method_code,
+             k=k,
              threshold=threshold,
              tr_results_list=tr_results_list,
              eval_results_list=eval_results_list

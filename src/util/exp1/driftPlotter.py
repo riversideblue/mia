@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-drift_dir_path = "/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/filtered_22020110-22020114/modif"
+drift_dir_path = "/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/unproc/2201HP"
 file_name = "mean_dis"
 metrix = ["mean_dis"]
 label_size = 22

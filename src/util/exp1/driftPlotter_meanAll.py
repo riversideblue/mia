@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 # --- 指定した親ディレクトリに含まれるサブディレクトリのmean_disをサブディレクトリごとにグラフにまとめて出力
 # -------------------------------------------------------------------------------#
-all_dir_path = "/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/filtered_22020110-22020114/2201HP"
+all_dir_path = "/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/unproc/2201Lab"
 metrix = "mean_dis"
 label_size = 22
 ticks_size = 16

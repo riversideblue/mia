@@ -3,8 +3,8 @@ import os
 import matplotlib.pyplot as plt
 
 # --- Window Size ごとの各指標の変化
-all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/dy/dnn_v_e30b10/c00150"
-target = "th0.99"
+all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/dy/dnn/euc/e30b10/c01200"
+target = "th0.1"
 metrix = "f1_score"
 label_size = 22
 ticks_size = 16
@@ -13,9 +13,14 @@ first_reading_flag = True
 
 dfs = pd.DataFrame()  # 空のDataFrameで初期化
 for di in sorted(os.listdir(all_dir_path)):
+    if di == 'st':
+        dir_path = os.path.join(all_dir_path, di)
+    else:
+        dir_path = os.path.join(all_dir_path, di, target)
+    
     print(di)
     window_size = di
-    file_path = f"{all_dir_path}/{di}/{target}/eval_res.csv"
+    file_path = os.path.join(dir_path, "eval_res.csv")
     if not os.path.exists(file_path):
         print(f"ファイルが見つかりません: {file_path}")
         continue
