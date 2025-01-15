@@ -107,7 +107,7 @@ def call(method_code:int,c_window,p_window, threshold,k):
     method = method_dict.get(method_code)
     if method is None:
         raise ValueError(f"Invalid method_code: {method_code}")
-    return method(c_window, p_window, threshold,k)[1]
+    return method(c_window, p_window, threshold, k)[1]
 
 def call_obs(method_code:int, c_window: np.ndarray, p_window: np.ndarray, threshold: float, c_time, o_dir_path, k : int) -> bool:
     output_csv_path = f'{o_dir_path}/dd_res.csv'
@@ -119,36 +119,42 @@ def call_obs(method_code:int, c_window: np.ndarray, p_window: np.ndarray, thresh
     if method is None:
         raise ValueError(f"Invalid method_code: {method_code}")
     dd = method(c_window, p_window, threshold, k)
-    
     with open(output_csv_path, mode='a', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         if file.tell() == 0:
             writer.writerow(["date", "math", "res"])
         writer.writerow([c_time, dd[0], dd[1]])
-
     return False
 
 def cos_similarity(c_window: np.ndarray, p_window: np.ndarray, threshold: float, k: int) -> bool:
     """
-    コサイン類似度行列を計算し，行ごとの上位N個の平均類似度を求める．
+    コサイン類似度行列をFAISSを使用して計算し，行ごとの上位k個の平均類似度を求める．
     平均類似度が閾値以下であるかを判定する．
 
     Args:
         c_window (np.ndarray): 比較するウィンドウ（2次元配列）．
         p_window (np.ndarray): 比較対象のウィンドウ（2次元配列）．
         threshold (float): 閾値．
-        N (int): 上位N個の類似度を考慮する．
+        k (int): 上位k個の類似度を考慮する．
 
     Returns:
-        bool: 平均類似度が閾値以下なら`True`，それ以外は`False`．
+        tuple: 平均類似度 (`mean_similarity`) と閾値を超えているかの判定結果 (`True`/`False`)．
     """
     c_window = w_scaler(c_window)
     p_window = w_scaler(p_window)
-    similarity_matrix = cosine_similarity(c_window, p_window)
-    top_n_similarities = np.sort(similarity_matrix, axis=1)[:, -k:]  # 上位N個を直接取得
-    mean_similarity = np.mean(top_n_similarities) 
-    print(f'mean:{mean_similarity}')
-    return mean_similarity,mean_similarity<threshold
+
+    # L2正規化
+    c_window = c_window / np.linalg.norm(c_window, axis=1, keepdims=True)
+    p_window = p_window / np.linalg.norm(p_window, axis=1, keepdims=True)
+
+    d = p_window.shape[1]
+    index = faiss.IndexFlatIP(d)
+    index.add(p_window.astype(np.float32))
+    similarities, indices = index.search(c_window.astype(np.float32), k)
+    mean_similarity = np.mean(similarities)
+    print(f"mean: {mean_similarity}")
+
+    return mean_similarity, mean_similarity<threshold
     
 def euc_distance(c_window: np.ndarray, p_window: np.ndarray, threshold: float, k: int):
     """
@@ -175,7 +181,7 @@ def euc_distance(c_window: np.ndarray, p_window: np.ndarray, threshold: float, k
     mean_distance = np.mean(min_distance_list)
     print(f"mean: {mean_distance}")
 
-    return mean_distance, mean_distance > threshold
+    return mean_distance, mean_distance>threshold
 
 
 

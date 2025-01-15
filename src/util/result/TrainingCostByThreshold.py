@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 
 # --- 基本設定
-window_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/window_size_80"  # ウィンドウディレクトリを指定
+window_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/dy/dnn/cos/e30b10/c1800/p3600"  # ウィンドウディレクトリを指定
 metrix = "flow_num"  # 対象列名
 output_dir_path = os.path.join(window_dir_path, "res_img")
 os.makedirs(output_dir_path, exist_ok=True)  # 保存ディレクトリを作成
