@@ -19,17 +19,17 @@
   "RETRAINING_MODE": "dy",
   "RETRAINING_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
-  "DRIFT_DETECTION_UNIT_INTERVAL" : 5,
+  "DRIFT_DETECTION_UNIT_INTERVAL" : 15,
   "TrainingDefine": {
-    "EPOCHS": 30,
-    "BATCH_SIZE": 10
+    "EPOCHS": 1,
+    "BATCH_SIZE": 512
   },
   "DriftDetection": {
     "OBS_MODE": 1,
-    "CURRENT_WIN_SIZE": 1800,
+    "CURRENT_WIN_SIZE": 150,
     "PAST_WIN_SIZE": 3600,
-    "METHOD_CODE": 1,
+    "METHOD_CODE": 0,
     "K" : 3,
-    "THRESHOLD": 0.02
+    "THRESHOLD": 0.9955
   }
 }

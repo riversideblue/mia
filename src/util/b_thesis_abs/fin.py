@@ -10,8 +10,8 @@ metrix = "f1_score"
 nt_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/nt/dnn_e30b10"
 st_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/st/dnn_e30b10"
 st_epochs = 30
-dy_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/dy/dnn_e30b10/e50b10/c600p1800/th450"
-dy_epochs = 30
+dy_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/dy/dnn/euc/e1b10/c1200/p3600/th0.01_ddint5"
+dy_epochs = 1
 #-------------------------------------------------------------------#
 
 # 出力先ディレクトリの設定

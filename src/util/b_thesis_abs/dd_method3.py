@@ -51,6 +51,9 @@ ax.set_xticklabels([])
 ax.set_yticklabels([])
 ax.set_zticklabels([])
 
-# 保存
-plt.savefig(os.path.join(output_path, file_name), dpi=800, format='png')
+# レイアウトを調整
+plt.tight_layout()
+
+# 保存（白い余白を最小化）
+plt.savefig(os.path.join(output_path, file_name), dpi=800, format='png', bbox_inches='tight')
 plt.show()
