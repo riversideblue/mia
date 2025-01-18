@@ -3,6 +3,7 @@ import pandas as pd
 
 def dnn(tf):
     # Deep Neural Network
+    tf.keras.utils.set_random_seed(1)
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(14,), dtype=tf.float32),
         tf.keras.layers.Dense(100, activation='relu'),

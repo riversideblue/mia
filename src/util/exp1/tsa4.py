@@ -11,8 +11,8 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
 # --- データセットの各特徴量の分布がどのように遷移しているかを調査 Time Series Analysis --------------------------------------------------- #
-dir_path = "/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220110-20220114/2201UkSouth+2201Lab02"
-population_dir_path = "/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220110-20220114/2201UkSouth+2201Lab02"
+dir_path = "/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220110-20220114/2201Lab02"
+population_dir_path = "/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220110-20220114/2201Lab02"
 data_sec_sizes = [0.5, 1, 4, 8, 16, 32, 64]  # データ区間の長さ(hours)
 unit_time = 0.1  # 評価単位時間(hours)
 output_base_dir = f"/mnt/nas0/g005/murasemaru/exp/1_DataAnalytics/drift/filtered_22020110-22020114/{os.path.basename(dir_path)}"
