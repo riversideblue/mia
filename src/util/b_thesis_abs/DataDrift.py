@@ -12,7 +12,7 @@ file_name = "data_drift"
 metrix = "mean_dis"
 label_size = 26
 ticks_size = 20
-legend_size = 26
+legend_size = 30
 
 common_path = os.path.commonpath([drift_dir_path1, drift_dir_path2])
 
@@ -57,10 +57,10 @@ for fi in common_files:
     # グラフ描画
     plt.figure(figsize=(18, 6))
     plt.xlim(0, 52)
-    
-    plt.plot(filtered_df1['elapsed_time'], filtered_df1[metrix], label="悪性トラヒック", linewidth=2,color='red')
-    plt.plot(filtered_df2['elapsed_time'], filtered_df2[metrix], label="良性トラヒック", linewidth=2,color='blue')
 
+    
+    plt.plot(filtered_df2['elapsed_time'], filtered_df2[metrix], label="良性トラヒック", linewidth=2,color='blue')
+    plt.plot(filtered_df1['elapsed_time'], filtered_df1[metrix], label="悪性トラヒック", linewidth=2,color='red')
     # ハイライト窓の追加
     ax = plt.gca()  # 現在の軸を取得
     ylim = ax.get_ylim()  # Y軸の範囲を取得

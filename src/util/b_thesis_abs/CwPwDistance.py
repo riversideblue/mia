@@ -14,7 +14,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 label_size = 26
 ticks_size = 20
-legend_size = 26
+legend_size = 30
 
 file_path = os.path.join(dir_path, 'dd_res.csv')
 if not os.path.exists(file_path):  # ファイルが存在しない場合はスキップ

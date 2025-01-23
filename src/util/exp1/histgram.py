@@ -10,12 +10,9 @@ def plot_histograms(distributions, output_dir, dir_name):
     for feature, data_list in distributions.items():
         combined_data = np.concatenate(data_list)
         plt.figure()
-        plt.hist(combined_data, bins=30, alpha=0.7, edgecolor='black')
-        plt.title(f"Histogram of {feature}")
-        plt.xlabel(feature)
-        plt.ylabel("Frequency")
-        output_path = os.path.join(output_dir, f"{feature}_histogram.png")
-        plt.savefig(output_path)
+        plt.hist(combined_data, bins=30, alpha=0.7, edgecolor='black',color='red')
+        output_path = os.path.join(output_dir, f"{feature}.png")
+        plt.savefig(output_path,dpi=800)
         plt.close()
         print(f"ヒストグラムを保存しました: {output_path}")
 

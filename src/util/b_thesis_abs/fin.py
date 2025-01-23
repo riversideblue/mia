@@ -82,9 +82,9 @@ def plot_training_cost(tr_cost, start_date, output_path, label_size, ticks_size,
     
     fig, ax = plt.subplots(figsize=(18, 6))
     # 学習コストをプロット
-    line1, = ax.plot(tr_cost['elapsed_hours'], tr_cost['st_tr_cost'], label='従来手法による学習コスト',
+    line1, = ax.plot(tr_cost['elapsed_hours'], tr_cost['st_tr_cost'], label='従来手法',
                      linewidth=3, linestyle='--', color='tab:purple', marker='o')
-    line2, = ax.plot(tr_cost['elapsed_hours'], tr_cost['dy_tr_cost'], label='提案手法による学習コスト',
+    line2, = ax.plot(tr_cost['elapsed_hours'], tr_cost['dy_tr_cost'], label='提案手法',
                      linewidth=3, linestyle='--', color='tab:green', marker='s')
     ax.set_ylabel(r'Training cost [$10^3$]', fontsize=label_size, color='black')
     ax.set_xlabel('Elapsed time [h]', fontsize=label_size, color='black')
@@ -106,7 +106,7 @@ def plot_training_cost(tr_cost, start_date, output_path, label_size, ticks_size,
     labels = [line.get_label() for line in lines]
     
     plt.xlim(12, 52)  # 描画範囲を固定
-    fig.legend(lines, labels, loc='upper left', bbox_to_anchor=(0.1, 0.62), fontsize=legend_size)
+    fig.legend(lines, labels, loc='upper right', bbox_to_anchor=(0.3, 0.6), fontsize=legend_size)
 
     # 保存と表示
     fig.tight_layout()
@@ -137,7 +137,7 @@ def plot_metrix(eval_data, start_date, output_path, label_size, ticks_size, lege
     lines = [line1, line2, line3]
     labels = [line.get_label() for line in lines]
     plt.xlim(12, 52)  # 描画範囲を固定
-    fig.legend(lines, labels, loc='upper right', bbox_to_anchor=(0.3, 0.5), fontsize=legend_size)
+    fig.legend(lines, labels, loc='upper right', bbox_to_anchor=(0.3, 0.6), fontsize=legend_size)
 
     # 保存と表示
     fig.tight_layout()
@@ -148,8 +148,8 @@ def plot_metrix(eval_data, start_date, output_path, label_size, ticks_size, lege
 output_path_cost = f"{output_dir}/STvsDY_TrainingCost.png"
 
 # 修正後のプロット実行
-plot_metrix(eval_data, start_date, output_path, label_size=26, ticks_size=20, legend_size=26, dy_training_times=dy_training_times)
-plot_training_cost(tr_cost, start_date, output_path_cost, label_size=26, ticks_size=20, legend_size=26, dy_training_times=dy_training_times)
+plot_metrix(eval_data, start_date, output_path, label_size=26, ticks_size=20, legend_size=30, dy_training_times=dy_training_times)
+plot_training_cost(tr_cost, start_date, output_path_cost, label_size=26, ticks_size=20, legend_size=30, dy_training_times=dy_training_times)
 
 print(output_path)
 print(output_path_cost)

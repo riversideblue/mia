@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Drift Detection (mode obs)の結果を比較
-all_dir_path = "/mnt/nas0/g005/murasemaru/exp/4_DriftDetection/euc_k100"
+all_dir_path = "/mnt/nas0/g005/murasemaru/exp/2_DriftDetection/euc_k100/target"
 metrix = "math"
 
 output_dir = f"{all_dir_path}/res_img"

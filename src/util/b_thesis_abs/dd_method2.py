@@ -31,6 +31,7 @@ if not os.path.exists(output_path):
 fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
 
+# 過去データをプロット
 for i, (x, y, z) in enumerate(past_points):
     ax.scatter(x, y, z, color='red', alpha=0.7, s=300)
 
@@ -39,7 +40,6 @@ for i, (x, y, z) in enumerate(current_points):
     ax.scatter(x, y, z, color='green', alpha=0.7, s=300)
 
 ax.scatter(past_delete_points[0], past_delete_points[1], past_delete_points[2], facecolors='none', edgecolors='red', linewidths=2, linestyle='--', alpha=0.7, s=300)
-
 # 軸範囲を設定（データ範囲に基づいて適切な範囲を選択）
 ax.set_xlim(-1, 2)
 ax.set_ylim(-1, 2)

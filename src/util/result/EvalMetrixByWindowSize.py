@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 
 # --- Window Size ごとの各指標の変化
-all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/dy/dnn/euc/e30b10/c01200"
+all_dir_path = "/mnt/nas0/g005/murasemaru/exp/5_Eval/20220110-20220114_UsEast/dy/dnn/"
 target = "th0.1"
 metrix = "f1_score"
 label_size = 22
