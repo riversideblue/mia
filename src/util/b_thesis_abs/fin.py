@@ -80,7 +80,7 @@ dy_training_times = dy_tr_data["daytime"]
 
 def plot_training_cost(tr_cost, start_date, output_path, label_size, ticks_size, legend_size, dy_training_times):
     
-    fig, ax = plt.subplots(figsize=(18, 8))
+    fig, ax = plt.subplots(figsize=(18, 6))
     # 学習コストをプロット
     line1, = ax.plot(tr_cost['elapsed_hours'], tr_cost['st_tr_cost'], label='従来手法による学習コスト',
                      linewidth=3, linestyle='--', color='tab:purple', marker='o')
@@ -115,7 +115,7 @@ def plot_training_cost(tr_cost, start_date, output_path, label_size, ticks_size,
 
 def plot_metrix(eval_data, start_date, output_path, label_size, ticks_size, legend_size, dy_training_times):
     
-    fig, ax = plt.subplots(figsize=(18, 8))
+    fig, ax = plt.subplots(figsize=(18, 6))
     # F1スコアをプロット
     line1, = ax.plot(eval_data['elapsed_hours'], eval_data["nt"], label="再学習なし", linewidth=2, color="tab:gray")
     line2, = ax.plot(eval_data['elapsed_hours'], eval_data["static"], label="従来手法", linewidth=2, color="tab:blue")

@@ -80,7 +80,7 @@ for fi in common_files:
     ))
 
     # グラフのラベル設定
-    plt.xlabel('Elapsed Time [h]', fontsize=label_size)
+    plt.xlabel('Elapsed time [h]', fontsize=label_size)
     plt.xticks(fontsize=ticks_size)
     plt.yticks(fontsize=ticks_size)
     plt.legend(loc='upper left', fontsize=legend_size)

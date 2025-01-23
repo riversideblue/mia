@@ -33,9 +33,9 @@ else:
     plt.axhline(y=threshold, color='red', linestyle='--', linewidth=3, label="設定した閾値")
 
     plt.xlim(12, 52)  # 描画範囲を固定
-    plt.xticks(fontsize=ticks_size, rotation=45)
+    plt.xticks(fontsize=ticks_size)
     plt.yticks(fontsize=ticks_size)
-    plt.xlabel("Elapsed hours[h]", fontsize=label_size)
+    plt.xlabel("Elapsed time[h]", fontsize=label_size)
     plt.legend(fontsize=legend_size)
     plt.grid(True)
     plt.tight_layout()

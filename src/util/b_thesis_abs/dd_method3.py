@@ -6,18 +6,20 @@ import japanize_matplotlib
 
 # プロットするデータ
 current_points = [
-    (1.89968694, 1.71819066, 1.25367675), #1
-    (1.39968694, 1.31819066, 1.85367675), #2
-    (0.25249593, 1.54140857, 0.00995917), #3
+    (1.4, 1.32, 1.85), #1
+    (1.75, 1.42, 1.25), #2
+    (0.25, 1.54, 0) #3
 ]
 
 past_points = [
-    (0.65087773, 1.22789779, -0.10376296), #1
-    (0.50964872, -0.30561939, 0.83686038), #2
-    (-0.04270765, 0.08497858, -0.04638656), #3
-    (-0.59968694, 2.11819066, 0.05367675), #4
-    (0.94988517, 1.00705003, 1.08114783) #5
+    (0.65, 1.22, -0.10), #1
+    (-0.1, 0.1, 1), #2
+    (0.50, -0.30, 0.83), #3
+    (-0.6, 2.1, 0.1), #4
+    (0.95, 1.01, 1.08) #5
 ]
+
+past_delete_points = (0.62, 0.4, -0.02)
 
 # 保存先
 output_path = '/mnt/nas0/g005/murasemaru/exp/other'
@@ -29,13 +31,14 @@ if not os.path.exists(output_path):
 fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
 
-# 過去データをプロット
 for i, (x, y, z) in enumerate(past_points):
     ax.scatter(x, y, z, color='red', alpha=0.7, s=300)
 
 # 現在データをプロット
 for i, (x, y, z) in enumerate(current_points):
     ax.scatter(x, y, z, color='green', alpha=0.7, s=300)
+
+ax.scatter(past_delete_points[0], past_delete_points[1], past_delete_points[2], facecolors='none', edgecolors='red', linewidths=2, linestyle='--', alpha=0.7, s=300)
 
 # 軸範囲を設定（データ範囲に基づいて適切な範囲を選択）
 ax.set_xlim(-1, 2)
