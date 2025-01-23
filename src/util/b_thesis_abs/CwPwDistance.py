@@ -14,7 +14,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 label_size = 26
 ticks_size = 20
-legend_size = 26
+legend_size = 30
 
 file_path = os.path.join(dir_path, 'dd_res.csv')
 if not os.path.exists(file_path):  # ファイルが存在しない場合はスキップ
@@ -33,9 +33,9 @@ else:
     plt.axhline(y=threshold, color='red', linestyle='--', linewidth=3, label="設定した閾値")
 
     plt.xlim(12, 52)  # 描画範囲を固定
-    plt.xticks(fontsize=ticks_size, rotation=45)
+    plt.xticks(fontsize=ticks_size)
     plt.yticks(fontsize=ticks_size)
-    plt.xlabel("Elapsed hours[h]", fontsize=label_size)
+    plt.xlabel("Elapsed time[h]", fontsize=label_size)
     plt.legend(fontsize=legend_size)
     plt.grid(True)
     plt.tight_layout()
