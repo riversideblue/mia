@@ -11,7 +11,7 @@ metrix = "f1_score"
 nt_dir_path = "/mnt/nas0/g005/murasemaru/exp/3_Eval/20220110-20220114_UsEast/nt/dnn_e30b10"
 st_dir_path = "/mnt/nas0/g005/murasemaru/exp/3_Eval/20220110-20220114_UsEast/st/dnn_e30b10"
 st_epochs = 30
-dy_dir_path = "/mnt/nas0/g005/murasemaru/exp/3_Eval/20220110-20220114_UsEast/dy/dnn/euc_k300/c450/p6000/th0.015"
+dy_dir_path = "/mnt/nas0/g005/murasemaru/exp/3_Eval/20220110-20220114_UsEast/dy/dnn/euc_k8/c1200/p3600/th0.25"
 dy_epochs = 1
 start_date = '2022-01-10 15:00:00'
 #-------------------------------------------------------------------#
