@@ -55,7 +55,7 @@ for fi in common_files:
     filtered_df2 = df2[(df2['date'] >= plot_start) & (df2['date'] <= plot_end)]
 
     # グラフ描画
-    plt.figure(figsize=(18, 6))
+    plt.figure(figsize=(14, 6))
     plt.xlim(0, 52)
 
     
@@ -89,6 +89,6 @@ for fi in common_files:
     # 出力
     output_path = os.path.join(output_dir_path, f"{file_name}_{fi.replace('tsa_', '').replace('.csv', '')}.png")
     plt.tight_layout()
-    plt.savefig(output_path, dpi=1000, format='png')
+    plt.savefig(output_path, dpi=750, format='png')
     plt.close()
 
