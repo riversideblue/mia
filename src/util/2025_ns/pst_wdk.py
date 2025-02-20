@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import japanize_matplotlib
 from datetime import datetime
 
-# Drift Detection (mode obs)の結果を比較
+# window間距離に対する影響評価描画用スクリプト（パワポ資料用）：近傍数k
 dir_path_dict = {
     "k=2": "/mnt/nas0/g005/murasemaru/exp/2_DriftDetection/euc_k2/c600p3600",
     "k=8": "/mnt/nas0/g005/murasemaru/exp/2_DriftDetection/euc_k8/c600p3600",
@@ -14,13 +14,13 @@ dir_path_dict = {
 
 metrix = "math"  # 特定の列名
 start_date = '2022-01-10 15:00:00'
-label_size = 26
+label_size = 22
 ticks_size = 20
-legend_size = 30
+legend_size = 22
 
 # 出力ディレクトリを設定
-output_dir = "/mnt/nas0/g005/murasemaru/exp/other/DDcompare"
-output_file_name = "dd_obs_k"
+output_dir = "/mnt/nas0/g005/murasemaru/output/202503NS/pst"
+output_file_name = "wd_k"
 os.makedirs(output_dir, exist_ok=True)
 
 # 開始時刻の変換
@@ -50,7 +50,7 @@ for dir_name, dir_path in dir_path_dict.items():
 if dfs:
     df_combined = pd.concat(dfs, ignore_index=True)
 
-    plt.figure(figsize=(18, 6))
+    plt.figure(figsize=(18, 7))
     
     for dir_name in dir_path_dict.keys():
         subset = df_combined[df_combined['source'] == dir_name]
@@ -61,7 +61,7 @@ if dfs:
     plt.yticks(fontsize=ticks_size)
     plt.xlabel("Elapsed time [h]", fontsize=label_size)
     plt.ylabel("ウィンドウ間距離", fontsize=label_size)
-    plt.legend(fontsize=legend_size,ncol=4,loc="upper left")
+    plt.legend(fontsize=legend_size,ncol=4,loc="upper left",bbox_to_anchor=(0,1.15))
     plt.grid(True)
     plt.tight_layout()
 
