@@ -27,9 +27,9 @@
   "DriftDetection": {
     "OBS_MODE": 0,
     "CURRENT_WIN_SIZE": 600,
-    "PAST_WIN_SIZE": 6000,
+    "PAST_WIN_SIZE": 7200,
     "METHOD_CODE": 1,
-    "K" : 8,
+    "K" : 32,
     "THRESHOLD": 0.01
   }
 }
