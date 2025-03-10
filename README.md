@@ -1,31 +1,13 @@
 # NIDS-CDD
 
 network-based intrution detection system (nids) for smart home environment with concept drift detection (cdd). 
-
-# ACKNOWLEDGEMENT
-
-全ての実行はnids-cddディレクトリからの実行を前提としてつくられています．
-
-### System Overview
-
-aaaaaaaaaaaaaaaaaaaaa
-
-### App Overview
-
-aaaaaaaaaaaaaaaaaaaaaaaaa 
-<figure>
-    <img src="https://github.com/user-attachments/assets/c481a018-c7ea-4d4f-bd5e-5a93dce0181c" width=800>
-</figure>
+Linuxマシン上での実行を想定．
 
 
-### Activity Overview
+src/
 
-aaaaaaaaaaa
+main - 侵入検知システムの実行に使用(Python)
 
-<figure>
-    <img src="https://github.com/user-attachments/assets/bd9f8472-dfad-46f5-9647-fd7c7f45ed80" width=800>
-</figure>
+test - 雑多なテストに使用
 
-
-### Requirement
-
+util - グラフの描画，データセットの解析などに使用(Jupyter)
