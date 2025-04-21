@@ -151,7 +151,7 @@ def extract_features_from_flow(packets_in_flow):
                 port_count = port_freq[port]
 
         elif direction == "snd":
-
+            
             # --- snd_count
             snd_packet_count += 1
 
@@ -180,6 +180,7 @@ def extract_features_from_flow(packets_in_flow):
         # --- label
         if label is None:
             label = field[6]
+    
 
     rcv_max_interval = rcv_max_interval if rcv_max_interval is not None else 60 # FLOW_TIMEOUTとこの値は一致させる
     rcv_min_interval = rcv_min_interval if rcv_min_interval is not None else 60
@@ -413,3 +414,6 @@ if __name__ == "__main__":
                     print(f"Completed processing {future.result()}/{len(pcap_files)}")
                 except Exception as e:
                     print(f"Error processing file {count}: {e}")
+
+
+                    
