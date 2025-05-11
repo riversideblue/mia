@@ -22,7 +22,7 @@ def is_pass_exist(path):
 
 def main():
 
-    # --- Load settings
+    # --- Load settings *
     settings = json.load(open("src/main/T_settings.json", "r"))
     settings["Log"] = {}
 
@@ -31,7 +31,7 @@ def main():
     init_time: str = datetime.now(jst).strftime("%Y%m%d%H%M%S")
     settings["Log"]["INIT_TIME"] = init_time
 
-    # --- Setting
+    # --- Setting *
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = settings["OS"]["TF_CPP_MIN_LOG_LEVEL"]  # log amount
     os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = settings["OS"]["TF_FORCE_GPU_ALLOW_GROWTH"]  # gpu mem limit
     os.environ["CUDA_VISIBLE_DEVICES"] = settings["OS"]["CUDA_VISIBLE_DEVICES"]  # cpu : -1

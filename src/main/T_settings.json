@@ -8,7 +8,7 @@
   "MODEL_CODE" : 0,
  "FOUNDATION_MODEL_PATH": "exp/3_Eval/20220110-20220114_UsEast/fm/dnn_e30b10/wts/2022-01-11T02:00:04.pickle",
  "DATASETS_DIR_PATH": "data/csv/modif/filtered_20220110-20220114/2201UkSouth+2201Lab02",
- "START_DATE": "2022-01-11 03:00:00",
+ "SESSION_START_DATE": "2022-01-11 03:00:00",
  "TargetRange": {
   "DAYS": 1,
   "HOURS": 18,
