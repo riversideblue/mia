@@ -8,6 +8,8 @@ import numpy as np
 class NoRetrainSession:
     def __init__(self, loader, model, tr_results, eval_results):
 
+        self.y_true = []
+        self.y_pred = []
         self.loader = loader
         self.model = model
         self.tr_results = tr_results
@@ -50,7 +52,7 @@ class NoRetrainSession:
 
     def _handle_row(self, row):
         self.current_time = datetime.strptime(row[self.row_headers.index("daytime")], "%Y-%m-%d %H:%M:%S")
-        if self.s_flag and self._start_filtering(): return
+        if self.session_start_flag and self._start_filtering(): return
         if self._end_filtering(): return
         self._evaluate_if_needed()
         self._predict(row)
@@ -99,15 +101,35 @@ class NoRetrainSession:
                 self.next_eval_date += timedelta(seconds=self.eval_unit_int)
 
     def _predict(self, row):
-        self.t.call_pred(self.model, row)
+        tensor_input = self.tf.convert_to_tensor([list(map(float, row[3:-1]))], dtype=self.tf.float32)
+        self.y_pred.append(model(tensor_input,training=False)[0][0].numpy())
+        self.y_true.append(int(row[-1]))
+
 
     def _retrain_if_needed(self, row):
         raise NotImplementedError
 
+    def _call_model_trainer(self):
+        df = pd.DataFrame(rtr_list).dropna()
+                features = df.iloc[:, :-1]
+        targets = df.iloc[:, -1]
+        # scaled_features = self.scaler.fit_transform(features)
+        model, rtr_res_arr = modelTrainer.main(
+            model=model,
+            features=features,
+            targets=targets,
+            output_dir_path=self.o_dir_path,
+            epochs=self.epochs,
+            batch_size=self.batch_size,
+            rtr_date=c_time
+        )
+        self.next_rtr_date += timedelta(seconds=self.rtr_int)
+        rtr_res_li = np.vstack([rtr_res_li, rtr_res_arr])
+
 class DynamicSession(NoRetrainSession):
-    def __init__(self, t, model, tr_results, eval_results, dd_params):
-        super().__init__(t, model, tr_results, eval_results)
-        self.dd_unit_int, self.cw_size, self.pw_size, self.method_code, self.k, self.threshold, self.obs_mode = dd_params
+    def __init__(self, loader, model, tr_results, eval_results):
+        super().__init__(loader, model, tr_results, eval_results)
+        self.dd_settings = loader.get('DriftDetection')
         self.w = DD.Window()
         self.next_dd_date = self.t.start_date + timedelta(seconds=self.cw_size + self.pw_size)
 
