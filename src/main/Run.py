@@ -1,6 +1,5 @@
 import time
-import tensorflow as tf
-import tensorflow_decision_forests as tfdf
+
 
 from ModelFactory import *
 from SettingsLoader import *
@@ -20,9 +19,7 @@ def main():
     # モデルの初期化
     model_factory = ModelFactory(
         model_code=loader.get('MODEL_CODE'),
-        foundation_path=f"{loader.get('USER_DIR')}/{loader.get('FOUNDATION_MODEL_PATH')}",
-        tf_module=tf,
-        tfdf_module=tfdf
+        foundation_path=f"{loader.get('USER_DIR')}/{loader.get('FOUNDATION_MODEL_PATH')}"
     )
 
     # セッションの開始

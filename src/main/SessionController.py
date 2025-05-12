@@ -9,13 +9,6 @@ class SessionController:
 
         self.loader = loader
         self.init_time = init_time
-        target_range = timedelta(
-            days=loader.get("TargetRange")["DAYS"],
-            hours=loader.get("TargetRange")["HOURS"],
-            minutes=loader.get("TargetRange")["MINUTES"],
-            seconds=loader.get("TargetRange")["SECONDS"]
-        )
-        self.session_end_date = loader.get('SESSION_START_DATE') + target_range
         self.output_path = self._create_output_dir()
         self.tr_results_list = []
         self.eval_results_list = []
@@ -31,8 +24,7 @@ class SessionController:
     def _finalize(self, current_time):
 
         self.loader.append_log('INIT_TIME', self.init_time)
-        self.loader.append_log('START_DAYTIME', self.loader.get('SESSION_START_DATE').isoformat())
-        self.loader.append_log('END_DAYTIME', current_time.isoformat())
+        self.loader.append_log('SESSION_END_DAYTIME', current_time.isoformat())
 
         elapsed_time = time.time() - self.init_time
         self.loader.append_log('ELAPSED_TIME', elapsed_time)
@@ -52,6 +44,6 @@ class SessionController:
         if not session_cls:
             raise ValueError(f"Invalid RETRAINING_MODE: {mode}")
 
-        session = session_cls(self.settings, model)
-        self._finalize(current_time=time.time())
-        self.tr_results_list, self.eval_results_list = session.run()
+        session = session_cls(self.loader, model, self.tr_results_list, self.eval_results_list)
+        self.tr_results_list, self.eval_results_list, current_time = session.run()
+        self._finalize(current_time=current_time)

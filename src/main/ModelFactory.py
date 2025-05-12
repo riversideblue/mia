@@ -2,17 +2,18 @@ import os
 import pickle
 import pandas as pd
 
+import tensorflow as tf
+import tensorflow_decision_forests as tfdf
+
 class ModelFactory:
 
-    def __init__(self, model_code, foundation_path, tf_module, tfdf_module):
+    def __init__(self, model_code, foundation_path):
         self.m_dict = {
             0: dnn, 1: rnn, 2: autoencoder, 3: svm,
             4: logistic_regression, 5: lstm,
             6: random_forest, 7: gradient_boosting
         },
         self.foundation_path = foundation_path
-        self.tf = tf_module
-        self.tfdf = tfdf_module
 
         self.foundation_model = self._create_model(model_code)
 
@@ -21,7 +22,7 @@ class ModelFactory:
         if creator is None:
             raise ValueError(f"Invalid model_code: {model_code}")
 
-        model = creator(self.tfdf if model_code in [6, 7] else self.tf)
+        model = creator(tfdf if model_code in [6, 7] else tf)
         if self._has_saved_weights():
             with open(self.foundation_path, 'rb') as f:
                 model.set_weights(pickle.load(f))
