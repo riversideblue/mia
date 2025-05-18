@@ -9,24 +9,27 @@ from datetime import datetime, timedelta
 import csv
 from joblib import Parallel, delayed
 from sklearn.metrics.pairwise import cosine_similarity
-
-
 class DetectionWindow:
-    def __init__(self):
+    def __init__(self, cw_size, pw_size, threshold):
         self.cw = deque()
-        self.cw_date_q = deque()  # datetime型を持つDeque
+        self.cw_size = cw_size
+        self.cw_date_q = deque()
         self.cw_end_date = None
+
         self.pw = deque()
+        self.pw_size = pw_size
         self.pw_date_q = deque()
         self.pw_end_date = None
-        self.cum_statics: float = 0.0
 
-    def update(self, row, c_time, cw_size, pw_size):
+        self.cum_statics: float = 0.0
+        self.threshold = threshold
+
+    def update(self, row, c_time):
         self.cw.append(np.array(row, dtype=float))
 
         if not self.cw_date_q:
-            self.cw_end_date = c_time - timedelta(seconds=cw_size)
-            self.pw_end_date = self.cw_end_date - timedelta(seconds=pw_size)
+            self.cw_end_date = c_time - timedelta(seconds=self.cw_size)
+            self.pw_end_date = self.cw_end_date - timedelta(seconds=self.pw_size)
         else:
             delta = c_time - self.cw_date_q[-1]
             self.cw_end_date += delta
@@ -39,45 +42,77 @@ class DetectionWindow:
                 self.pw_date_q.popleft()
         self.cw_date_q.append(c_time)
 
-    def ex_cw(self):
-        cw_arr = np.array(self.cw)
-        if cw_arr.ndim == 1:
-            cw_arr = cw_arr.reshape(1, -1)
-        try:
-            ex_cw = cw_arr[:, [4, 6, 7, 9, 10]].T
-        except IndexError:
-            ex_cw = np.zeros((5, cw_arr.shape[0]))
-        return ex_cw
-
-    def ex_pw(self):
-        pw_arr = np.array(self.pw)
-        if pw_arr.ndim == 1:
-            pw_arr = pw_arr.reshape(1, -1)
-        try:
-            ex_pw = pw_arr[:, [4, 6, 7, 9, 10]].T
-        except IndexError:
-            ex_pw = np.zeros((5, pw_arr.shape[0]))
-        return ex_pw
-
     def ex_cw_v(self):
         cw_arr = np.array(self.cw)
         if cw_arr.ndim == 1:
             cw_arr = cw_arr.reshape(1, -1)
         try:
-            ex_cw = cw_arr[:, 0:-1]
+            return cw_arr[:, 0:-1]
         except IndexError:
-            ex_cw = np.zeros((cw_arr.shape[0], 14))
-        return ex_cw
+            return np.zeros((cw_arr.shape[0], 14))
 
     def ex_pw_v(self):
         pw_arr = np.array(self.pw)
         if pw_arr.ndim == 1:
             pw_arr = pw_arr.reshape(1, -1)
         try:
-            ex_pw = pw_arr[:, 0:-1]
+            return pw_arr[:, 0:-1]
         except IndexError:
-            ex_pw = np.zeros((pw_arr.shape[0], 14))
-        return ex_pw
+            return np.zeros((pw_arr.shape[0], 14))
+
+    def detect(self, method_code: int, k: int) -> bool:
+        c_window = w_scaler(self.ex_cw_v())
+        p_window = w_scaler(self.ex_pw_v())
+
+        method_dict = {
+            0: cos_similarity,
+            1: euc_distance,
+        }
+        method = method_dict.get(method_code)
+        if method is None:
+            raise ValueError(f"Invalid method_code: {method_code}")
+        _, detected = method(c_window, p_window, self.threshold, k)
+        return detected
+
+    def detect_and_log(self, method_code: int, k: int, c_time: datetime, o_dir_path: str) -> bool:
+        c_window = w_scaler(self.ex_cw_v())
+        p_window = w_scaler(self.ex_pw_v())
+
+        method_dict = {
+            0: cos_similarity,
+            1: euc_distance,
+        }
+        method = method_dict.get(method_code)
+        if method is None:
+            raise ValueError(f"Invalid method_code: {method_code}")
+        score, detected = method(c_window, p_window, self.threshold, k)
+
+        output_csv_path = f'{o_dir_path}/dd_res.csv'
+        with open(output_csv_path, mode='a', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            if file.tell() == 0:
+                writer.writerow(["date", "score", "detected"])
+            writer.writerow([c_time, score, detected])
+        return detected
+
+class WindowManager:
+    def __init__(self, configs):
+        self.windows = [
+            DetectionWindow(cfg["cw_size"], cfg["pw_size"], cfg["threshold"])
+            for cfg in configs
+        ]
+
+    def update_all(self, row, c_time):
+        for w in self.windows:
+            w.update(row, c_time)
+
+    def detect_any(self, method_code, k):
+        # 1つでも True を返せば検出とみなす
+        return any(w.detect(method_code, k) for w in self.windows)
+
+    def detect_all(self, method_code, k):
+        # すべてのウィンドウがドリフト検出したか
+        return all(w.detect(method_code, k) for w in self.windows)
 
 
 def w_scaler(w: np.ndarray):
@@ -99,36 +134,6 @@ def w_scaler(w: np.ndarray):
     w[:, [8, 9, 12, 13]] = w[:, [8, 9, 12, 13]] / 10000  # 0から10000の間で正規化
 
     return w
-
-
-def call(method_code: int, c_window, p_window, threshold, k):
-    method_dict = {
-        0: cos_similarity,
-        1: euc_distance
-    }
-    method = method_dict.get(method_code)
-    if method is None:
-        raise ValueError(f"Invalid method_code: {method_code}")
-    return method(c_window, p_window, threshold, k)[1]
-
-
-def call_obs(method_code: int, c_window: np.ndarray, p_window: np.ndarray, threshold: float, c_time, o_dir_path,
-             k: int) -> bool:
-    output_csv_path = f'{o_dir_path}/dd_res.csv'
-    method_dict = {
-        0: cos_similarity,
-        1: euc_distance
-    }
-    method = method_dict.get(method_code)
-    if method is None:
-        raise ValueError(f"Invalid method_code: {method_code}")
-    dd = method(c_window, p_window, threshold, k)
-    with open(output_csv_path, mode='a', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        if file.tell() == 0:
-            writer.writerow(["date", "math", "res"])
-        writer.writerow([c_time, dd[0], dd[1]])
-    return False
 
 
 def cos_similarity(c_window: np.ndarray, p_window: np.ndarray, threshold: float, k: int) -> bool:

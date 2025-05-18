@@ -10,8 +10,6 @@ class SessionController:
         self.loader = loader
         self.init_time = init_time
         self.output_path = self._create_output_dir()
-        self.tr_results_list = []
-        self.eval_results_list = []
 
     def _create_output_dir(self):
 
@@ -44,6 +42,6 @@ class SessionController:
         if not session_cls:
             raise ValueError(f"Invalid RETRAINING_MODE: {mode}")
 
-        session = session_cls(self.loader, model, self.tr_results_list, self.eval_results_list)
-        self.tr_results_list, self.eval_results_list, current_time = session.run()
+        session = session_cls(self.loader, model)
+        current_time = session.run()
         self._finalize(current_time=current_time)
