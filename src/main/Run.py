@@ -19,7 +19,8 @@ def main():
     # モデルの初期化
     model_factory = ModelFactory(
         model_code=loader.get('MODEL_CODE'),
-        foundation_path=f"{loader.get('USER_DIR')}/{loader.get('FOUNDATION_MODEL_PATH')}"
+        user_dir_path=f"{loader.get('USER_DIR')}",
+        foundation_model_path=f"{loader.get('FOUNDATION_MODEL_PATH')}"
     )
 
     # セッションの開始

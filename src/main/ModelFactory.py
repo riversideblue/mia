@@ -7,30 +7,31 @@ import tensorflow_decision_forests as tfdf
 
 class ModelFactory:
 
-    def __init__(self, model_code, foundation_path):
+    def __init__(self, model_code, user_dir_path, foundation_model_path):
         self.m_dict = {
             0: dnn, 1: rnn, 2: autoencoder, 3: svm,
             4: logistic_regression, 5: lstm,
             6: random_forest, 7: gradient_boosting
-        },
-        self.foundation_path = foundation_path
-
+        }
+        self.user_dir_path = user_dir_path
+        self.foundation_model_path = foundation_model_path
+        self.full_path = os.path.join(self.user_dir_path, self.foundation_model_path)
         self.foundation_model = self._create_model(model_code)
 
+
     def _create_model(self, model_code):
-        creator = self.m_dict.get(model_code)
+        creator = self.m_dict[model_code]
         if creator is None:
             raise ValueError(f"Invalid model_code: {model_code}")
 
-        model = creator(tfdf if model_code in [6, 7] else tf)
+        model = creator(tfdf if model_code in (7,8) else tf)
         if self._has_saved_weights():
-            with open(self.foundation_path, 'rb') as f:
+            with open(self.full_path, 'rb') as f:
                 model.set_weights(pickle.load(f))
         return model
 
     def _has_saved_weights(self):
-        return self.foundation_path and os.path.exists(self.foundation_path)
-
+        return bool(self.foundation_model_path) and os.path.exists(self.full_path)
 
 def dnn(tf):
     # Deep Neural Network

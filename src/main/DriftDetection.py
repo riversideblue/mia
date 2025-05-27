@@ -10,7 +10,10 @@ import csv
 from joblib import Parallel, delayed
 from sklearn.metrics.pairwise import cosine_similarity
 class DetectionWindow:
-    def __init__(self, cw_size, pw_size, threshold):
+    def __init__(self, model, cw_size, pw_size, threshold):
+
+        self.model = model
+
         self.cw = deque()
         self.cw_size = cw_size
         self.cw_date_q = deque()
@@ -96,11 +99,13 @@ class DetectionWindow:
         return detected
 
 class WindowManager:
-    def __init__(self, configs):
+    def __init__(self, model, configs):
         self.windows = [
-            DetectionWindow(cfg["cw_size"], cfg["pw_size"], cfg["threshold"])
+            DetectionWindow(model, cfg.get("CURRENT_WIN_SIZE"), cfg.get("PAST_WIN_SIZE"), cfg.get("THRESHOLD"))
             for cfg in configs
         ]
+        print('Detection Window Manager Activate: ')
+        print(self.windows)
 
     def update_all(self, row, c_time):
         for w in self.windows:
@@ -109,6 +114,11 @@ class WindowManager:
     def detect_any(self, method_code, k):
         # 1つでも True を返せば検出とみなす
         return any(w.detect(method_code, k) for w in self.windows)
+
+    def detect_by_a_majority(self, method_code, k):
+        # 検出されたウィンドウが過半数なら検出
+        detection_votes = sum(w.detect(method_code,k) for w in self.windows)
+        return detection_votes > len(self.windows) // 2
 
     def detect_all(self, method_code, k):
         # すべてのウィンドウがドリフト検出したか
@@ -162,7 +172,6 @@ def cos_similarity(c_window: np.ndarray, p_window: np.ndarray, threshold: float,
     index.add(p_window.astype(np.float32))
     similarities, indices = index.search(c_window.astype(np.float32), k)
     mean_similarity = np.mean(similarities)
-    print(f"mean: {mean_similarity}")
 
     return mean_similarity, mean_similarity < threshold
 

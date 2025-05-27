@@ -102,6 +102,7 @@ def main():
         model = m_create(tfdf)
     else:
         model = m_create(tf)
+
     if f_model_path == f"{user_dir}/":
         print("- start with new model ...")
     elif os.path.exists(f_model_path):

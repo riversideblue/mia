@@ -10,11 +10,16 @@ class SessionController:
         self.loader = loader
         self.init_time = init_time
         self.output_path = self._create_output_dir()
+        self.tr_results_col = ["daytime", "accuracy", "loss", "training_time", "benign_count", "malicious_count", "flow_num"]
+        self.tr_results_list = np.empty((0, len(self.tr_results_col)), dtype=object)
+        self.eval_results_col = ["daytime", "TP", "FN", "FP", "TN", "flow_num", "TP_rate", "FN_rate", "FP_rate", "TN_rate",
+                            "accuracy", "precision", "f1_score", "loss", "benign_rate"]
+        self.eval_results_list = np.empty((0, len(self.eval_results_col)), dtype=object)
 
     def _create_output_dir(self):
 
         d_dir = os.path.basename(self.loader.get("DATASETS_DIR_PATH"))
-        path = f"{self.loader.get('USER_DIR')}/exp/{self.init_time}_{d_dir}_{self.loader.get('RETRAINING_MODE')}_{self.loader('MODEL_CODE')}"
+        path = f"{self.loader.get('USER_DIR')}/exp/{self.init_time}_{d_dir}_{self.loader.get('RETRAINING_MODE')}_{self.loader.get('MODEL_CODE')}"
         os.makedirs(path)
         os.makedirs(f"{path}/wts")
         return path
@@ -42,6 +47,6 @@ class SessionController:
         if not session_cls:
             raise ValueError(f"Invalid RETRAINING_MODE: {mode}")
 
-        session = session_cls(self.loader, model)
+        session = session_cls(self.loader, model, self.tr_results_list, self.eval_results_list, self.output_path)
         current_time = session.run()
         self._finalize(current_time=current_time)
