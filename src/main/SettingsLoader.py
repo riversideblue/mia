@@ -8,6 +8,7 @@ class SettingsLoader:
     def __init__(self, path="src/main/settings.json"):
         with open(path, "r") as f:
             self.settings = json.load(f)
+        print(json.dumps(self.settings, indent=2, ensure_ascii=False))
         self._init_log()
         self._configure_environment()
 

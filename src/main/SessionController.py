@@ -1,14 +1,17 @@
 import time
 from datetime import timedelta
 
+import pytz
+
 from SessionDefiner import *
 
 
 class SessionController:
-    def __init__(self, loader, init_time):
+    def __init__(self, loader):
 
         self.loader = loader
-        self.init_time = init_time
+        self.jst = pytz.timezone("Asia/Tokyo")
+        self.init_time = datetime.now(self.jst).strftime("%Y%m%d%H%M%S")
         self.output_path = self._create_output_dir()
         self.tr_results_col = ["daytime", "accuracy", "loss", "training_time", "benign_count", "malicious_count", "flow_num"]
         self.tr_results_list = np.empty((0, len(self.tr_results_col)), dtype=object)
@@ -28,8 +31,7 @@ class SessionController:
 
         self.loader.append_log('INIT_TIME', self.init_time)
         self.loader.append_log('SESSION_END_DAYTIME', current_time.isoformat())
-
-        elapsed_time = time.time() - self.init_time
+        elapsed_time = time.time() - self.jst.localize(datetime.strptime(self.init_time, "%Y%m%d%H%M%S")).timestamp()
         self.loader.append_log('ELAPSED_TIME', elapsed_time)
 
         self.loader.save(f"{self.output_path}/settings_log.json")

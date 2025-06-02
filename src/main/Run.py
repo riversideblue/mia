@@ -7,14 +7,11 @@ from SessionController import *
 
 def main():
 
-    # 開始時間の記録
-    init_time = time.time()
-
     # 設定読み込み
     loader = SettingsLoader()
 
     # セッションの初期化
-    session = SessionController(loader, init_time)
+    session = SessionController(loader)
 
     # モデルの初期化
     model_factory = ModelFactory(
