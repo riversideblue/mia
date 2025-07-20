@@ -59,9 +59,9 @@ class NoRetrainSession:
             return False
         if self._end_filtering(): return True
         self._evaluate_if_needed()
-        self.y_preds.append(self._predict(self.model, row))
         self.y_trues.append(int(row[-1]))
-        self.model = self._retrain_if_needed(self.model, row)
+        self.y_preds.append(self._predict(self.model, row))
+        self._retrain_if_needed(row)
         return False
 
     def _start_filtering(self): # return False then start processing
@@ -111,7 +111,7 @@ class NoRetrainSession:
         prediction_result = model(tensor_input,training=False)[0][0].numpy()
         return prediction_result
 
-    def _retrain_if_needed(self, model, row):
+    def _retrain_if_needed(self, row):
         pass
 
 class DynamicSession(NoRetrainSession):
@@ -119,7 +119,7 @@ class DynamicSession(NoRetrainSession):
         super().__init__(loader, model, tr_results_list, eval_results_list, output_path)
         self.dd_settings = loader.get('DriftDetection')
         self.wm = WindowManager(model, self.dd_settings.get('WindowConfig'))
-        self.y_preds_by_window = [[] for _ in self.wm.windows]
+        self.y_pred_by_window = [[] for _ in self.wm.windows]
         # PW+CWの最大値 = 18000
         self.next_dd_date = self.session_start_date + timedelta(seconds=5000)
 
@@ -131,28 +131,18 @@ class DynamicSession(NoRetrainSession):
         self._evaluate_if_needed()
         self.y_trues.append(int(row[-1]))
         for i, window in enumerate(self.wm.windows):
-            self.y_preds_by_window[i].append(self._predict(window.model, row))
-            print(window.threshold)
-            self._retrain_if_needed(window, row)
-            print(window.threshold)
-            # wm上のwindowインスタンスにデータがアップロードされているか不明
-        last_column = [y_pred_by_window[-1] for y_pred_by_window in self.y_preds_by_window]
-        self.y_preds.append((sum(last_column) > len(self.y_preds_by_window)) // 2)
+            self.y_pred_by_window[i].append(self._predict(window.model, row))
+            self._retrain_if_needed_for_dd(row, window)
+        last_column = [y_pred_by_window[-1] for y_pred_by_window in self.y_pred_by_window]
+        self.y_preds.append((sum(last_column) > len(self.y_pred_by_window)) // 2) # y_pred_by_windowの総意
 
-    def _retrain_if_needed(self, window, row):
-        window.threshold = 99999999
+    def _retrain_if_needed_for_dd(self, row, window):
         if self.current_time > self.next_dd_date:
-            # もしドリフトが検出されれば、再学習する
-            # 再学習済みのモデルを既存モデルに置き換える
-            if window.detect:
+            if window.detect():
+                # ここがずっとTrue
                 window.model, tr_results_array = train(window.model, window.cw, self.output_path, self.epochs, self.batch_size,
                                                 self.current_time)
             self.next_dd_date += timedelta(seconds=self.dd_settings.get('DRIFT_DETECTION_UNIT_INTERVAL'))
-
-            # if self.wm.detect_by_a_majority(self.dd_settings.get('METHOD_CODE'),self.dd_settings.get('K')):
-            #     for w in self.wm.windows:
-            #         model, tr_results_array = train(model, w.cw, self.output_path, self.epochs, self.batch_size,self.current_time)
-            # self.next_dd_date += timedelta(seconds=self.dd_settings.get('DRIFT_DETECTION_UNIT_INTERVAL'))
         self.wm.update_all(row[3:], self.current_time)
 
 class StaticSession(NoRetrainSession):
@@ -160,12 +150,11 @@ class StaticSession(NoRetrainSession):
         super().__init__(loader, model, tr_results_list, eval_results_list, output_path)
         self.rtr_list = []
 
-    def _retrain_if_needed(self, model, row):
+    def _retrain_if_needed(self, row):
         if self.current_time > self.next_rtr_date:
             with tf.device("/GPU:0"):
-                model, tr_results_array = train(model, self.rtr_list, self.output_path, self.epochs, self.batch_size, self.current_time)
+                self.model, tr_results_array = train(self.model, self.rtr_list, self.output_path, self.epochs, self.batch_size, self.current_time)
                 self.rtr_list = []
             self.next_rtr_date += timedelta(seconds=self.rtr_int)
             self.tr_results_list = np.vstack([self.tr_results_list, tr_results_array])
         self.rtr_list.append(np.array(row[3:], dtype=float))
-        return model

@@ -16,24 +16,19 @@
   "SECONDS": 0
  },
   "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "st",
+  "RETRAINING_MODE": "dy",
   "RETRAINING_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
-    "EPOCHS": 10,
+    "EPOCHS": 1,
     "BATCH_SIZE": 256
   },
   "DriftDetection": {
     "OBS_MODE": 0,
     "DRIFT_DETECTION_UNIT_INTERVAL" : 5,
-    "CURRENT_WIN_SIZE": 600,
-    "PAST_WIN_SIZE": 6000,
-    "METHOD_CODE": 1,
-    "K" : 8,
-    "THRESHOLD": 0.01,
     "WindowConfig": [
-      {"CURRENT_WIN_SIZE": 600, "PAST_WIN_SIZE": 6000, "THRESHOLD": 0.01},
-      {"CURRENT_WIN_SIZE": 600, "PAST_WIN_SIZE": 3000, "THRESHOLD": 0.01}
+      {"CURRENT_WIN_SIZE": 600, "PAST_WIN_SIZE": 6000, "METHOD_CODE": 1, "K" : 8, "THRESHOLD": 0.01},
+      {"CURRENT_WIN_SIZE": 600, "PAST_WIN_SIZE": 3000, "METHOD_CODE": 1, "K" : 8, "THRESHOLD": 0.01}
     ]
   }
 }
