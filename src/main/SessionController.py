@@ -10,7 +10,6 @@ from SessionDefiner import *
 
 class SessionController:
     def __init__(self, loader):
-
         self.loader = loader
         self.jst = pytz.timezone("Asia/Tokyo")
         self.init_time = datetime.now(self.jst).strftime("%Y%m%d%H%M%S")
@@ -22,15 +21,13 @@ class SessionController:
         self.eval_results_list = np.empty((0, len(self.eval_results_col)), dtype=object)
 
     def _create_output_dir(self):
-
         d_dir = os.path.basename(self.loader.get("DATASETS_DIR_PATH"))
         path = f"{self.loader.get('USER_DIR')}/exp/{self.init_time}_{d_dir}_{self.loader.get('RETRAINING_MODE')}_{self.loader.get('MODEL_CODE')}"
         os.makedirs(path)
-        os.makedirs(f"{path}/wts")
+        os.makedirs(f"{path}/m1_weights")
         return path
 
     def _finalize(self, current_time, session):
-
         self.loader.append_log('INIT_TIME', self.init_time)
         self.loader.append_log('SESSION_END_DAYTIME', current_time.isoformat())
         elapsed_time = time.time() - self.jst.localize(datetime.strptime(self.init_time, "%Y%m%d%H%M%S")).timestamp()
@@ -72,7 +69,6 @@ class SessionController:
 
 
     def run(self, model):
-
         mode_map = {
             "dy": DynamicSession,
             "st": StaticSession,

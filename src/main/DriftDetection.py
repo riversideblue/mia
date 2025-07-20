@@ -23,7 +23,6 @@ class DetectionWindow:
 
     def update(self, row, c_time):
         self.cw.append(np.array(row, dtype=float))
-
         if not self.cw_date_q:
             self.cw_end_date = c_time - timedelta(seconds=self.cw_size)
             self.pw_end_date = self.cw_end_date - timedelta(seconds=self.pw_size)
@@ -40,9 +39,10 @@ class DetectionWindow:
         self.cw_date_q.append(c_time)
 
     def detect(self) -> bool:
+        if len(self.cw) < self.k or len(self.pw) < self.k:
+            return False
         scaled_cw = self._scale_window(self.cw)
         scaled_pw = self._scale_window(self.pw)
-
         method_dict = {
             0: cos_similarity,
             1: euc_distance,
@@ -56,7 +56,6 @@ class DetectionWindow:
     def detect_and_log(self, c_time: datetime, o_dir_path: str) -> bool:
         scaled_cw = self._scale_window(self.cw)
         scaled_pw = self._scale_window(self.pw)
-
         method_dict = {
             0: cos_similarity,
             1: euc_distance,
@@ -75,17 +74,17 @@ class DetectionWindow:
         return detected
 
     def _scale_window(self, window):
+        if not window:
+            return np.zeros((1, 14))  # または (0, 14) にするなど，状況に応じて調整
         window_arr = np.array(window)
         if window_arr.ndim == 1:
             window_arr = window_arr.reshape(1, -1)
-
-        try:
-            scaled_window = window_arr[:, :-1]  # 最後の列（ラベル）を除く
-        except IndexError:
+        if window_arr.shape[1] <= 1:  # ラベルしかない or 列がない
             return np.zeros((window_arr.shape[0], 14))
+        scaled_window = window_arr[:, :-1]
 
         # スケーリング対象のインデックス群
-        log_scale_idxs = [0, 1, 2, 3, 5]  # 対数正規化を行う特徴
+        log_scale_idxs = [0, 1, 2, 3, 5]  # 対数正規化
         well_known_port_idx = 4  # ポート分類
         interval_idxs = [6, 7, 10, 11]  # インターバル（秒）
         length_idxs = [8, 9, 12, 13]  # パケット長（バイト）
@@ -128,7 +127,6 @@ class WindowManager:
     def detect_all(self):
         # すべてのウィンドウがドリフト検出したか
         return all(w.detect() for w in self.windows)
-
 
 def cos_similarity(scaled_cw: np.ndarray, scaled_pw: np.ndarray, threshold: float, k: int) -> bool:
     """

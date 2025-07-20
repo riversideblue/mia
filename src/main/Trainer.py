@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 
-def train(model, rtr_list, output_dir_path, epochs, batch_size, rtr_date):
+def train(model, rtr_list, output_dir_path, epochs, batch_size, rtr_date, i=1):
 
     df = pd.DataFrame(rtr_list).dropna()
     features = df.iloc[:, :-1]
@@ -18,7 +18,7 @@ def train(model, rtr_list, output_dir_path, epochs, batch_size, rtr_date):
     loss = history.history["loss"][-1]
     str_rtr_date = rtr_date.strftime("%Y-%m-%dT%H:%M:%S")
 
-    with open(f"{output_dir_path}/wts/{str_rtr_date}.pickle", 'wb') as f:
+    with open(f"{output_dir_path}/m{i}_weights/{str_rtr_date}.pickle", 'wb') as f:
         pickle.dump(model.get_weights(), f)
 
     # データの統計情報
