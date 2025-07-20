@@ -10,8 +10,8 @@
  "DATASETS_DIR_PATH": "data/csv/wt2022+wt2022-da-0808165007",
  "SESSION_START_DATE": "2022-08-03 16:50:07",
  "TargetRange": {
-  "DAYS": 0,
-  "HOURS": 5,
+  "DAYS": 1,
+  "HOURS": 12,
   "MINUTES": 0,
   "SECONDS": 0
  },
@@ -20,7 +20,7 @@
   "RETRAINING_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
-    "EPOCHS": 1,
+    "EPOCHS": 10,
     "BATCH_SIZE": 256
   },
   "DriftDetection": {
@@ -32,7 +32,8 @@
     "K" : 8,
     "THRESHOLD": 0.01,
     "WindowConfig": [
-      {"CURRENT_WIN_SIZE": 600, "PAST_WIN_SIZE": 6000, "THRESHOLD": 0.01}
+      {"CURRENT_WIN_SIZE": 600, "PAST_WIN_SIZE": 6000, "THRESHOLD": 0.01},
+      {"CURRENT_WIN_SIZE": 600, "PAST_WIN_SIZE": 3000, "THRESHOLD": 0.01}
     ]
   }
 }

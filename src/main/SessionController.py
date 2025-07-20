@@ -1,7 +1,9 @@
 import time
 from datetime import timedelta
 
+import pandas as pd
 import pytz
+from sklearn.preprocessing import MinMaxScaler
 
 from SessionDefiner import *
 
@@ -27,14 +29,46 @@ class SessionController:
         os.makedirs(f"{path}/wts")
         return path
 
-    def _finalize(self, current_time):
+    def _finalize(self, current_time, session):
 
         self.loader.append_log('INIT_TIME', self.init_time)
         self.loader.append_log('SESSION_END_DAYTIME', current_time.isoformat())
         elapsed_time = time.time() - self.jst.localize(datetime.strptime(self.init_time, "%Y%m%d%H%M%S")).timestamp()
         self.loader.append_log('ELAPSED_TIME', elapsed_time)
-
         self.loader.save(f"{self.output_path}/settings_log.json")
+
+        # --- Results processing
+        add_results_col = ["nmr_fn_rate", "nmr_benign_rate"]
+        add_results_list = []
+
+        sum_fn = np.sum(session.eval_results_list[:, 5])
+
+        # nmr_flow_num_ratio
+        min_max_scaler = MinMaxScaler()
+        fn_rate = session.eval_results_list[:, 5] / sum_fn
+        reshaped_fn_rate = fn_rate.reshape(-1, 1)
+        scaled_fn_rate = min_max_scaler.fit_transform(reshaped_fn_rate)
+        add_results_list.append(scaled_fn_rate.flatten())
+
+        # nmr_benign_ratio
+        reshaped_ben_ratio = session.eval_results_list[:, 14].reshape(-1, 1)
+        scaled_ben_ratio = min_max_scaler.fit_transform(reshaped_ben_ratio)
+        add_results_list.append(scaled_ben_ratio.flatten())
+
+        # Convert additional results to a 2D array
+        add_results_list = np.array(add_results_list).T  # 転置して列形式に変換
+
+        # training results
+        tr_results = pd.DataFrame(session.tr_results_list, columns=self.tr_results_col)
+        tr_results.to_csv(os.path.join(self.output_path, "res_train.csv"), index=False)
+
+        # evaluate results
+        eval_results = pd.DataFrame(session.eval_results_list, columns=self.eval_results_col)
+        add_results = pd.DataFrame(add_results_list, columns=add_results_col)
+
+        # Combine evaluate_results with additional_results
+        eval_results = pd.concat([eval_results, add_results], axis=1)
+        eval_results.to_csv(os.path.join(self.output_path, "res_eval.csv"), index=False)
 
 
     def run(self, model):
@@ -51,4 +85,4 @@ class SessionController:
 
         session = session_cls(self.loader, model, self.tr_results_list, self.eval_results_list, self.output_path)
         current_time = session.run()
-        self._finalize(current_time=current_time)
+        self._finalize(current_time, session)

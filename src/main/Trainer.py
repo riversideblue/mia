@@ -1,8 +1,14 @@
 import time
 import pickle
 import numpy as np
+import pandas as pd
 
-def train(model, features, targets, output_dir_path, epochs, batch_size, rtr_date):
+
+def train(model, rtr_list, output_dir_path, epochs, batch_size, rtr_date):
+
+    df = pd.DataFrame(rtr_list).dropna()
+    features = df.iloc[:, :-1]
+    targets = df.iloc[:, -1]
 
     start_time = time.time()
     history = model.fit(features, targets, epochs=epochs, batch_size=batch_size)

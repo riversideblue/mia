@@ -1,14 +1,10 @@
 import numpy as np
-from joblib import Parallel, delayed
-from scipy.spatial.distance import cdist
-import pingouin as pg
 import faiss
 
 from collections import deque
 from datetime import datetime, timedelta
 import csv
-from joblib import Parallel, delayed
-from sklearn.metrics.pairwise import cosine_similarity
+
 class DetectionWindow:
     def __init__(self, model, cw_size, pw_size, threshold):
 
