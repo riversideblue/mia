@@ -5,7 +5,6 @@ import pandas as pd
 
 
 def train(model, rtr_list, output_dir_path, epochs, batch_size, rtr_date, i=1):
-
     df = pd.DataFrame(rtr_list).dropna()
     features = df.iloc[:, :-1]
     targets = df.iloc[:, -1]

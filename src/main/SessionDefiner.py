@@ -7,7 +7,6 @@ from DriftDetection import *
 
 class NoRetrainSession:
     def __init__(self, loader, model, tr_results_list, eval_results_list, output_path):
-
         self.y_trues = []
         self.y_preds = []
         self.loader = loader
