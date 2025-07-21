@@ -14,7 +14,7 @@ class SessionController:
         self.init_time = datetime.now(self.jst).strftime("%Y%m%d%H%M%S")
         self.output_path = self._create_output_dir()
         self.tr_results_col = ["daytime", "accuracy", "loss", "training_time", "benign_count", "malicious_count", "flow_num"]
-        self.tr_results_list = np.empty((1, 0, len(self.tr_results_col)), dtype=object)
+        self.tr_results_list = []
         # tr_results_list = (model num, step num, col num)
         self.eval_results_col = ["daytime", "TP", "FN", "FP", "TN", "flow_num", "TP_rate", "FN_rate", "FP_rate", "TN_rate",
                             "accuracy", "precision", "f1_score", "loss", "benign_rate"]
@@ -56,11 +56,9 @@ class SessionController:
         add_results_list = np.array(add_results_list).T  # 転置して列形式に変換
 
         # training results
-        print(self.tr_results_list)
-        print(self.tr_results_list[0])
-        for i in range(len(self.tr_results_list)):
-            tr_results = pd.DataFrame(session.tr_results_list[i], columns=self.tr_results_col)
-            tr_results.to_csv(os.path.join(self.output_path, f"res_train_m{i}.csv"), index=False)
+        for i, result_list in enumerate(session.tr_results_list):
+            df = pd.DataFrame(result_list, columns=self.tr_results_col)
+            df.to_csv(os.path.join(self.output_path, f"res_train_m{i}.csv"), index=False)
 
         # evaluate results
         eval_results = pd.DataFrame(session.eval_results_list, columns=self.eval_results_col)
