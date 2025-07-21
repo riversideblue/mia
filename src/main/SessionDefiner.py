@@ -117,12 +117,10 @@ class DynamicSession(NoRetrainSession):
     def __init__(self, loader, model, tr_results_list, eval_results_list, output_path):
         super().__init__(loader, model, tr_results_list, eval_results_list, output_path)
         self.dd_settings = loader.get('DriftDetection')
-        self.wm = WindowManager(model, self.dd_settings.get('WindowConfig'))
+        self.wm = WindowManager(model, self.dd_settings.get('WindowConfig'), self.dd_settings.get("ENSEMBLE_METHOD_CODE"))
         for i in range(len(self.wm.windows)):
             os.makedirs(f"{self.output_path}/m{i}_weights", exist_ok=True)
-        self.y_pred_by_window = [[] for _ in self.wm.windows]
-        # PW+CWの最大値 = 18000
-        self.next_dd_date = self.session_start_date + timedelta(seconds=5000)
+        self.next_dd_date = self.session_start_date + timedelta(seconds=self.wm.calc_first_wait_seconds())
 
     def _handle_row(self, row):
         self.current_time = datetime.strptime(row[self.row_headers.index("daytime")], "%Y-%m-%d %H:%M:%S")
@@ -132,17 +130,17 @@ class DynamicSession(NoRetrainSession):
         self._evaluate_if_needed()
         self.y_trues.append(int(row[-1]))
         for i, window in enumerate(self.wm.windows):
-            self.y_pred_by_window[i].append(self._predict(window.model, row))
+            self.wm.y_pred_arr[i].append(self._predict(window.model, row))
             self._retrain_if_needed_for_dd(row, window, i)
-        last_column = [last_column_x[-1] for last_column_x in self.y_pred_by_window]
-        self.y_preds.append(int(sum(last_column)>len(last_column)//2)) # y_pred_by_windowの総意
+        self.y_preds.append(self.wm.ensemble_window_results())
         return False
 
     def _retrain_if_needed_for_dd(self, row, window, i):
         if self.current_time > self.next_dd_date:
-            if window.detect():
-                window.model, tr_results_array = train(window.model, window.cw, self.output_path, self.epochs, self.batch_size,
-                                                self.current_time, i)
+            with tf.device("/GPU:0"):
+                if window.detect():
+                    window.model, tr_results_array = train(window.model, window.cw, self.output_path, self.epochs, self.batch_size,
+                                                    self.current_time, i)
             self.next_dd_date += timedelta(seconds=self.dd_settings.get('DRIFT_DETECTION_UNIT_INTERVAL'))
         self.wm.update_all(row[3:], self.current_time)
 

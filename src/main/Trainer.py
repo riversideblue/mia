@@ -24,6 +24,5 @@ def train(model, rtr_list, output_dir_path, epochs, batch_size, rtr_date, i=1):
     benign_count = np.sum(targets == 0)
     malicious_count = np.sum(targets == 1)
     flow_num = len(targets)
-
     return model, [rtr_date, accuracy, loss, training_time, benign_count, malicious_count, flow_num]
 

@@ -58,7 +58,7 @@ class DetectionWindow:
         scaled_pw = self._scale_window(self.pw)
         method_dict = {
             0: cos_similarity,
-            1: euc_distance,
+            1: euc_distance
         }
         method = method_dict.get(self.method_code)
         if method is None:
@@ -103,11 +103,13 @@ class DetectionWindow:
         return scaled_window
 
 class WindowManager:
-    def __init__(self, model, configs):
+    def __init__(self, model, configs, ensemble_method_code):
         self.windows = [
             DetectionWindow(model, cfg.get("CURRENT_WIN_SIZE"), cfg.get("PAST_WIN_SIZE"), cfg.get("METHOD_CODE"), cfg.get("K"), cfg.get("THRESHOLD"))
             for cfg in configs
         ]
+        self.y_pred_arr = [[] for _ in self.windows]
+        self.ensemble_method_code = ensemble_method_code
         print('Detection Window Manager Activate: ')
         print(self.windows)
 
@@ -115,18 +117,28 @@ class WindowManager:
         for w in self.windows:
             w.update(row, c_time)
 
-    def detect_any(self):
-        # 1つでも True を返せば検出とみなす
-        return any(w.detect() for w in self.windows)
+    def ensemble_window_results(self):
+        last_column = [last_column_x[-1] for last_column_x in self.y_pred_arr]
+        ensemble_method_dict = {
+            0: self._use_first_model_only(last_column),
+            1: self._majority_vote(last_column),
+        }
+        method = ensemble_method_dict.get(self.ensemble_method_code)
+        if method is None:
+            raise ValueError(f"Invalid method_code: {self.ensemble_method_code}")
+        return method
 
-    def detect_by_a_majority(self):
-        # 検出されたウィンドウが過半数なら検出
-        detection_votes = sum(w.detect() for w in self.windows)
-        return detection_votes > len(self.windows) // 2
+    def calc_first_wait_seconds(self):
+        return max([w.cw_size + w.pw_size for w in self.windows])
 
-    def detect_all(self):
-        # すべてのウィンドウがドリフト検出したか
-        return all(w.detect() for w in self.windows)
+    def _use_first_model_only(self, last_column):
+        if not last_column:
+            raise ValueError("last_column is empty")
+        return int(last_column[0])
+
+    def _majority_vote(self, last_column):
+        return int(sum(last_column)>len(last_column)//2)
+
 
 def cos_similarity(scaled_cw: np.ndarray, scaled_pw: np.ndarray, threshold: float, k: int) -> bool:
     """
