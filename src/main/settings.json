@@ -4,19 +4,19 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "USER_DIR" : "/home/murasemaru/nids-cdd",
+  "USER_DIR" : "/mnt/nas0/g005/murasemaru",
   "MODEL_CODE" : 0,
- "FOUNDATION_MODEL_PATH": "",
- "DATASETS_DIR_PATH": "data/csv/wt2022+wt2022-da-0808165007",
- "SESSION_START_DATE": "2022-08-04 16:50:07",
+ "FOUNDATION_MODEL_PATH": "exp/3_Eval/20220110-20220114_UsEast/fm/dnn_e30b10/wts/2022-01-11T02:00:04.pickle",
+ "DATASETS_DIR_PATH": "/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220110-20220114/2201UkSouth+2201Lab02",
+ "SESSION_START_DATE": "2022-01-11 03:00:00",
  "TargetRange": {
-  "DAYS": 0,
-  "HOURS": 6,
+  "DAYS": 1,
+  "HOURS": 18,
   "MINUTES": 0,
   "SECONDS": 0
  },
   "ONLINE_MODE": 0,
-  "RETRAINING_MODE": "st",
+  "RETRAINING_MODE": "dy",
   "RETRAINING_INTERVAL": 3600,
   "EVALUATE_UNIT_INTERVAL" : 3600,
   "TrainingDefine": {
@@ -25,11 +25,10 @@
   },
   "DriftDetection": {
     "OBS_MODE": 0,
-    "DRIFT_DETECTION_UNIT_INTERVAL" : 5,
-    "ENSEMBLE_METHOD_CODE" : 1,
+    "DRIFT_DETECTION_UNIT_INTERVAL" : 15,
+    "ENSEMBLE_METHOD_CODE" : 0,
     "WindowConfig": [
-      {"CURRENT_WIN_SIZE": 600, "PAST_WIN_SIZE": 1200, "METHOD_CODE": 1, "K" : 8, "THRESHOLD": 0.05},
-      {"CURRENT_WIN_SIZE": 600, "PAST_WIN_SIZE": 3600, "METHOD_CODE": 1, "K" : 8, "THRESHOLD": 0.05}
+      {"CURRENT_WIN_SIZE": 600, "PAST_WIN_SIZE": 3600, "METHOD_CODE": 1, "K" : 8, "THRESHOLD": 0.03}
     ]
   }
 }
