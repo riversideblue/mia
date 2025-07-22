@@ -139,12 +139,13 @@ class DynamicSession(NoRetrainSession):
         if self.current_time > self.next_dd_date:
             with tf.device("/GPU:0"):
                 if window.detect():
-                    window.model, tr_results_array = train(window.model, window.cw, self.output_path, self.epochs, self.batch_size,
-                                                    self.current_time, i)
-                    print(tr_results_array)
-                    print(self.tr_results_list)
-                    print(self.tr_results_list[i])
-                    self.tr_results_list[i] = np.vstack([self.tr_results_list[i], tr_results_array])
+                    window.model, tr_results_array = train(
+                        window.model, window.cw, self.output_path,
+                        self.epochs, self.batch_size, self.current_time, i
+                    )
+                    while len(self.tr_results_list) <= i:
+                        self.tr_results_list.append([])
+                    self.tr_results_list[i].append(tr_results_array)
             self.next_dd_date += timedelta(seconds=self.dd_settings.get('DRIFT_DETECTION_UNIT_INTERVAL'))
         self.wm.update_all(row[3:], self.current_time)
 
@@ -156,11 +157,12 @@ class StaticSession(NoRetrainSession):
     def _retrain_if_needed(self, row):
         if self.current_time > self.next_rtr_date:
             with tf.device("/GPU:0"):
-                self.model, tr_results_array = train(self.model, self.rtr_list, self.output_path, self.epochs, self.batch_size, self.current_time)
+                self.model, tr_results_array = train(self.model, self.rtr_list, self.output_path, self.epochs,
+                                                     self.batch_size, self.current_time)
                 self.rtr_list = []
+            # 動的にリストを拡張（最初だけ）
+            if len(self.tr_results_list) == 0:
+                self.tr_results_list.append([])
+            self.tr_results_list[0].append(tr_results_array)
             self.next_rtr_date += timedelta(seconds=self.rtr_int)
-            print(tr_results_array)
-            print(self.tr_results_list[0])
-            self.tr_results_list[0] = np.vstack([self.tr_results_list[0], tr_results_array])
-            print(self.tr_results_list[0])
         self.rtr_list.append(np.array(row[3:], dtype=float))

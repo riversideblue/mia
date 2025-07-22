@@ -28,7 +28,11 @@
     "DRIFT_DETECTION_UNIT_INTERVAL" : 15,
     "ENSEMBLE_METHOD_CODE" : 0,
     "WindowConfig": [
+<<<<<<< HEAD
       {"CURRENT_WIN_SIZE": 600, "PAST_WIN_SIZE": 3600, "METHOD_CODE": 1, "K" : 8, "THRESHOLD": 0.03}
+=======
+      {"CURRENT_WIN_SIZE": 600, "PAST_WIN_SIZE": 1200, "METHOD_CODE": 1, "K" : 8, "THRESHOLD": 0.05}
+>>>>>>> c88dc3b26a6a316eeb295a60ce636074fa279692
     ]
   }
 }
