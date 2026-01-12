@@ -18,5 +18,10 @@ zeek-logs:
 	OUT_DIR="$$(realpath "$$OUT_DIR")"; \
 	cd "$$OUT_DIR" && zeek -r "$$PCAP_REAL" LogAscii::use_json=T
 
+.PHONY: log-to-csv
 log-to-csv:
-	python3 util/LogToCsvExtractor.py ./data/logs/$(basename ${1:? "pcap file required"} .pcap) ./data/csv/$(basename ${1:? "pcap file required"} .pcap).csv
+	@[ -n "$(LOG_DIR)" ] || { echo "LOG_DIR required (usage: make log-to-csv LOG_DIR=/path/to/logs)"; exit 1; }
+	@[ -n "$(OUT_CSV)" ] || { echo "OUT_CSV required (usage: make log-to-csv LOG_DIR=/path/to/logs OUT_CSV=/path/to/out.csv)"; exit 1; }
+	@python3 "$(ROOT_DIR)/src/util/LogToCsvExtractor.py" "$(LOG_DIR)" "$(OUT_CSV)" \
+		--pattern "$(PATTERN)" \
+		$(if $(NETWORK_KEY),--network-key "$(NETWORK_KEY)",)
