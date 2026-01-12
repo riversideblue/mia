@@ -4,9 +4,46 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "USER_DIR" : "",
+ "USER_DIR" : "",
   "MODEL_CODE" : 0,
- "FOUNDATION_MODEL_PATH": "",
+  "FOUNDATION_MODEL_PATH": "",
+  "FeatureSchema": {
+    "MODE": "split",
+    "LABEL_COLUMN": "label",
+    "LEGACY_FEATURES": [
+      "rcv_packet_count",
+      "snd_packet_count",
+      "tcp_count",
+      "udp_count",
+      "most_port",
+      "port_count",
+      "rcv_max_interval",
+      "rcv_min_interval",
+      "rcv_max_length",
+      "rcv_min_length",
+      "snd_max_interval",
+      "snd_min_interval",
+      "snd_max_length",
+      "snd_min_length"
+    ],
+    "LABEL_FEATURES": [
+      "proto",
+      "service",
+      "conn_state"
+    ],
+    "VECTOR_FEATURES": [
+      "duration",
+      "orig_bytes",
+      "resp_bytes",
+      "orig_pkts",
+      "resp_pkts",
+      "orig_ip_bytes",
+      "resp_ip_bytes",
+      "missed_bytes",
+      "local_orig",
+      "local_resp"
+    ]
+  },
  "DATASETS_DIR_PATH": "",
  "SESSION_START_DATE": "2022-01-11 03:00:00",
  "TargetRange": {

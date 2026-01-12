@@ -1,4 +1,5 @@
 import time
+import re
 
 import pandas as pd
 import pytz
@@ -56,9 +57,24 @@ class SessionController:
         add_results_list = np.array(add_results_list).T  # 転置して列形式に変換
 
         # training results
-        for i, result_list in enumerate(session.tr_results_list):
-            df = pd.DataFrame(result_list, columns=self.tr_results_col)
-            df.to_csv(os.path.join(self.output_path, f"res_train_m{i}.csv"), index=False)
+        if isinstance(session.tr_results_list, dict):
+            for key, window_lists in session.tr_results_list.items():
+                safe_key = self._sanitize_key(key)
+                if not window_lists:
+                    continue
+                if window_lists and isinstance(window_lists[0], list):
+                    for i, result_list in enumerate(window_lists):
+                        if not result_list:
+                            continue
+                        df = pd.DataFrame(result_list, columns=self.tr_results_col)
+                        df.to_csv(os.path.join(self.output_path, f"res_train_{safe_key}_m{i}.csv"), index=False)
+                else:
+                    df = pd.DataFrame(window_lists, columns=self.tr_results_col)
+                    df.to_csv(os.path.join(self.output_path, f"res_train_{safe_key}.csv"), index=False)
+        else:
+            for i, result_list in enumerate(session.tr_results_list):
+                df = pd.DataFrame(result_list, columns=self.tr_results_col)
+                df.to_csv(os.path.join(self.output_path, f"res_train_m{i}.csv"), index=False)
 
         # evaluate results
         eval_results = pd.DataFrame(session.eval_results_list, columns=self.eval_results_col)
@@ -68,8 +84,11 @@ class SessionController:
         eval_results = pd.concat([eval_results, add_results], axis=1)
         eval_results.to_csv(os.path.join(self.output_path, "res_eval.csv"), index=False)
 
+    def _sanitize_key(self, key):
+        return re.sub(r"[^A-Za-z0-9._-]+", "_", key).strip("_") or "default"
 
-    def run(self, model):
+
+    def run(self, model_factory):
         mode_map = {
             "dy": DynamicSession,
             "st": StaticSession,
@@ -80,6 +99,6 @@ class SessionController:
         if not session_cls:
             raise ValueError(f"Invalid RETRAINING_MODE: {mode}")
 
-        session = session_cls(self.loader, model, self.tr_results_list, self.eval_results_list, self.output_path)
+        session = session_cls(self.loader, model_factory, self.tr_results_list, self.eval_results_list, self.output_path)
         current_time = session.run()
         self._finalize(current_time, session)

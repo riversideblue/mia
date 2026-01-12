@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import csv
 
 class DetectionWindow:
-    def __init__(self, model, cw_size, pw_size, method_code, k, threshold):
+    def __init__(self, model, cw_size, pw_size, method_code, k, threshold, feature_columns, scaling_rules):
         self.model = model
         self.cw = deque()
         self.cw_size = cw_size
@@ -20,6 +20,9 @@ class DetectionWindow:
         self.method_code = method_code
         self.k = k
         self.threshold = threshold
+        self.feature_columns = feature_columns
+        self._feature_idx_map = {name: idx for idx, name in enumerate(feature_columns)}
+        self.scaling_rules = scaling_rules
 
     def update(self, row, c_time):
         self.cw.append(np.array(row, dtype=float))
@@ -74,38 +77,69 @@ class DetectionWindow:
         return detected
 
     def _scale_window(self, window):
+        feature_dim = len(self.feature_columns)
         if not window:
-            return np.zeros((1, 14))  # または (0, 14) にするなど，状況に応じて調整
+            return np.zeros((1, feature_dim))
         window_arr = np.array(window)
         if window_arr.ndim == 1:
             window_arr = window_arr.reshape(1, -1)
         if window_arr.shape[1] <= 1:  # ラベルしかない or 列がない
-            return np.zeros((window_arr.shape[0], 14))
+            return np.zeros((window_arr.shape[0], feature_dim))
         scaled_window = window_arr[:, :-1]
+        if scaled_window.shape[1] != feature_dim:
+            return scaled_window
 
         # スケーリング対象のインデックス群
-        log_scale_idxs = [0, 1, 2, 3, 5]  # 対数正規化
-        well_known_port_idx = 4  # ポート分類
-        interval_idxs = [6, 7, 10, 11]  # インターバル（秒）
-        length_idxs = [8, 9, 12, 13]  # パケット長（バイト）
+        log_scale_names = self.scaling_rules.get("log_scale", [])
+        log_scale_no_divide = self.scaling_rules.get("log_scale_no_divide", [])
+        interval_names = self.scaling_rules.get("interval", [])
+        length_names = self.scaling_rules.get("length", [])
+        port_bucket_names = self.scaling_rules.get("port_bucket", [])
 
-        scaled_window[:, log_scale_idxs] /= 1000
-        scaled_window[:, log_scale_idxs] = np.log1p(scaled_window[:, log_scale_idxs])
-        port_vals = scaled_window[:, well_known_port_idx]
-        scaled_window[:, well_known_port_idx] = np.select(
-            [port_vals <= 1023, port_vals <= 49151],
-            [0.0, 0.5],
-            default=1.0
-        )
-        scaled_window[:, interval_idxs] /= 60
-        scaled_window[:, length_idxs] /= 10000
+        log_scale_idxs = [self._feature_idx_map[name] for name in log_scale_names if name in self._feature_idx_map]
+        log_scale_no_divide_idxs = [
+            self._feature_idx_map[name]
+            for name in log_scale_no_divide
+            if name in self._feature_idx_map
+        ]
+        interval_idxs = [self._feature_idx_map[name] for name in interval_names if name in self._feature_idx_map]
+        length_idxs = [self._feature_idx_map[name] for name in length_names if name in self._feature_idx_map]
+        port_idx = self._feature_idx_map.get(port_bucket_names[0]) if port_bucket_names else None
+
+        if log_scale_idxs:
+            scaled_window[:, log_scale_idxs] /= 1000
+            scaled_window[:, log_scale_idxs] = np.log1p(scaled_window[:, log_scale_idxs])
+        if log_scale_no_divide_idxs:
+            scaled_window[:, log_scale_no_divide_idxs] = np.log1p(
+                scaled_window[:, log_scale_no_divide_idxs]
+            )
+        if port_idx is not None:
+            port_vals = scaled_window[:, port_idx]
+            scaled_window[:, port_idx] = np.select(
+                [port_vals <= 1023, port_vals <= 49151],
+                [0.0, 0.5],
+                default=1.0
+            )
+        if interval_idxs:
+            scaled_window[:, interval_idxs] /= 60
+        if length_idxs:
+            scaled_window[:, length_idxs] /= 10000
 
         return scaled_window
 
 class WindowManager:
-    def __init__(self, model, configs, ensemble_method_code):
+    def __init__(self, model, configs, ensemble_method_code, feature_columns, scaling_rules):
         self.windows = [
-            DetectionWindow(model, cfg.get("CURRENT_WIN_SIZE"), cfg.get("PAST_WIN_SIZE"), cfg.get("METHOD_CODE"), cfg.get("K"), cfg.get("THRESHOLD"))
+            DetectionWindow(
+                model,
+                cfg.get("CURRENT_WIN_SIZE"),
+                cfg.get("PAST_WIN_SIZE"),
+                cfg.get("METHOD_CODE"),
+                cfg.get("K"),
+                cfg.get("THRESHOLD"),
+                feature_columns,
+                scaling_rules,
+            )
             for cfg in configs
         ]
         self.y_pred_arr = [[] for _ in self.windows]
@@ -215,5 +249,3 @@ def euc_distance_HNSW(scaled_cw: np.ndarray, scaled_pw: np.ndarray, threshold: f
     print(f"mean: {mean_distance}")
 
     return mean_distance, mean_distance > threshold
-
-
