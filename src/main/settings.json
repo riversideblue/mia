@@ -4,10 +4,10 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
-  "USER_DIR" : "/mnt/nas0/g005/murasemaru",
+  "USER_DIR" : "",
   "MODEL_CODE" : 0,
- "FOUNDATION_MODEL_PATH": "exp/3_Eval/20220110-20220114_UsEast/fm/dnn_e30b10/wts/2022-01-11T02:00:04.pickle",
- "DATASETS_DIR_PATH": "/mnt/nas0/g005/murasemaru/data/csv/modif/filtered_20220110-20220114/2201UkSouth+2201Lab02",
+ "FOUNDATION_MODEL_PATH": "",
+ "DATASETS_DIR_PATH": "",
  "SESSION_START_DATE": "2022-01-11 03:00:00",
  "TargetRange": {
   "DAYS": 1,

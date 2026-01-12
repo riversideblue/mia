@@ -6,8 +6,12 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable, Iterator, List, Sequence
+
+
+JST = timezone(timedelta(hours=9))
 
 
 def parse_args() -> argparse.Namespace:
@@ -59,12 +63,24 @@ def collect_header(records: Iterable[dict]) -> List[str]:
     header: List[str] = []
     for record in records:
         for key in record.keys():
-            if key not in seen:
-                seen.add(key)
-                header.append(key)
+            normalized_key = "daytime" if key == "ts" else key
+            if normalized_key not in seen:
+                seen.add(normalized_key)
+                header.append(normalized_key)
     if not header:
         raise SystemExit("No JSON objects were found in the provided log files.")
     return header
+
+
+def convert_ts_to_daytime(value) -> str:
+    if value is None or value == "":
+        return ""
+    try:
+        ts = float(value)
+    except (TypeError, ValueError):
+        return ""
+    utc_dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+    return utc_dt.astimezone(JST).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def normalize_value(value):
@@ -81,7 +97,12 @@ def write_csv(files: Sequence[Path], header: Sequence[str], destination: Path) -
         writer = csv.DictWriter(csv_file, fieldnames=header, extrasaction="ignore")
         writer.writeheader()
         for record in iter_records(files):
-            row = {key: normalize_value(record.get(key, "")) for key in header}
+            row = {}
+            for key in header:
+                if key == "daytime":
+                    row[key] = convert_ts_to_daytime(record.get("ts", record.get("daytime", "")))
+                else:
+                    row[key] = normalize_value(record.get(key, ""))
             writer.writerow(row)
 
 

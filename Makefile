@@ -19,4 +19,4 @@ zeek-logs:
 	cd "$$OUT_DIR" && zeek -r "$$PCAP_REAL" LogAscii::use_json=T
 
 log-to-csv:
-	python3 utils/LogToCsvExtractor.py ./data/logs/$(basename ${1:? "pcap file required"} .pcap) ./data/csv/$(basename ${1:? "pcap file required"} .pcap).csv
+	python3 util/LogToCsvExtractor.py ./data/logs/$(basename ${1:? "pcap file required"} .pcap) ./data/csv/$(basename ${1:? "pcap file required"} .pcap).csv
