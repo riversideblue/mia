@@ -10,6 +10,7 @@ class NoRetrainSession:
     def __init__(self, loader, model_factory, tr_results_list, eval_results_list, output_path):
         self.y_trues = []
         self.y_preds = []
+        self.y_pred_keys = []
         self.loader = loader
         self.model_factory = model_factory
         self.model_registry = {"default": self.model_factory.foundation_model}
@@ -75,6 +76,7 @@ class NoRetrainSession:
         label = self._extract_label(row)
         label_key = self._make_label_key(row)
         self.y_trues.append(label)
+        self.y_pred_keys.append(label_key)
         model = self._get_or_create_model(label_key)
         self.y_preds.append(self._predict(model, features))
         self._retrain_if_needed(features, label, label_key)
@@ -116,10 +118,11 @@ class NoRetrainSession:
             with tf.device("/GPU:0"):
                 print("--- evaluate model")
                 evaluate_daytime = self.next_eval_date - timedelta(seconds=self.eval_unit_int / 2)
-                eval_arr = [evaluate_daytime] + evaluate(self.y_trues, self.y_preds, tf)
+                eval_arr = [evaluate_daytime, self._summarize_label_keys()] + evaluate(self.y_trues, self.y_preds, tf)
                 self.eval_results_list = np.vstack([self.eval_results_list, eval_arr])
                 self.y_trues.clear()
                 self.y_preds.clear()
+                self.y_pred_keys.clear()
                 self.next_eval_date += timedelta(seconds=self.eval_unit_int)
 
     def _predict(self, model, features):
@@ -215,7 +218,23 @@ class NoRetrainSession:
         for i in self.feature_indices:
             value = row[i]
             try:
-                features.append(float(value))
+                col_name = self.row_headers[i] if i < len(self.row_headers) else ""
+                if value == "" and col_name in (
+                    "duration",
+                    "orig_bytes",
+                    "resp_bytes",
+                    "orig_pkts",
+                    "resp_pkts",
+                    "orig_ip_bytes",
+                    "resp_ip_bytes",
+                    "missed_bytes",
+                ):
+                    features.append(0.0)
+                    continue
+                if col_name in ("local_orig", "local_resp"):
+                    features.append(float(self._coerce_bool(value)))
+                else:
+                    features.append(float(value))
             except (TypeError, ValueError):
                 col_name = self.row_headers[i] if i < len(self.row_headers) else f"index {i}"
                 raise ValueError(f"Non-numeric feature value in column '{col_name}': {value}")
@@ -229,6 +248,18 @@ class NoRetrainSession:
             col_name = self.row_headers[self.label_index]
             raise ValueError(f"Non-numeric label value in column '{col_name}': {value}")
 
+    def _coerce_bool(self, value):
+        if isinstance(value, bool):
+            return 1 if value else 0
+        if value is None:
+            raise ValueError("Missing boolean value.")
+        normalized = str(value).strip().lower()
+        if normalized in ("1", "true", "t", "yes", "y"):
+            return 1
+        if normalized in ("0", "false", "f", "no", "n"):
+            return 0
+        raise ValueError(f"Invalid boolean value: {value}")
+
     def _make_label_key(self, row):
         if self.feature_mode != "split":
             return "default"
@@ -237,6 +268,14 @@ class NoRetrainSession:
             value = row[idx]
             values.append("" if value is None else str(value))
         return "|".join(values) if values else "default"
+
+    def _summarize_label_keys(self):
+        if not self.y_pred_keys:
+            return "none"
+        unique = sorted(set(self.y_pred_keys))
+        if len(unique) == 1:
+            return unique[0]
+        return f"mixed:{len(unique)}"
 
     def _sanitize_key(self, key):
         return re.sub(r"[^A-Za-z0-9._-]+", "_", key).strip("_") or "default"
@@ -304,6 +343,7 @@ class DynamicSession(NoRetrainSession):
         label = self._extract_label(row)
         self.y_trues.append(label)
         label_key = self._make_label_key(row)
+        self.y_pred_keys.append(label_key)
         wm = self._get_or_create_window_manager(label_key)
         for i, window in enumerate(wm.windows):
             wm.y_pred_arr[i].append(self._predict(window.model, features))

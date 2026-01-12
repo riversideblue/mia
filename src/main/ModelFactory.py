@@ -3,7 +3,6 @@ import pickle
 import pandas as pd
 
 import tensorflow as tf
-import tensorflow_decision_forests as tfdf
 
 class ModelFactory:
 
@@ -26,7 +25,7 @@ class ModelFactory:
         if creator is None:
             raise ValueError(f"Invalid model_code: {model_code}")
 
-        model = creator(tfdf if model_code in (7,8) else tf, self.input_dim)
+        model = creator(tf, self.input_dim)
         if self._has_saved_weights():
             with open(self.full_path, 'rb') as f:
                 model.set_weights(pickle.load(f))
@@ -121,37 +120,8 @@ def lstm(tf, input_dim):
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
-def random_forest(tfdf, input_dim=None):
-    class CustomRandomForestModel(tfdf.keras.RandomForestModel):
-        def fit(self, x=None, y=None, **kwargs):
-            # x が Pandas DataFrame の場合、自動で変換
-            if isinstance(x, pd.DataFrame):
-                if 'label' not in kwargs:
-                    raise ValueError("Please provide the label column name as `label='your_label_column'`.")
-                x = tfdf.keras.pd_dataframe_to_tf_dataset(x, label=kwargs.pop('label'))
-            super().fit(x, y, **kwargs)
+def random_forest(tf, input_dim=None):
+    raise ValueError("random_forest requires tensorflow_decision_forests, which is not installed.")
 
-    # モデルの構築
-    model = CustomRandomForestModel(
-        task=tfdf.keras.Task.CLASSIFICATION,  # 分類タスク
-        num_trees=100,  # 決定木の数
-    )
-    return model
-
-def gradient_boosting(tfdf, input_dim=None):
-    class CustomGradientBoostingModel(tfdf.keras.GradientBoostedTreesModel):
-        def fit(self, x=None, y=None, **kwargs):
-            # x が Pandas DataFrame の場合、自動で変換
-            if isinstance(x, pd.DataFrame):
-                if 'label' not in kwargs:
-                    raise ValueError("Please provide the label column name as `label='your_label_column'`.")
-                x = tfdf.keras.pd_dataframe_to_tf_dataset(x, label=kwargs.pop('label'))
-            super().fit(x, y, **kwargs)
-
-    # モデルの構築
-    model = CustomGradientBoostingModel(
-        task=tfdf.keras.Task.CLASSIFICATION,  # 分類タスク
-        num_trees=100,  # 決定木の数
-        max_depth=6,    # 決定木の深さ
-    )
-    return model
+def gradient_boosting(tf, input_dim=None):
+    raise ValueError("gradient_boosting requires tensorflow_decision_forests, which is not installed.")

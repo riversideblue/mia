@@ -5,7 +5,9 @@ import pytz
 
 class SettingsLoader:
 
-    def __init__(self, path="src/main/settings.json"):
+    def __init__(self, path=None):
+        if path is None:
+            path = os.path.join(os.path.dirname(__file__), "settings.json")
         with open(path, "r") as f:
             self.settings = json.load(f)
         print(json.dumps(self.settings, indent=2, ensure_ascii=False))
