@@ -24,21 +24,6 @@ class SettingsLoader:
         os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = self.settings["OS"]["TF_FORCE_GPU_ALLOW_GROWTH"]
         os.environ["CUDA_VISIBLE_DEVICES"] = self.settings["OS"]["CUDA_VISIBLE_DEVICES"]
 
-    def resolve_input_dim(self):
-        schema = self.settings.get("FeatureSchema", {})
-        mode = schema.get("MODE", "legacy")
-        if mode == "split":
-            features = schema.get("VECTOR_FEATURES", [])
-        elif mode == "legacy":
-            features = schema.get("LEGACY_FEATURES", [])
-        else:
-            raise ValueError(f"Invalid FeatureSchema MODE: {mode}")
-        if not features:
-            raise ValueError("FeatureSchema must define non-empty feature list.")
-        print(features)
-        print(len(features))
-        return len(features)
-
     def get(self, key):
         return self.settings[key]
 
