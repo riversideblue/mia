@@ -1,4 +1,11 @@
 ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+VENV_PYTHON := $(ROOT_DIR)/.venv/bin/python
+
+ifneq ($(wildcard $(VENV_PYTHON)),)
+PYTHON ?= $(VENV_PYTHON)
+else
+PYTHON ?= python3
+endif
 
 ifneq ($(filter zeek-logs,$(MAKECMDGOALS)),)
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
@@ -7,7 +14,7 @@ endif
 
 .PHONY: run
 run:
-	@cd "$(ROOT_DIR)/src/main" && python3 Run.py
+	@cd "$(ROOT_DIR)/src/main" && "$(PYTHON)" Run.py
 
 .PHONY: zeek-logs
 zeek-logs:
@@ -22,6 +29,6 @@ zeek-logs:
 log-to-csv:
 	@[ -n "$(LOG_DIR)" ] || { echo "LOG_DIR required (usage: make log-to-csv LOG_DIR=/path/to/logs)"; exit 1; }
 	@[ -n "$(OUT_CSV)" ] || { echo "OUT_CSV required (usage: make log-to-csv LOG_DIR=/path/to/logs OUT_CSV=/path/to/out.csv)"; exit 1; }
-	@python3 "$(ROOT_DIR)/src/util/LogToCsvExtractor.py" "$(LOG_DIR)" "$(OUT_CSV)" \
+	@"$(PYTHON)" "$(ROOT_DIR)/src/util/LogToCsvExtractor.py" "$(LOG_DIR)" "$(OUT_CSV)" \
 		--pattern "$(PATTERN)" \
 		$(if $(NETWORK_KEY),--network-key "$(NETWORK_KEY)",)
