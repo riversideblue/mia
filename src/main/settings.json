@@ -4,7 +4,7 @@
     "TF_FORCE_GPU_ALLOW_GROWTH": "true",
     "CUDA_VISIBLE_DEVICES": "-1"
   },
- "USER_DIR" : "/mnt/c/Users/murase/nids-cdd",
+ "USER_DIR" : "/home/mnl/adids",
   "MODEL_CODE" : 0,
   "FOUNDATION_MODEL_PATH": "",
   "FeatureSchema": {
@@ -42,7 +42,7 @@
       "local_resp"
     ]
   },
- "DATASETS_DIR_PATH": "/mnt/c/Users/murase/nids-cdd/data/csv/20220803165007",
+ "DATASETS_DIR_PATH": "/home/mnl/adids/data/csv",
  "SESSION_START_DATE": "2022-08-03 16:50:07",
  "TargetRange": {
   "DAYS": 1,

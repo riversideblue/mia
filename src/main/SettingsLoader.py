@@ -27,6 +27,19 @@ class SettingsLoader:
     def get(self, key):
         return self.settings[key]
 
+    def resolve_input_dim(self):
+        feature_schema = self.settings.get("FeatureSchema", {})
+        mode = feature_schema.get("MODE", "legacy")
+        if mode == "split":
+            features = feature_schema.get("VECTOR_FEATURES", [])
+        elif mode == "legacy":
+            features = feature_schema.get("LEGACY_FEATURES", [])
+        else:
+            raise ValueError(f"Invalid FeatureSchema MODE: {mode}")
+        if not features:
+            raise ValueError("FeatureSchema feature list is empty.")
+        return len(features)
+
     def append_log(self, key, value):
         if "Log" not in self.settings:
             self.settings["Log"] = {}

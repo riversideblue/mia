@@ -12,6 +12,18 @@ ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 PCAP ?= $(firstword $(ARGS))
 endif
 
+.PHONY: venv
+venv:
+	@/usr/bin/python3.11 -m venv "$(ROOT_DIR)/.venv"
+
+.PHONY: install
+install:
+	@"$(ROOT_DIR)/.venv/bin/python" -m pip install --upgrade pip
+	@"$(ROOT_DIR)/.venv/bin/python" -m pip install -r "$(ROOT_DIR)/requirements.txt"
+
+.PHONY: bootstrap
+bootstrap: venv install
+
 .PHONY: run
 run:
 	@cd "$(ROOT_DIR)/src/main" && "$(PYTHON)" Run.py
